@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Our Wrapped</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+</head>
+<body>
+  <main class="app">
+    <div class="intro">
+      <h1>Our<span>Wrapped.</span></h1>
+      <p>Your chat, as a story. Export a WhatsApp chat as .txt "Without media" and drop it in. Everything happens on this device: no upload, no account.</p>
+      <div class="row">
+        <label class="btn primary" for="file">Use my chat (.txt)</label>
+        <input type="file" id="file" accept=".txt,text/plain">
+        <button class="btn" id="sample" type="button">Example chat</button>
+      </div>
+      <div class="status" id="status" aria-live="polite">Loading…</div>
+
+      <form class="note" id="noteForm">
+        <label for="note">Your message for the last slide <span>(optional)</span></label>
+        <textarea id="note" rows="4" maxlength="280" placeholder="Every number here is us. Thank you for every good morning."></textarea>
+        <div class="row">
+          <input id="signed" type="text" maxlength="40" placeholder="Signed (e.g. your name)" aria-label="Signed">
+          <button class="btn primary" type="submit">Add to the story</button>
+        </div>
+        <small>Saved as a draft on this device only.</small>
+      </form>
+    </div>
+
+    <div class="phone">
+      <div class="device">
+        <div class="screen" id="screen" tabindex="0" aria-label="Story. Tap right for next, left for previous.">
+          <div class="bars" id="bars"></div>
+          <div class="card" id="card"></div>
+        </div>
+      </div>
+      <div class="ctrl"><button id="pause" type="button">Pause</button><button id="restart" type="button">Restart</button></div>
+    </div>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
