@@ -107,5 +107,7 @@ export function createPlayer({ screen, card, bars, pauseButton }) {
       show(0);
     },
     restart() { show(0); },
+    current() { return { slide: slides[idx], stats }; },
+    setHeld(v) { held = v; },
   };
 }

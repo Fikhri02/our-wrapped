@@ -93,3 +93,12 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card.enter .hours i { transform-origin: bottom; animation: grow .6s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.25s + var(--i) * 25ms); }
 .card.enter .split { transform-origin: left; animation: wipe .7s cubic-bezier(.2, .8, .2, 1) .25s both; }
 @media (prefers-reduced-motion: reduce) { .card.enter *, .card.enter > * { animation: none !important; } }
+
+/* share card export: offscreen 9:16 frame, same slide styles */
+.export-stage { position: fixed; left: -10000px; top: 0; }
+.export-frame { position: relative; overflow: hidden; }
+.export-frame .card { padding: 56px 28px 34px; transition: none; }
+.export-mark { position: absolute; top: 22px; right: 28px; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; opacity: .6; }
+.share-status { text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted); min-height: 1.5em; margin-top: 6px; }
+.ctrl button:disabled { opacity: .5; cursor: progress; }
+.card .mid + .big { margin-top: 12px; }
