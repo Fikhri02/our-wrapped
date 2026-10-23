@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
-import { firstTexter, longestStreak, median, replySpeed, stats, talker } from '../src/stats.js';
+import { bubbles, firstTexter, longestStreak, median, replySpeed, stats, talker } from '../src/stats.js';
 import { formatReply } from '../src/format.js';
 import { makeSample } from '../src/sample.js';
 
@@ -75,5 +75,25 @@ describe('talker', () => {
     expect(t.words).toEqual({ A: 4, B: 1 });
     expect(t.doubles).toEqual({ A: 1, B: 0 });
     expect(t.avg.A).toBe(2);
+  });
+});
+
+describe('bubbles', () => {
+  it('averages messages per turn and finds the longest burst', () => {
+    const msgs = parse([
+      '1/1/26, 10:00 - A: hey', '1/1/26, 10:00 - A: so', '1/1/26, 10:01 - A: guess what', '1/1/26, 10:01 - A: !!',
+      '1/1/26, 10:02 - B: what',
+      '1/1/26, 10:03 - A: ok', '1/1/26, 10:03 - A: tell u later',
+      '1/1/26, 10:05 - B: ok',
+    ].join('\n'));
+    const b = bubbles(msgs, ['A', 'B']);
+    expect(b.avg.A).toBe(3); // turns of 4 and 2
+    expect(b.avg.B).toBe(1);
+    expect(b.longest).toMatchObject({ who: 'A', n: 4 });
+  });
+
+  it('starts a new turn after a 10+ minute gap', () => {
+    const msgs = parse('1/1/26, 10:00 - A: hi\n1/1/26, 10:20 - A: hello?\n1/1/26, 10:21 - B: sorry');
+    expect(bubbles(msgs, ['A', 'B']).avg.A).toBe(1);
   });
 });

@@ -21,6 +21,8 @@ const NIGHT = {
   [B]: ['belum 😴', 'okay jom!', 'goodnight ❤️', 'sorry I tertidur 😭', '5 minit lagi...', 'esok la cerita 🥱'],
 };
 
+const BURST = ['eh', 'wait', 'ok so', 'hahaha', '😂', 'nvm', 'actually', 'lol okay', 'tapi kan', 'ANYWAY'];
+
 export function makeSample() {
   const r = rng(1987);
   const pick = (a) => a[Math.floor(r() * a.length)];
@@ -51,7 +53,13 @@ export function makeSample() {
       let txt = pick(DAY[w]);
       if (r() < 0.06) txt = '<Media omitted>';
       if (r() < 0.03) txt = 'ok so\nI was thinking\nwhat if we went to Penang 👀';
-      line(d, hr, Math.floor(r() * 60), w, txt);
+      const mm = Math.floor(r() * 56);
+      line(d, hr, mm, w, txt);
+      // Me is a serial texter: thoughts arrive in bursts.
+      if (w === A && r() < 0.45) {
+        const extra = 1 + Math.floor(r() * 5);
+        for (let e = 0; e < extra; e++) line(d, hr, mm + Math.min(3, e), A, pick(BURST));
+      }
       if (r() < 0.6) line(d, hr, Math.min(59, Math.floor(r() * 60)), other(w), pick(DAY[other(w)]));
     }
 

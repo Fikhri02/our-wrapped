@@ -112,3 +112,14 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin-top: 18px; background: var(--surface); }
 .lang button { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .08em; border: 0; border-radius: 999px; padding: 5px 12px; background: transparent; color: var(--muted); cursor: pointer; }
 .lang button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* bubble count: a little stack of chat bubbles, one per bubble per turn */
+.bubbles { display: grid; gap: 5px; margin-bottom: 14px; }
+.bubbles { gap: 7px; }
+.bubbles i { position: relative; display: block; height: 30px; border-radius: 18px 18px 18px 5px; background: currentColor; opacity: .88; }
+/* the little tail at the bottom-left of each bubble */
+.bubbles i::after { content: ""; position: absolute; left: -5px; bottom: 0; width: 12px; height: 10px; background: inherit; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+/* decimals: the display face's tight tracking swallows the point */
+[data-dec="1"], .vs span:last-child { letter-spacing: 0; }
+.card.enter .bubbles i { animation: pop .35s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(.2s + var(--i) * 90ms); transform-origin: left center; }
+@keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: .85; transform: none; } }

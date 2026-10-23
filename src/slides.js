@@ -12,7 +12,8 @@ export const PALETTES = {
 };
 
 // A number the player counts up from 0 on entrance.
-const count = (n, suffix = '') => `<span data-count="${n}" data-suffix="${suffix}">${nf(n)}${suffix}</span>`;
+const count = (n, suffix = '', dec = 0) =>
+  `<span data-count="${n}" data-suffix="${suffix}" data-dec="${dec}">${dec ? n.toFixed(dec) : nf(n)}${suffix}</span>`;
 
 const frame = (kicker, body, foot) =>
   `<div class="k">${kicker}</div><div>${body}</div><div class="foot">${foot}</div>`;
@@ -39,6 +40,20 @@ export const SLIDES = [
        <div class="tally"><div class="tr th"><span></span><b>${esc(S.A)}</b><b>${esc(S.B)}</b></div>
          ${row(t('rowMessages'), a, b)}${row(t('rowWords'), tk.words[S.A], tk.words[S.B])}${row(t('rowDoubles'), tk.doubles[S.A], tk.doubles[S.B])}</div>`,
       wordier ? t('fewerLonger', esc(l), tk.avg[l].toFixed(1)) : t('alsoLonger', esc(w), tk.avg[w].toFixed(1)));
+  } },
+
+  { id: 'bubble', pal: 'lemon', render: (S) => {
+    const { avg, longest } = S.bubbles;
+    const w = avg[S.A] >= avg[S.B] ? S.A : S.B;
+    const x = Math.round(avg[w] * 10) / 10;
+    const stack = Array.from({ length: Math.min(8, Math.max(1, Math.round(x))) }, (_, i) =>
+      `<i style="--i:${i};width:${[62, 84, 48, 76, 56, 90, 44, 70][i]}%"></i>`).join('');
+    return frame(t('bubbleKicker'),
+      `<div class="bubbles" aria-hidden="true">${stack}</div>
+       <div class="big">${count(x, '', 1)}</div>
+       <div class="line">${x < 1.5 ? t('bubbleBoth') : t('bubbleRoast', esc(w), x.toFixed(1))}</div>
+       <div class="vs"><div><span>${esc(S.A)}</span><span>${avg[S.A].toFixed(1)}</span></div><div><span>${esc(S.B)}</span><span>${avg[S.B].toFixed(1)}</span></div></div>`,
+      longest.n > 1 ? t('bubbleFoot', longest.n, esc(longest.who), fmtDate(longest.when)) : t('bubblesPerTurn'));
   } },
 
   { id: 'morning', pal: 'tang', render: (S) => {
