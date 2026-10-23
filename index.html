@@ -6,44 +6,82 @@
   <title>Our Wrapped</title>
 </head>
 <body>
-  <main class="app">
+  <input type="file" id="file" accept=".txt,text/plain">
+
+  <!-- 1. Landing: what it is, pick a chat, and a preview phone playing the example -->
+  <main class="app" id="screen-landing">
     <div class="intro">
       <h1>Our<span>Wrapped.</span></h1>
       <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="ms">BM</button><button type="button" data-lang="en">EN</button></div>
       <p data-i18n="lede">Your chat, as a story. Export a WhatsApp chat as .txt "Without media" and drop it in. Everything happens on this device: no upload, no account.</p>
       <div class="row">
         <label class="btn primary" for="file" data-i18n="useChat">Use my chat (.txt)</label>
-        <input type="file" id="file" accept=".txt,text/plain">
         <button class="btn" id="sample" type="button" data-i18n="sample">Example chat</button>
+      </div>
+      <div class="status" id="status" aria-live="polite">Loading…</div>
+    </div>
+
+    <div class="phone">
+      <div class="device">
+        <div class="screen" id="pScreen" tabindex="0" aria-label="Example story. Tap right for next, left for previous.">
+          <div class="bars" id="pBars"></div>
+          <div class="card" id="pCard"></div>
+        </div>
+      </div>
+      <div class="ctrl"><button id="pPause" type="button">Pause</button><button id="pRestart" type="button" data-i18n="restart">Restart</button></div>
+    </div>
+  </main>
+
+  <!-- 2. Story: the user's chat, full screen -->
+  <section class="story" id="screen-story" role="dialog" aria-modal="true" aria-label="Story" hidden>
+    <div class="screen story-screen" id="sScreen" tabindex="0" aria-label="Story. Tap right for next, left for previous.">
+      <div class="bars" id="sBars"></div>
+      <div class="story-bar" id="sBar">
+        <button type="button" id="sPause">Pause</button>
+        <button type="button" id="sSave" data-i18n="saveSlide">Save this slide</button>
+        <button type="button" id="sClose" class="icon" aria-label="Close story" title="Close story" data-i18n-label="closeStory">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="card" id="sCard"></div>
+    </div>
+  </section>
+
+  <!-- 3. Results: every slide at once, plus the controls that shape the story -->
+  <section class="results" id="screen-results" hidden>
+    <header class="results-top">
+      <div class="brand">Our<span>Wrapped.</span></div>
+      <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="ms">BM</button><button type="button" data-lang="en">EN</button></div>
+    </header>
+    <div class="results-head">
+      <div class="kicker" data-i18n="resultsKicker">Your story, in full</div>
+      <h2 id="pair"></h2>
+      <p class="summary" id="summary"></p>
+      <div class="row">
+        <button class="btn primary" id="playStory" type="button" data-i18n="playStory">Play our story</button>
+        <label class="btn" for="file" data-i18n="anotherChat">Use another chat</label>
       </div>
       <div class="range">
         <label for="range" data-i18n="rangeLabel">Story covers</label>
         <select id="range"><option value="all">All time</option></select>
       </div>
-      <div class="status" id="status" aria-live="polite">Loading…</div>
-
-      <form class="note" id="noteForm">
-        <label for="note"><span data-i18n="noteLabel">Your message for the last slide</span> <span data-i18n="optional">(optional)</span></label>
-        <textarea id="note" rows="4" maxlength="280" placeholder="Every number here is us. Thank you for every good morning." data-i18n-placeholder="notePlaceholder"></textarea>
-        <div class="row">
-          <input id="signed" type="text" maxlength="40" placeholder="Signed (e.g. your name)" data-i18n-placeholder="signedPlaceholder" aria-label="Signed">
-          <button class="btn primary" type="submit" data-i18n="addNote">Add to the story</button>
-        </div>
-        <small data-i18n="noteHint">Saved as a draft on this device only.</small>
-      </form>
+      <div class="status" id="rangeStatus" aria-live="polite"></div>
     </div>
 
-    <div class="phone">
-      <div class="device">
-        <div class="screen" id="screen" tabindex="0" aria-label="Story. Tap right for next, left for previous.">
-          <div class="bars" id="bars"></div>
-          <div class="card" id="card"></div>
-        </div>
+    <div class="gallery" id="gallery"></div>
+
+    <form class="note" id="noteForm">
+      <label for="note"><span data-i18n="noteLabel">Your message for the last slide</span> <span data-i18n="optional">(optional)</span></label>
+      <textarea id="note" rows="4" maxlength="280" placeholder="Every number here is us. Thank you for every good morning." data-i18n-placeholder="notePlaceholder"></textarea>
+      <div class="row">
+        <input id="signed" type="text" maxlength="40" placeholder="Signed (e.g. your name)" data-i18n-placeholder="signedPlaceholder" aria-label="Signed">
+        <button class="btn primary" type="submit" data-i18n="addNote">Add to the story</button>
       </div>
-      <div class="ctrl"><button id="pause" type="button">Pause</button><button id="restart" type="button" data-i18n="restart">Restart</button><button id="saveSlide" type="button" data-i18n="saveSlide">Save this slide</button></div>
-      <div class="share-status" id="shareStatus" aria-live="polite"></div>
-    </div>
-  </main>
+      <small data-i18n="noteHint">Saved as a draft on this device only.</small>
+    </form>
+  </section>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
