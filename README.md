@@ -13,6 +13,10 @@ npm test        # parser + stats tests
 npm run build   # static site in dist/
 ```
 
+## Live
+
+https://fikhri02.github.io/our-wrapped/ deploys from `main` on every push (tests must pass first).
+
 ## Export a chat
 
 - **Android:** open the chat → ⋮ → More → Export chat → Without media → save the .txt
