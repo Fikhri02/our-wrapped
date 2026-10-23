@@ -90,6 +90,34 @@ export function talker(msgs, people) {
   return { words, doubles, avg };
 }
 
+// Bubbles per turn: a turn is a run of messages from one person with no reply in between,
+// broken by a 10+ minute gap (that counts as a double text, not the same burst).
+export function bubbles(msgs, people) {
+  const turns = Object.fromEntries(people.map((p) => [p, []]));
+  let longest = { who: null, n: 0, when: null };
+  let run = null;
+  const close = () => {
+    if (!run || !turns[run.who]) return;
+    turns[run.who].push(run.n);
+    if (run.n > longest.n) longest = { who: run.who, n: run.n, when: run.start };
+  };
+  for (const m of msgs) {
+    if (run && run.who === m.who && (m.when - run.last) / 6e4 < 10) {
+      run.n++;
+      run.last = m.when;
+    } else {
+      close();
+      run = { who: m.who, n: 1, start: m.when, last: m.when };
+    }
+  }
+  close();
+  const avg = Object.fromEntries(people.map((p) => {
+    const t = turns[p];
+    return [p, t.length ? t.reduce((a, b) => a + b, 0) / t.length : 0];
+  }));
+  return { avg, longest };
+}
+
 export function stats(all) {
   const count = {};
   for (const m of all) count[m.who] = (count[m.who] || 0) + 1;
@@ -134,6 +162,7 @@ export function stats(all) {
     words: top(words, 6), sorry, love, sorryFirst,
     reply: replySpeed(msgs, pair),
     talk: talker(msgs, pair),
+    bubbles: bubbles(msgs, pair),
     busy, busyN: days[busy],
     media: msgs.filter((m) => m.media).length,
   };

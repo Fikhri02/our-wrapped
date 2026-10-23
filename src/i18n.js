@@ -88,6 +88,11 @@ export const STRINGS = {
     oneMore: 'One more thing',
     withLove: 'With love',
     withLoveFrom: (s) => `With love, ${s}`,
+    bubbleKicker: 'Bubble count',
+    bubbleRoast: (w, x) => `${w} sends ${x} bubbles per turn. Just send one paragraph, bro.`,
+    bubbleBoth: 'You both finish a thought in one message. Rare.',
+    bubblesPerTurn: 'bubbles per turn',
+    bubbleFoot: (n, w, d) => `Longest burst: ${n} messages in a row from ${w}, ${d}`,
     oops: 'Oops', noData: 'Not enough data for this slide.',
   },
   ms: {
@@ -159,6 +164,11 @@ export const STRINGS = {
     oneMore: 'Satu lagi',
     withLove: 'Dengan cinta',
     withLoveFrom: (s) => `Dengan cinta, ${s}`,
+    bubbleKicker: 'Kiraan bubble',
+    bubbleRoast: (w, x) => `${w} hantar ${x} bubble setiap giliran. Hantar satu perenggan je la, bro.`,
+    bubbleBoth: 'Korang berdua habiskan ayat dalam satu mesej. Jarang jumpa.',
+    bubblesPerTurn: 'bubble setiap giliran',
+    bubbleFoot: (n, w, d) => `Bertubi-tubi paling panjang: ${n} mesej berturut-turut daripada ${w}, ${d}`,
     oops: 'Alamak', noData: 'Data tak cukup untuk slaid ini.',
   },
 };

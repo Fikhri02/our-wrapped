@@ -21,12 +21,12 @@ export function createPlayer({ screen, card, bars, pauseButton }) {
   function countUp() {
     if (reduceMotion) return;
     for (const el of card.querySelectorAll('[data-count]')) {
-      const target = +el.dataset.count, suffix = el.dataset.suffix || '';
+      const target = +el.dataset.count, suffix = el.dataset.suffix || '', dec = +(el.dataset.dec || 0);
       const start = performance.now();
       const step = (now) => {
         const p = Math.min(1, (now - start) / COUNT_MS);
         const eased = 1 - Math.pow(1 - p, 3);
-        el.textContent = nf(Math.round(target * eased)) + suffix;
+        el.textContent = (dec ? (target * eased).toFixed(dec) : nf(Math.round(target * eased))) + suffix;
         if (p < 1 && el.isConnected) requestAnimationFrame(step);
       };
       requestAnimationFrame(step);
