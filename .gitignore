@@ -1,0 +1,7 @@
+node_modules
+dist
+*.local
+# never commit real chats
+chats/
+*_chat.txt
+WhatsApp Chat*.txt
