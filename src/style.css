@@ -14,6 +14,8 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body.locked { overflow: hidden; }
 body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6; padding-inline: 16px; padding-block: 40px 64px; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
@@ -99,7 +101,6 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .export-frame { position: relative; overflow: hidden; }
 .export-frame .card { padding: 56px 28px 34px; transition: none; }
 .export-mark { position: absolute; top: 22px; right: 28px; font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; opacity: .6; }
-.share-status { text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted); min-height: 1.5em; margin-top: 6px; }
 .ctrl button:disabled { opacity: .5; cursor: progress; }
 .card .mid + .big { margin-top: 12px; }
 
@@ -123,3 +124,43 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 [data-dec="1"], .vs span:last-child { letter-spacing: 0; }
 .card.enter .bubbles i { animation: pop .35s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(.2s + var(--i) * 90ms); transform-origin: left center; }
 @keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: .85; transform: none; } }
+
+/* story: the real chat, full screen. Phones fill the viewport; desktops get a 9:16 frame */
+.story { position: fixed; inset: 0; z-index: 50; background: #0c060e; display: grid; place-items: center; }
+.story-screen { height: min(calc(100dvh - 32px), 900px); width: auto; max-width: 100vw; aspect-ratio: 9 / 16; border-radius: 28px; }
+.story-screen:focus-visible { outline: none; }
+.story-screen .card { padding: 84px 28px calc(28px + env(safe-area-inset-bottom)); }
+.story-bar { position: absolute; top: 30px; left: 14px; right: 14px; z-index: 6; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.story-bar button { font-family: var(--mono); font-size: 12px; font-weight: 600; color: inherit; background: transparent; border: 1.5px solid currentColor; border-radius: 999px; padding: 6px 12px; cursor: pointer; transition: transform .1s ease-out; }
+.story-bar button.icon { padding: 5px; display: inline-grid; place-items: center; }
+.story-bar button:active, .btn:active { transform: scale(.97); }
+.story-bar button:disabled { opacity: .5; cursor: progress; }
+@media (max-width: 600px) {
+  .story-screen { width: 100vw; height: 100dvh; aspect-ratio: auto; border-radius: 0; }
+  .story-screen .bars { top: calc(14px + env(safe-area-inset-top)); }
+  .story-bar { top: calc(30px + env(safe-area-inset-top)); }
+  .story-screen .card { padding-top: calc(84px + env(safe-area-inset-top)); }
+}
+
+/* results: every slide at once, plus the controls that shape the story */
+.results { max-width: 1080px; margin: 0 auto; display: grid; gap: 32px; }
+.results-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.results-top .lang { margin-top: 0; }
+.brand { font-family: var(--display); font-weight: 800; font-size: 24px; letter-spacing: -.03em; line-height: 1; }
+.brand span { color: var(--accent); }
+.kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.results h2 { font-family: var(--display); font-weight: 800; font-size: clamp(40px, 7vw, 72px); line-height: .95; letter-spacing: -.035em; margin: 8px 0 12px; overflow-wrap: anywhere; }
+.summary { font-family: var(--mono); font-size: 12.5px; color: var(--muted); margin: 0; max-width: 70ch; }
+.summary b { color: var(--ink); }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+.tile { margin: 0; display: grid; gap: 12px; justify-items: start; }
+.tile-frame { position: relative; width: 100%; aspect-ratio: 9 / 16; border-radius: 24px; overflow: hidden; }
+.tile .card { transition: none; }
+.tile .btn:disabled { opacity: .5; cursor: progress; }
+.results .note { margin-top: 0; }
+
+/* toast: share and note results, above everything including the story */
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 60; transform: translate(-50%, 8px); max-width: calc(100vw - 32px);
+  background: var(--surface); color: var(--ink); font-family: var(--mono); font-size: 12.5px; border-radius: 999px; padding: 10px 16px;
+  box-shadow: 0 12px 32px -8px #0006; opacity: 0; pointer-events: none; transition: opacity .18s ease-out, transform .18s ease-out; }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }

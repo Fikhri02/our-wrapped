@@ -1,5 +1,6 @@
 // Story player: progress bars, tap or swipe left/right, hold to pause, arrow keys,
-// space to pause, auto-advance, and an entrance animation per slide.
+// space to pause, auto-advance, and an entrance animation per slide. With onEnd, moving past the
+// last slide calls it instead of looping back to the first.
 import { PALETTES } from './slides.js';
 import { nf } from './format.js';
 import { t } from './i18n.js';
@@ -9,11 +10,11 @@ const HOLD_MS = 220;
 const SWIPE_PX = 40;
 const COUNT_MS = 900;
 
-export function createPlayer({ screen, card, bars, pauseButton }) {
+export function createPlayer({ screen, card, bars, pauseButton, onEnd = null }) {
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let slides = [], fills = [], stats = null;
   let idx = 0, t0 = 0, elapsed = 0;
-  let paused = reduceMotion, held = false;
+  let paused = reduceMotion, held = false, active = true;
 
   const syncPause = () => { pauseButton.textContent = paused ? t('play') : t('pause'); };
   syncPause();
@@ -41,6 +42,7 @@ export function createPlayer({ screen, card, bars, pauseButton }) {
     const [bg, fg] = PALETTES[slide.pal];
     card.style.background = bg;
     card.style.color = fg;
+    screen.style.color = fg; // controls laid over the slide take its colour
     try {
       card.innerHTML = slide.render(stats);
     } catch (err) {
@@ -54,11 +56,19 @@ export function createPlayer({ screen, card, bars, pauseButton }) {
     fills.forEach((f, j) => { f.style.width = j < idx ? '100%' : '0%'; });
   }
 
+  function next() {
+    if (onEnd && idx === slides.length - 1) {
+      active = false; // stop here until whoever handles the end starts it again
+      fills[idx].style.width = '100%';
+      onEnd();
+    } else show(idx + 1);
+  }
+
   function loop(now) {
-    if (stats && !paused && !held) {
+    if (stats && active && !paused && !held) {
       elapsed = now - t0;
       fills[idx].style.width = Math.min(100, (elapsed / DURATION) * 100) + '%';
-      if (elapsed >= DURATION) show(idx + 1);
+      if (elapsed >= DURATION) next();
     } else {
       t0 = now - elapsed;
     }
@@ -80,17 +90,17 @@ export function createPlayer({ screen, card, bars, pauseButton }) {
     const wasHeld = held;
     held = false;
     down = null;
-    if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy)) show(dx < 0 ? idx + 1 : idx - 1);
+    if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy)) (dx < 0 ? next() : show(idx - 1));
     else if (!wasHeld) {
       const r = screen.getBoundingClientRect();
-      show(e.clientX - r.left < r.width * 0.33 ? idx - 1 : idx + 1);
+      if (e.clientX - r.left < r.width * 0.33) show(idx - 1); else next();
     }
   });
   screen.addEventListener('pointercancel', () => { clearTimeout(holdTimer); held = false; down = null; });
   screen.addEventListener('contextmenu', (e) => e.preventDefault()); // long press on mobile
 
   screen.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') show(idx + 1);
+    if (e.key === 'ArrowRight') next();
     else if (e.key === 'ArrowLeft') show(idx - 1);
     else if (e.key === ' ') togglePause();
     else return;
@@ -107,7 +117,8 @@ export function createPlayer({ screen, card, bars, pauseButton }) {
       fills = Array.from(bars.querySelectorAll('b'));
       show(0);
     },
-    restart() { show(0); },
+    restart() { active = true; show(0); },
+    setActive(v) { active = v; },
     relabel() { syncPause(); },
     current() { return { slide: slides[idx], stats }; },
     setHeld(v) { held = v; },
