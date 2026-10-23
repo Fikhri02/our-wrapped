@@ -2,6 +2,7 @@
 // space to pause, auto-advance, and an entrance animation per slide.
 import { PALETTES } from './slides.js';
 import { nf } from './format.js';
+import { t } from './i18n.js';
 
 const DURATION = 5200;
 const HOLD_MS = 220;
@@ -14,7 +15,7 @@ export function createPlayer({ screen, card, bars, pauseButton }) {
   let idx = 0, t0 = 0, elapsed = 0;
   let paused = reduceMotion, held = false;
 
-  const syncPause = () => { pauseButton.textContent = paused ? 'Play' : 'Pause'; };
+  const syncPause = () => { pauseButton.textContent = paused ? t('play') : t('pause'); };
   syncPause();
 
   function countUp() {
@@ -44,7 +45,7 @@ export function createPlayer({ screen, card, bars, pauseButton }) {
       card.innerHTML = slide.render(stats);
     } catch (err) {
       console.error(`[our-wrapped] slide "${slide.id}" failed`, err);
-      card.innerHTML = '<div class="k">Oops</div><div class="mid">Not enough data for this slide.</div><div></div>';
+      card.innerHTML = `<div class="k">${t('oops')}</div><div class="mid">${t('noData')}</div><div></div>`;
     }
     card.classList.remove('enter');
     void card.offsetWidth; // restart the CSS entrance
@@ -107,6 +108,7 @@ export function createPlayer({ screen, card, bars, pauseButton }) {
       show(0);
     },
     restart() { show(0); },
+    relabel() { syncPause(); },
     current() { return { slide: slides[idx], stats }; },
     setHeld(v) { held = v; },
   };

@@ -107,3 +107,8 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .range { display: flex; align-items: center; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
 .range label { font-weight: 600; font-size: 14px; }
 .range select { font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+
+/* language toggle */
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin-top: 18px; background: var(--surface); }
+.lang button { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .08em; border: 0; border-radius: 999px; padding: 5px 12px; background: transparent; color: var(--muted); cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
