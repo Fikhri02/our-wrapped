@@ -9,26 +9,27 @@
   <main class="app">
     <div class="intro">
       <h1>Our<span>Wrapped.</span></h1>
-      <p>Your chat, as a story. Export a WhatsApp chat as .txt "Without media" and drop it in. Everything happens on this device: no upload, no account.</p>
+      <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="ms">BM</button><button type="button" data-lang="en">EN</button></div>
+      <p data-i18n="lede">Your chat, as a story. Export a WhatsApp chat as .txt "Without media" and drop it in. Everything happens on this device: no upload, no account.</p>
       <div class="row">
-        <label class="btn primary" for="file">Use my chat (.txt)</label>
+        <label class="btn primary" for="file" data-i18n="useChat">Use my chat (.txt)</label>
         <input type="file" id="file" accept=".txt,text/plain">
-        <button class="btn" id="sample" type="button">Example chat</button>
+        <button class="btn" id="sample" type="button" data-i18n="sample">Example chat</button>
       </div>
       <div class="range">
-        <label for="range">Story covers</label>
+        <label for="range" data-i18n="rangeLabel">Story covers</label>
         <select id="range"><option value="all">All time</option></select>
       </div>
       <div class="status" id="status" aria-live="polite">Loading…</div>
 
       <form class="note" id="noteForm">
-        <label for="note">Your message for the last slide <span>(optional)</span></label>
-        <textarea id="note" rows="4" maxlength="280" placeholder="Every number here is us. Thank you for every good morning."></textarea>
+        <label for="note"><span data-i18n="noteLabel">Your message for the last slide</span> <span data-i18n="optional">(optional)</span></label>
+        <textarea id="note" rows="4" maxlength="280" placeholder="Every number here is us. Thank you for every good morning." data-i18n-placeholder="notePlaceholder"></textarea>
         <div class="row">
-          <input id="signed" type="text" maxlength="40" placeholder="Signed (e.g. your name)" aria-label="Signed">
-          <button class="btn primary" type="submit">Add to the story</button>
+          <input id="signed" type="text" maxlength="40" placeholder="Signed (e.g. your name)" data-i18n-placeholder="signedPlaceholder" aria-label="Signed">
+          <button class="btn primary" type="submit" data-i18n="addNote">Add to the story</button>
         </div>
-        <small>Saved as a draft on this device only.</small>
+        <small data-i18n="noteHint">Saved as a draft on this device only.</small>
       </form>
     </div>
 
@@ -39,7 +40,7 @@
           <div class="card" id="card"></div>
         </div>
       </div>
-      <div class="ctrl"><button id="pause" type="button">Pause</button><button id="restart" type="button">Restart</button><button id="saveSlide" type="button">Save this slide</button></div>
+      <div class="ctrl"><button id="pause" type="button">Pause</button><button id="restart" type="button" data-i18n="restart">Restart</button><button id="saveSlide" type="button" data-i18n="saveSlide">Save this slide</button></div>
       <div class="share-status" id="shareStatus" aria-live="polite"></div>
     </div>
   </main>

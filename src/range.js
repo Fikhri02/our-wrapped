@@ -1,15 +1,16 @@
 // Date ranges the story can be limited to: all time, the last 30 days, each year and each
 // month the chat covers. A range is { id, label, from, to } with `to` exclusive.
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+import { getLang, MONTHS, t } from './i18n.js';
+
 const pad = (n) => (n < 10 ? '0' : '') + n;
 
 export function rangeOptions(msgs, now = new Date()) {
-  const opts = [{ id: 'all', label: 'All time', from: null, to: null }];
+  const opts = [{ id: 'all', label: t('allTime'), from: null, to: null }];
   if (!msgs.length) return opts;
 
   const since = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
-  if (msgs.some((m) => m.when >= since)) opts.push({ id: 'last30', label: 'Last 30 days', from: since, to: null });
+  if (msgs.some((m) => m.when >= since)) opts.push({ id: 'last30', label: t('last30'), from: since, to: null });
 
   const years = new Set(), months = new Set();
   for (const m of msgs) {
@@ -21,7 +22,7 @@ export function rangeOptions(msgs, now = new Date()) {
   }
   for (const k of [...months].sort().reverse()) {
     const [y, mo] = k.split('-').map(Number);
-    opts.push({ id: `m${k}`, label: `${MONTHS[mo - 1]} ${y}`, from: new Date(y, mo - 1, 1), to: new Date(y, mo, 1) });
+    opts.push({ id: `m${k}`, label: `${MONTHS[getLang()][mo - 1]} ${y}`, from: new Date(y, mo - 1, 1), to: new Date(y, mo, 1) });
   }
   return opts;
 }
