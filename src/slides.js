@@ -19,9 +19,9 @@ const frame = (kicker, body, foot) =>
 export const SLIDES = [
   { id: 'intro', pal: 'plum', render: (S) => frame('Our Wrapped',
     `<div class="big">${count(S.total)}</div><div class="line">messages between ${esc(S.A)} and ${esc(S.B)}, across ${S.days} days of talking.</div>`,
-    `Since ${fmtDate(S.firstDate)}`) },
+    S.range ? `${esc(S.range)} · from ${fmtDate(S.firstDate)}` : `Since ${fmtDate(S.firstDate)}`) },
 
-  { id: 'first', pal: 'lemon', render: (S) => frame('Where it started',
+  { id: 'first', pal: 'lemon', render: (S) => frame(S.range ? `${esc(S.range)}: first message` : 'Where it started',
     `<div class="quote">“${esc(S.first.text.slice(0, 140))}”</div><div class="line">${esc(S.first.who)}, ${fmtDate(S.first.when)}, ${hourLabel(S.first.when.getHours())}</div>`,
     `Message #1 of ${nf(S.total)}`) },
 
