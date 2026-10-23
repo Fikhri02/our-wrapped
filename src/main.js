@@ -15,11 +15,13 @@ import { closingSlide, SLIDES } from './slides.js';
 import { makeSample } from './sample.js';
 import { esc, nf } from './format.js';
 import { renderSlidePng, saveOrShare, shareFileName } from './share.js';
+import { filterRange, rangeOptions } from './range.js';
 
 const $ = (id) => document.getElementById(id);
 const status = $('status'), note = $('note'), signed = $('signed');
 const player = createPlayer({ screen: $('screen'), card: $('card'), bars: $('bars'), pauseButton: $('pause') });
-let current = null;
+let current = null, allMsgs = [], source = '', ranges = [];
+const rangeSel = $('range');
 
 // The note is a draft on this device only; it never goes anywhere else.
 const DRAFT = 'our-wrapped-note';
@@ -33,6 +35,22 @@ function slideList() {
   return text ? [...SLIDES, closingSlide(text, signed.value.trim())] : SLIDES;
 }
 
+function play(range) {
+  const msgs = filterRange(allMsgs, range);
+  if (msgs.length < 10) {
+    status.className = 'status err';
+    status.innerHTML = `<b>Only ${msgs.length} messages in ${esc(range.label)}.</b> Pick a longer range.`;
+    return false;
+  }
+  current = { ...stats(msgs), range: range.id === 'all' ? null : range.label };
+  status.className = 'status';
+  status.innerHTML = `<b>${esc(source)}</b>${current.range ? ` · ${esc(current.range)}` : ''}: ${nf(current.total)} messages between ${esc(current.A)} and ${esc(current.B)} over ${current.days} days.`
+    + (current.group ? ' This is a group chat, so only the two biggest senders are used.' : '')
+    + ' Nothing left this device.';
+  player.load(current, slideList());
+  return true;
+}
+
 function run(text, label) {
   const msgs = parse(text);
   if (msgs.length < 10) {
@@ -40,13 +58,20 @@ function run(text, label) {
     status.innerHTML = '<b>That file has no messages I can read.</b> Export the chat as .txt "Without media", and unzip it first if you\'re on iPhone.';
     return;
   }
-  current = stats(msgs);
-  status.className = 'status';
-  status.innerHTML = `<b>${esc(label)}</b>: ${nf(current.total)} messages between ${esc(current.A)} and ${esc(current.B)} over ${current.days} days.`
-    + (current.group ? ' This is a group chat, so only the two biggest senders are used.' : '')
-    + ' Nothing left this device.';
-  player.load(current, slideList());
+  allMsgs = msgs;
+  source = label;
+  ranges = rangeOptions(msgs);
+  rangeSel.innerHTML = ranges.map((r) => `<option value="${r.id}">${esc(r.label)}</option>`).join('');
+  rangeSel.value = shownRange = 'all';
+  play(ranges[0]);
 }
+
+let shownRange = 'all';
+rangeSel.addEventListener('change', () => {
+  const r = ranges.find((x) => x.id === rangeSel.value);
+  if (r && play(r)) shownRange = r.id;
+  else rangeSel.value = shownRange; // too few messages: keep the story that is playing, and say so
+});
 
 $('file').addEventListener('change', (e) => {
   const f = e.target.files?.[0];
