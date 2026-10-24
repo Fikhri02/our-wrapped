@@ -78,6 +78,16 @@ function wordsCallout(S) {
   return callout(nf(w), t('wordsCall', book, mins >= 60 ? t('readHours', Math.round(mins / 60)) : t('readMins', mins), quip));
 }
 
+// How long the other person took to answer the very first message, with a line to match.
+function firstWaitCallout(S) {
+  const w = S.firstWait;
+  if (!w) return '';
+  const m = w.mins, h = Math.round(m / 60), d = Math.round(m / 1440);
+  const when = m < 1 ? t('waitNow') : m < 60 ? t('waitMins', m) : m < 1440 ? t('waitHours', h) : t('waitDays', d);
+  const quip = t(m <= 1 ? 'waitEager' : m < 15 ? 'waitSmooth' : m < 60 ? 'waitCool' : m < 1440 ? 'waitMade' : 'waitBold');
+  return callout('', t('firstWait', esc(w.who), when, quip));
+}
+
 export const SLIDES = [
   { id: 'intro', accent: 'teal', render: (S) => {
     const p = S.pace;
@@ -100,7 +110,7 @@ export const SLIDES = [
       kicker: S.range ? t('rangeFirst', esc(S.range)) : t('whereStarted'),
       art: `<div class="scene"><div class="date-chip">${fmtDate(S.first.when)}</div><div class="cb-who">${esc(lead)}</div>${[S.first, ...(S.firstReplies || [])].map(bubble).join('')}</div>`,
       stmt: t('firstStmt'), remark: t('firstRemark', !!S.pace?.past),
-      callout: callout('#1', t('firstCall', nf(S.total))),
+      callout: firstWaitCallout(S),
     });
   } },
 

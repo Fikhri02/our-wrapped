@@ -466,11 +466,14 @@ export function stats(all, now = new Date()) {
   }
   const spelled = (k) => Object.keys(spelling[k]).sort((a, b) => spelling[k][b] - spelling[k][a])[0];
 
-  // The first real message, and up to two text replies within the hour, for the chat scene.
+  // The first real message, and up to four more text messages from the opening conversation,
+  // for the chat scene.
   const first = msgs.find((m) => !m.media && !m.deleted && m.text.trim()) || msgs[0];
-  const firstReplies = msgs.slice(msgs.indexOf(first) + 1)
-    .filter((m) => !m.media && !m.deleted && m.text.trim() && m.when - first.when <= 60 * 6e4)
-    .slice(0, 2);
+  const opening = convs.find((c) => c.includes(first)) || [first];
+  const firstReplies = opening.slice(opening.indexOf(first) + 1).filter((m) => !m.media && !m.deleted && m.text.trim()).slice(0, 4);
+  // The very first reply: the other person's first message after it, and how long it took.
+  const reply = msgs.slice(msgs.indexOf(first) + 1).find((m) => m.who !== first.who);
+  const firstWait = reply ? { who: reply.who, mins: Math.round((reply.when - first.when) / 6e4) } : null;
 
   const busy = dk.reduce((b, k) => (days[k] > days[b] ? k : b), dk[0]);
   const streak = longestStreak(dk);
@@ -478,7 +481,7 @@ export function stats(all, now = new Date()) {
   return {
     A, B, group: Object.keys(count).length > 2, total: msgs.length, count,
     pace: pace(msgs, dk, now),
-    days: dk.length, dayKeys: dk, first, firstReplies, firstDate: msgs[0].when,
+    days: dk.length, dayKeys: dk, first, firstReplies, firstWait, firstDate: msgs[0].when,
     // A streak that reaches today or yesterday is still going.
     streak: streak.days, streakStart: keyDate(streak.startKey), streakEnd: keyDate(streak.endKey),
     streakNow: [dayKey(now), dayKey(new Date(now - 864e5))].includes(streak.endKey),

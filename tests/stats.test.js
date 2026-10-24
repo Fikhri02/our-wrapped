@@ -377,13 +377,19 @@ describe('emoji counts', () => {
 });
 
 describe('visual refresh data', () => {
-  it('keeps the next couple of messages after the first one, for the chat scene', () => {
-    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '1/1/26, 21:19 - B: hey', '1/1/26, 21:20 - B: <Media omitted>', '1/1/26, 21:22 - B: who is this', '1/1/26, 23:59 - A: me', ...Array(8).fill('2/1/26, 10:00 - A: ok')].join('\n')));
-    expect(S.firstReplies.map((m) => m.text)).toEqual(['hey', 'who is this']);
+  it('keeps up to four more messages from the opening conversation, for the chat scene', () => {
+    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '1/1/26, 21:19 - B: hey', '1/1/26, 21:20 - B: <Media omitted>', '1/1/26, 21:22 - B: who is this',
+      '1/1/26, 21:30 - A: me', '1/1/26, 21:31 - A: from the cafe', '1/1/26, 21:35 - B: oh!', ...Array(8).fill('5/1/26, 10:00 - A: ok')].join('\n')));
+    expect(S.firstReplies.map((m) => m.text)).toEqual(['hey', 'who is this', 'me', 'from the cafe']);
   });
 
-  it('only keeps replies that came within the hour', () => {
-    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '1/1/26, 23:00 - B: late', ...Array(8).fill('2/1/26, 10:00 - A: ok')].join('\n')));
+  it('times the very first reply: who answered the first message, and how long it took', () => {
+    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '1/1/26, 21:16 - A: you there?', '1/1/26, 21:20 - B: hey', ...Array(8).fill('2/1/26, 10:00 - A: ok')].join('\n')));
+    expect(S.firstWait).toEqual({ who: 'B', mins: 6 });
+  });
+
+  it('stops at the end of the opening conversation', () => {
+    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '3/1/26, 23:00 - B: late', ...Array(8).fill('5/1/26, 10:00 - A: ok')].join('\n')));
     expect(S.firstReplies).toEqual([]);
   });
 

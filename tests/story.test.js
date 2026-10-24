@@ -275,3 +275,19 @@ describe('the whole story: what you wrote to each other', () => {
     expect(render('intro', words(1500, 1205))).toMatch(/a short story.*12 minutes of reading/);
   });
 });
+
+describe('where it started', () => {
+  it('shows the first message and the four after it', () => {
+    const m = (who, text, min) => ({ who, text, when: new Date(2026, 0, 1, 21, min), media: false, deleted: false });
+    const html = render('first', { ...S, first: m(S.A, 'hi there', 14), firstReplies: [m(S.B, 'hey', 19), m(S.B, 'who is this', 22), m(S.A, 'me', 30), m(S.A, 'from the cafe', 31)] });
+    expect(html.match(/class="cb [lr]/g)).toHaveLength(5);
+  });
+
+  it('says how long the first reply took, not which number the first message was', () => {
+    const wait = (mins) => render('first', { ...S, firstWait: { who: S.B, mins } });
+    expect(wait(4)).toMatch(new RegExp(`${S.B} replied 4 minutes later`));
+    expect(wait(180)).toMatch(/3 hours later/);
+    expect(wait(2 * 1440)).toMatch(/2 days later/);
+    expect(wait(4)).not.toMatch(/#1|Message #1/);
+  });
+});
