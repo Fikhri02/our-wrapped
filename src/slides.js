@@ -1,4 +1,4 @@
-// Each slide: an accent (CASUAL colours it; see theme.js), a render(stats) → HTML string, and optionally skip(stats) for
+// Each slide: a chapter (its colours; see theme.js), a render(stats) → HTML string, and optionally skip(stats) for
 // when it has nothing to show and typing (a chat scene, so the story opens it with a
 // "typing…" beat). All copy comes from i18n.js.
 import { clock, compact, esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
@@ -88,8 +88,17 @@ function firstWaitCallout(S) {
   return callout('', t('firstWait', esc(w.who), when, quip));
 }
 
+// A chapter's cover: its number, title, a line on what's in it, and its picture.
+const cover = (n) => ({
+  id: `ch${n}`, chapter: n, cover: true,
+  render: () => `<div class="k ow-head"><span>${t('chapterK', n)}</span><span class="ow-brand">Our Wrapped</span></div>`
+    + `<div class="body ch-body"><div class="ow-text"><div class="ch-num">${String(n).padStart(2, '0')}</div>`
+    + `<div class="ch-title">${t(`ch${n}Title`)}</div><div class="ch-teaser">${t(`ch${n}Teaser`)}</div></div>`
+    + `<img class="ch-art" src="./chapters/${n}.webp" alt="${t(`ch${n}Alt`)}"></div><div class="foot"></div>`,
+});
+
 export const SLIDES = [
-  { id: 'intro', accent: 'teal', render: (S) => {
+  { id: 'intro', chapter: 1, render: (S) => {
     const p = S.pace;
     return slide({
       kicker: t('introKicker'), art: talk('hero'),
@@ -100,9 +109,11 @@ export const SLIDES = [
     });
   } },
 
+  cover(1),
+
   // The first message as a real chat: a date chip, the bubble with its time and ticks, up to
   // four more messages from the opening conversation, and how long the first reply took.
-  { id: 'first', accent: 'denim', typing: true, render: (S) => {
+  { id: 'first', chapter: 1, typing: true, render: (S) => {
     const lead = S.first.who;
     const text = (m, i) => (S.hide?.first ? hidden(m.text) : esc(m.text.slice(0, i ? 70 : 140)));
     const bubble = (m, i) => `<div class="cb ${m.who === lead ? 'l' : 'r'}${i ? '' : ' lead'}" style="--i:${i}">${text(m, i)}<small>${clock(m.when)}${i ? '' : ' ✓✓'}</small></div>`;
@@ -114,7 +125,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'starts', accent: 'violet', render: (S) => {
+  { id: 'starts', chapter: 1, render: (S) => {
     const c = S.convo;
     const w = c.starts[S.A] >= c.starts[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     const g = S.goodnight, bye = g[S.A] >= g[S.B] ? S.A : S.B;
@@ -126,7 +137,18 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'share', accent: 'terracotta', render: (S) => {
+  { id: 'morning', chapter: 1, render: (S) => {
+    const w = S.ft[S.A] >= S.ft[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
+    return slide({
+      kicker: t('firstThought'), art: sun,
+      hero: big(S.ft[w]), stmt: t('mornings', esc(w)), remark: t('morningFoot'),
+      callout: callout(S.ft[l], t('morningCall', esc(l))),
+    });
+  } },
+
+  cover(2),
+
+  { id: 'share', chapter: 2, render: (S) => {
     const a = S.count[S.A], b = S.count[S.B] || 0, pa = Math.round((a / (a + b)) * 100);
     const w = pa >= 50 ? S.A : S.B;
     const tk = S.talk, past = !!S.pace?.past;
@@ -148,7 +170,7 @@ export const SLIDES = [
 
   // Bubble count: what kind of texters you two are, read off the shape of your turns (no
   // averages), named without hedging, over a tape of each person's real turns.
-  { id: 'bubble', accent: 'ochre', typing: true, render: (S) => {
+  { id: 'bubble', chapter: 2, typing: true, render: (S) => {
     const { shape: sh, feature: f } = S.bubbles;
     const type = (p) => sh[p].type || texterType(sh[p]);
     // The louder type leads: ranter, then one-liner, then normal. Same type: A leads.
@@ -176,32 +198,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'emoji', accent: 'teal', skip: (S) => !S.emo[S.A].length && !S.emo[S.B].length, render: (S) => {
-    const v = S.emoVs, past = !!S.pace?.past;
-    // Stickers: sized by count against the biggest of both, tilted a little each.
-    const max = Math.max(1, ...S.emoN[S.A], ...S.emoN[S.B]), tilt = [-10, 8, -5, 12, -8];
-    const emo = [S.A, S.B].map((p, side) => `<div>${esc(p)}<div class="e">${
-      S.emo[p].map((e, i) => `<span class="ec" style="--s:${Math.round(22 + 20 * (S.emoN[p][i] / max))}px;--r:${side ? -tilt[i] : tilt[i]}deg;--i:${i * 2 + side}"><i>${asEmoji(e)}</i><b>${compact(S.emoN[p][i])}</b></span>`).join('') || '—'}</div></div>`).join('');
-    return slide({
-      kicker: t('emojiKicker'), art: `<div class="emo">${emo}</div>`,
-      stmt: t('tenFaces'), remark: t('emojiDiff', { ...v, fav: null, hi: esc(v.hi), lo: esc(v.lo) }, past),
-      callout: v.fav ? callout(asEmoji(v.fav), t('emojiFav', past)) : '',
-    });
-  } },
-
-  { id: 'words', accent: 'denim', skip: (S) => !S.words[S.A].length && !S.words[S.B].length, render: (S) => slide({
-    kicker: t('vocab'),
-    art: `<div class="wcols">${[S.A, S.B].map((p, side) => `<div><div class="wname">${esc(p)}</div><div class="words ${side ? 'wb' : 'wa'}">${S.words[p].map((w, i) => `<span style="--i:${i * 2 + side}">${S.hide?.words ? '•••' : esc(w)}</span>`).join('') || '—'}</div></div>`).join('')}</div>`,
-    stmt: t('yourWords'), remark: t('wordsFoot'),
-  }) },
-
-  { id: 'love', accent: 'terracotta', skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => slide({
-    kicker: t('loveKicker'), art: talk('love', '<em>♥</em>'),
-    hero: big(S.love[S.A] + S.love[S.B]), stmt: t('loveStmt'), remark: t('loveRemark'),
-    callout: callout(`${nf(S.love[S.A])} · ${nf(S.love[S.B])}`, t('loveCall', esc(S.A), esc(S.B))),
-  }) },
-
-  { id: 'reply', accent: 'ochre', render: (S) => {
+  { id: 'reply', chapter: 2, render: (S) => {
     const r = S.reply, A = r[S.A], B = r[S.B];
     // Minute-precision exports make the median 0 for everyone, so rank by the share
     // of replies inside a minute, then by the average.
@@ -221,7 +218,34 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'sorry', accent: 'violet', skip: (S) => !(S.sorry[S.A] + S.sorry[S.B]), render: (S) => {
+  { id: 'emoji', chapter: 2, skip: (S) => !S.emo[S.A].length && !S.emo[S.B].length, render: (S) => {
+    const v = S.emoVs, past = !!S.pace?.past;
+    // Stickers: sized by count against the biggest of both, tilted a little each.
+    const max = Math.max(1, ...S.emoN[S.A], ...S.emoN[S.B]), tilt = [-10, 8, -5, 12, -8];
+    const emo = [S.A, S.B].map((p, side) => `<div>${esc(p)}<div class="e">${
+      S.emo[p].map((e, i) => `<span class="ec" style="--s:${Math.round(22 + 20 * (S.emoN[p][i] / max))}px;--r:${side ? -tilt[i] : tilt[i]}deg;--i:${i * 2 + side}"><i>${asEmoji(e)}</i><b>${compact(S.emoN[p][i])}</b></span>`).join('') || '—'}</div></div>`).join('');
+    return slide({
+      kicker: t('emojiKicker'), art: `<div class="emo">${emo}</div>`,
+      stmt: t('tenFaces'), remark: t('emojiDiff', { ...v, fav: null, hi: esc(v.hi), lo: esc(v.lo) }, past),
+      callout: v.fav ? callout(asEmoji(v.fav), t('emojiFav', past)) : '',
+    });
+  } },
+
+  { id: 'words', chapter: 2, skip: (S) => !S.words[S.A].length && !S.words[S.B].length, render: (S) => slide({
+    kicker: t('vocab'),
+    art: `<div class="wcols">${[S.A, S.B].map((p, side) => `<div><div class="wname">${esc(p)}</div><div class="words ${side ? 'wb' : 'wa'}">${S.words[p].map((w, i) => `<span style="--i:${i * 2 + side}">${S.hide?.words ? '•••' : esc(w)}</span>`).join('') || '—'}</div></div>`).join('')}</div>`,
+    stmt: t('yourWords'), remark: t('wordsFoot'),
+  }) },
+
+  cover(3),
+
+  { id: 'love', chapter: 3, skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => slide({
+    kicker: t('loveKicker'), art: talk('love', '<em>♥</em>'),
+    hero: big(S.love[S.A] + S.love[S.B]), stmt: t('loveStmt'), remark: t('loveRemark'),
+    callout: callout(`${nf(S.love[S.A])} · ${nf(S.love[S.B])}`, t('loveCall', esc(S.A), esc(S.B))),
+  }) },
+
+  { id: 'sorry', chapter: 3, skip: (S) => !(S.sorry[S.A] + S.sorry[S.B]), render: (S) => {
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
       kicker: t('apologies'), art: talk('a'),
@@ -230,16 +254,9 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'morning', accent: 'terracotta', render: (S) => {
-    const w = S.ft[S.A] >= S.ft[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
-    return slide({
-      kicker: t('firstThought'), art: sun,
-      hero: big(S.ft[w]), stmt: t('mornings', esc(w)), remark: t('morningFoot'),
-      callout: callout(S.ft[l], t('morningCall', esc(l))),
-    });
-  } },
+  cover(4),
 
-  { id: 'night', accent: 'denim', skip: (S) => !S.late, render: (S) => {
+  { id: 'night', chapter: 4, skip: (S) => !S.late, render: (S) => {
     const mx = Math.max(...S.hours) || 1;
     // The busiest hour is the tallest bar; it gets its hour written above it.
     const bars = S.hours.map((v, h) => `<i class="${h === S.peak ? 'peak' : ''}" style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? 'var(--accent)' : 'color-mix(in srgb, var(--fg) 35%, transparent)'}">${h === S.peak ? `<b>${hourLabel(h)}</b>` : ''}</i>`).join('');
@@ -253,7 +270,7 @@ export const SLIDES = [
 
   // A night that never closed: the last message of the night, the night passing, and the
   // morning reply. Real times, no text: the bubbles hold typing dots.
-  { id: 'carried', accent: 'violet', typing: true, skip: (S) => !S.carried, render: (S) => {
+  { id: 'carried', chapter: 4, typing: true, skip: (S) => !S.carried, render: (S) => {
     const ex = S.carriedEx, dots = '<span class="dots3"><i></i><i></i><i></i></span>';
     const scene = ex ? `<div class="overnight" aria-hidden="true">
         <div class="on-b l" style="--i:0">${dots}<small>${esc(ex.nightWho)} · ${clock(ex.night)}</small></div>
@@ -266,7 +283,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'streak', accent: 'teal', render: (S) => slide({
+  { id: 'streak', chapter: 4, render: (S) => slide({
     kicker: t('streak'), art: streakCal(S),
     ctx: S.streakNow ? t('streakToday', fmtDate(S.streakStart)) : fmtRange(S.streakStart, S.streakEnd),
     hero: big(S.streak), stmt: t('streakHead'), remark: t('streakVibe', S.streak, S.streakNow),
@@ -275,7 +292,7 @@ export const SLIDES = [
 
   // The loudest day, built to the mockup: the date in the accent colour, the count, and what
   // share of the whole chat that one day holds.
-  { id: 'busy', accent: 'ochre', render: (S) => {
+  { id: 'busy', chapter: 4, render: (S) => {
     const pct = (S.busyN / S.total) * 100;
     return slide({
       kicker: t('loudest'), art: talk('loud'), ctx: fmtDay(S.busy),
@@ -285,9 +302,11 @@ export const SLIDES = [
     });
   } },
 
+  cover(5),
+
   // How it rose and settled: messages a week from the start to now, the peak marked, and a
   // plain read of where you are now.
-  { id: 'arc', accent: 'violet', skip: (S) => !S.arc?.eligible, render: (S) => {
+  { id: 'arc', chapter: 5, skip: (S) => !S.arc?.eligible, render: (S) => {
     const a = S.arc;
     const bars = a.bars.map((h, i) => `<i class="${i === a.peakBar ? 'pk' : ''}" style="--i:${i};height:${Math.max(3, Math.round(h * 100))}%"></i>`).join('');
     return slide({
@@ -303,7 +322,7 @@ export const SLIDES = [
 
   // The comebacks: a scoreboard of who brought the chat back, then a bar per silence of two
   // weeks or more, as tall as it was long, coloured by who broke it. The longest is marked.
-  { id: 'comebacks', accent: 'terracotta', skip: (S) => !S.comebacks?.eligible, render: (S) => {
+  { id: 'comebacks', chapter: 5, skip: (S) => !S.comebacks?.eligible, render: (S) => {
     const c = S.comebacks;
     if (!c.count) {
       return slide({ kicker: t('cbKicker'), stmt: t('cbNever'), remark: t('cbNeverWhy'), callout: callout('', t('cbLongestGap', c.longestGap)) });
@@ -329,7 +348,7 @@ export const SLIDES = [
 
   // The keepsake: two bubbles with your initials, both names, the years, three headline
   // numbers and a line about you two. Saved without names it reads "You two".
-  { id: 'finale', accent: 'teal', render: (S) => {
+  { id: 'finale', chapter: 5, render: (S) => {
     const anon = S.hide?.finale, dots = '<i></i><i></i><i></i>';
     const initial = (n) => esc([...n.trim()][0]?.toUpperCase() || '?');
     const y0 = S.firstDate.getFullYear(), y1 = +(S.dayKeys?.[S.dayKeys.length - 1] || String(y0)).slice(0, 4);
@@ -344,11 +363,16 @@ export const SLIDES = [
   } },
 ];
 
-export const slidesFor = (S) => SLIDES.filter((s) => !s.skip?.(S));
+// The slides that play for this chat: skipped slides drop out, and so does a chapter's cover
+// when nothing in its chapter is left.
+export function slidesFor(S) {
+  const list = SLIDES.filter((s) => !s.skip?.(S));
+  return list.filter((s) => !s.cover || list.some((x) => !x.cover && x.chapter === s.chapter));
+}
 
 // The last slide: a message the sender types before playing.
 export const closingSlide = (note, signed) => ({
-  id: 'closing', accent: 'teal',
+  id: 'closing', chapter: 5,
   render: () => slide({
     kicker: t('oneMore'), art: talk('a'),
     stmt: `<span class="note">${esc(note).replace(/\n/g, '<br>')}</span>`,

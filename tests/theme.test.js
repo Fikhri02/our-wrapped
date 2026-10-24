@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { ACCENTS, paint, THEME } from '../src/theme.js';
+import { CHAPTERS, paint } from '../src/theme.js';
 import { closingSlide, SLIDES } from '../src/slides.js';
 
 const fakeCard = () => ({ dataset: {}, style: { props: {}, setProperty(k, v) { this.props[k] = v; } } });
@@ -17,21 +17,23 @@ function contrast(a, b) {
 }
 
 describe('themes', () => {
-  it('paints every slide on denim with its own accent, teal by default', () => {
+  it('paints each slide in its chapter\'s colours, chapter 4 dark', () => {
     const c = fakeCard();
-    paint(c, 'ochre');
-    expect(c.style.props['--bg']).toBe('#E9ECF2');
-    expect(c.style.props['--accent']).toBe('#7A5E0E');
-    expect(c.style.props['--tint']).toBe('#EFE0B0');
+    paint(c, 1);
+    expect(c.style.props['--bg']).toBe('#F4EBDD');
+    expect(c.style.props['--accent']).toBe('#86512E');
+    expect(c.dataset.chapter).toBe('1');
     const d = fakeCard();
-    paint(d);
-    expect(d.style.props['--accent']).toBe('#276A60');
+    paint(d, 4);
+    expect(d.style.props['--bg']).toBe('#20283E');
+    expect(d.style.props['--fg']).toBe('#F5F1E9');
+    expect(d.style.props['--accent']).toBe('#E9BE74');
   });
 
-  it('gives every slide an accent from the set, and no slide a palette', () => {
+  it('puts every slide in a chapter, 1 to 5, and no slide keeps its own accent', () => {
     for (const s of [...SLIDES, closingSlide('x', 'y')]) {
-      expect(Object.keys(ACCENTS), s.id).toContain(s.accent);
-      expect(s.pal, s.id).toBeUndefined();
+      expect([1, 2, 3, 4, 5], s.id).toContain(s.chapter);
+      expect(s.accent, s.id).toBeUndefined();
     }
   });
 
@@ -39,9 +41,11 @@ describe('themes', () => {
     expect(readFileSync(new URL('../src/slides.js', import.meta.url), 'utf8')).not.toMatch(/#[0-9a-f]{3,8}\b/i);
   });
 
-  it('passes AA: ink and muted text on denim, and every accent', () => {
-    expect(contrast(THEME.fg, THEME.bg)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(THEME.muted, THEME.bg)).toBeGreaterThanOrEqual(4.5);
-    for (const [name, [accent]] of Object.entries(ACCENTS)) expect(contrast(accent, THEME.bg), name).toBeGreaterThanOrEqual(4.5);
+  it('passes AA in every chapter: ink, muted and accent on the ground, ink and accent on the tint and surface', () => {
+    for (const [n, ch] of Object.entries(CHAPTERS)) {
+      for (const [a, b] of [['fg', 'bg'], ['muted', 'bg'], ['accent', 'bg'], ['fg', 'tint'], ['accent', 'tint'], ['fg', 'surface']]) {
+        expect(contrast(ch[a], ch[b]), `chapter ${n} ${a}/${b}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 });

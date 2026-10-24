@@ -69,17 +69,20 @@ function slideList() {
 const summaryLine = (s) => t('loaded', nf(s.total), esc(s.A), esc(s.B), s.days) + (s.group ? t('group') : '') + t('private');
 
 // Every slide as a static card: count-ups render at their final value, no entrance.
+// The results gallery holds the slides worth saving: chapter covers stay in the story only.
+const gallerySlides = () => slideList().filter((s) => !s.cover);
+
 function renderGallery() {
-  const list = slideList();
+  const list = gallerySlides();
   gallery.innerHTML = list.map((slide, i) => {
     let html;
     try { html = slide.render(forSaving()); } catch { html = `<div class="k">${t('oops')}</div><div class="mid">${t('noData')}</div><div></div>`; }
     const priv = PRIVATE_SLIDES.includes(slide.id)
       ? `<label class="priv"><input type="checkbox" id="hide-${slide.id}" data-hide="${slide.id}"${hide[slide.id] ? ' checked' : ''}> ${esc(t(`hide_${slide.id}`))}</label>` : '';
-    return `<figure class="tile"><div class="tile-frame"><div class="card" data-accent="${slide.accent}">${html}</div></div>${priv}`
+    return `<figure class="tile"><div class="tile-frame"><div class="card" data-chapter="${slide.chapter}">${html}</div></div>${priv}`
       + `<button class="btn" type="button" data-save="${i}">${esc(t('saveSlide'))}</button></figure>`;
   }).join('');
-  gallery.querySelectorAll('.card[data-accent]').forEach((c) => paint(c, c.dataset.accent));
+  gallery.querySelectorAll('.card[data-chapter]').forEach((c) => paint(c, +c.dataset.chapter));
 }
 
 // Stats for a range, into the story player and the gallery. False when the range is too thin.
@@ -291,7 +294,7 @@ gallery.addEventListener('click', (e) => {
   const a = e.target.closest('[data-act]');
   if (a) return openChat(a, a.dataset.act === 'rant' ? 'rant' : 'busy');
   const b = e.target.closest('[data-save]');
-  if (b) saveSlide(slideList()[+b.dataset.save], forSaving(), b);
+  if (b) saveSlide(gallerySlides()[+b.dataset.save], forSaving(), b);
 });
 gallery.addEventListener('change', (e) => {
   const box = e.target.closest('[data-hide]');

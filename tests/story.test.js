@@ -13,11 +13,12 @@ const render = (id, s = S) => SLIDES.find((x) => x.id === id).render(s);
 describe('the story', () => {
   it('runs in three acts and ends on the finale', () => {
     expect(SLIDES.map((s) => s.id)).toEqual([
-      'intro', 'first', 'starts', 'share', // how it began, and who keeps starting it
-      'bubble', 'emoji', 'words', 'love', 'reply', 'sorry', // what you're like together
-      'morning', 'night', 'carried', 'streak', 'busy', // the moments you made
-      'arc', 'comebacks', // how it rose, settled, and came back
-      'finale',
+      'intro', // the prologue: everything you wrote
+      'ch1', 'first', 'starts', 'morning', // how it began
+      'ch2', 'share', 'bubble', 'reply', 'emoji', 'words', // how you talk
+      'ch3', 'love', 'sorry', // what you say
+      'ch4', 'night', 'carried', 'streak', 'busy', // your time
+      'ch5', 'arc', 'comebacks', 'finale', // where it went
     ]);
   });
 
@@ -289,5 +290,26 @@ describe('where it started', () => {
     expect(wait(180)).toMatch(/3 hours later/);
     expect(wait(2 * 1440)).toMatch(/2 days later/);
     expect(wait(4)).not.toMatch(/#1|Message #1/);
+  });
+});
+
+describe('chapters', () => {
+  const ids = (s) => slidesFor(s).map((x) => x.id);
+  const none = { [S.A]: 0, [S.B]: 0 };
+
+  it('opens each chapter with a cover: number, title and its picture', () => {
+    const html = render('ch4');
+    expect(html).toMatch(/class="ch-num">04</);
+    expect(html).toMatch(/Your time/);
+    expect(html).toMatch(/<img class="ch-art" src="\.\/chapters\/4\.webp" alt="[^"]+"/);
+  });
+
+  it('skips a chapter cover when every slide in it is skipped', () => {
+    expect(ids({ ...S, love: none, sorry: none, sorryFirst: {} })).not.toContain('ch3');
+    expect(ids(S)).toContain('ch3');
+  });
+
+  it('marks covers so the results gallery can leave them out', () => {
+    expect(SLIDES.filter((s) => s.cover).map((s) => s.id)).toEqual(['ch1', 'ch2', 'ch3', 'ch4', 'ch5']);
   });
 });
