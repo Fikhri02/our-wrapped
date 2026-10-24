@@ -1,4 +1,6 @@
 // One pure function per slide's data. stats() bundles them for the player.
+import { FRIEND_LEX, LOVE_LEX } from './lexicon.js';
+import { creatures, emotions, languages, styleSync, weather } from './vibes.js';
 
 const STOP = new Set(
   ("the and you for that this with are was but not have just what yes okay its it's can will dah tak nak ada yang ini itu kat dengan untuk lagi pun tu ni la lah je jer kan ke dia aku saya you i me my your we our ok oke haha hahaha hahahaha omitted media deleted message was too lol kau so dont don't then them they how why when who where tengah boleh nanti esok tadi"
@@ -409,5 +411,9 @@ export function stats(all, now = new Date()) {
     bubbles: bubbles(msgs, pair),
     busy, busyN: days[busy],
     media: msgs.filter((m) => m.media).length,
+    // Who you are in this chat. The caller adds the mode ({ ...stats(msgs), mode }).
+    sync: styleSync(msgs, pair), creatures: creatures(msgs, pair),
+    loveLang: languages(msgs, pair, LOVE_LEX), friendLang: languages(msgs, pair, FRIEND_LEX),
+    emotions: emotions(msgs, pair), weather: weather(msgs, pair),
   };
 }

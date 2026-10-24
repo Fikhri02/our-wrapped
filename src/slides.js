@@ -2,7 +2,12 @@
 // when it has nothing to show and typing (a chat scene, so the story opens it with a
 // "typing…" beat). All copy comes from i18n.js.
 import { clock, compact, esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
-import { t } from './i18n.js';
+import { getLang, MONTHS, t, tm } from './i18n.js';
+
+// LOVERS or CASUAL: the stats object carries the mode (S.mode), and a slide marked
+// only: 'lovers' plays in that mode alone.
+export const MODES = ['lovers', 'casual'];
+export const otherMode = (mode) => (mode === 'lovers' ? 'casual' : 'lovers');
 
 // [background, ink, tone]: the tone is a neighbour's colour, for the bubble shapes.
 export const PALETTES = {
@@ -103,11 +108,14 @@ function paceRemark(S) {
   return !fresh ? t(`pace_${p.kind}${tense}`) : S.days === p.span ? t(`paceNewEvery${tense}`, p.span) : t(`paceNewSome${tense}`, p.span, S.days);
 }
 
+// Couples read love languages, friends read friendship languages: same five categories.
+const langOf = (S) => (S.mode === 'casual' ? S.friendLang : S.loveLang) || {};
+
 export const SLIDES = [
   { id: 'intro', pal: 'plum', render: (S) => {
     const p = S.pace;
     return slide({
-      kicker: t('introKicker'), art: talk('hero'),
+      kicker: tm('introKicker', S), art: talk('hero'),
       ctx: S.range ? t('rangeFrom', esc(S.range), fmtDate(S.firstDate)) : t('since', fmtDate(S.firstDate)),
       hero: big(S.total), stmt: t('introStmt', esc(S.A), esc(S.B)),
       remark: p ? paceRemark(S) : '',
@@ -205,7 +213,7 @@ export const SLIDES = [
     stmt: t('yourWords'), remark: t('wordsFoot'),
   }) },
 
-  { id: 'love', pal: 'tang', skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => slide({
+  { id: 'love', pal: 'tang', only: 'lovers', skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => slide({
     kicker: t('loveKicker'), deco: hearts, art: talk('love', '<em>♥</em>'),
     hero: big(S.love[S.A] + S.love[S.B]), stmt: t('loveStmt'), remark: t('loveRemark'),
     callout: callout(`${nf(S.love[S.A])} · ${nf(S.love[S.B])}`, t('loveCall', esc(S.A), esc(S.B))),
@@ -231,7 +239,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'sorry', pal: 'plum', render: (S) => {
+  { id: 'sorry', pal: 'plum', only: 'lovers', render: (S) => {
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
       kicker: t('apologies'), art: talk('a'),
@@ -295,6 +303,66 @@ export const SLIDES = [
     });
   } },
 
+  // Who you are in this chat: five playful readings, each with a hedge. They print word-list
+  // phrases, labels and numbers only, never anyone's messages.
+  { id: 'sync', pal: 'mint', skip: (S) => !S.sync?.eligible, render: (S) => {
+    const y = S.sync, row = (label, n) => `<div class="sync-row"><span>${label}</span><i style="--w:${n}%"></i><b>${n}%</b></div>`;
+    return slide({
+      kicker: tm('syncKicker', S), art: `<div class="sync">${row(t('syncThen'), y.then)}${row(t('syncNow'), y.now)}</div>`,
+      hero: big(y.now, '%'), stmt: y.delta >= 3 ? t('syncUp') : t('syncSame'), remark: t('syncRemark'),
+      callout: y.delta >= 3 ? callout(`+${y.delta}`, t('syncCall')) : callout('', t('syncCallSame')),
+    });
+  } },
+
+  { id: 'creatures', pal: 'lemon', skip: (S) => !S.creatures?.eligible, render: (S) => {
+    const c = S.creatures, mode = S.mode || 'lovers';
+    const label = (p) => {
+      const base = !c.high ? t(`creature_${mode}_tie`) : t(`creature_${mode}_${c.set}_${p === c.high ? 'hi' : 'lo'}`);
+      return c.night[p] ? `${base}, ${t('nightShift')}` : base;
+    };
+    const card = (p) => `<div class="crit"><span>${esc(p)}</span><b>${nf(c.score[p])}</b><em>${label(p)}</em></div>`;
+    return slide({
+      kicker: tm('creaturesKicker', S), art: `<div class="crits">${card(S.A)}${card(S.B)}</div>`,
+      stmt: c.high ? t('creaturesStmt', esc(c.high), label(c.high)) : t('creaturesTie'), remark: t('creaturesRemark'),
+      callout: callout('', t('creaturesHedge')),
+    });
+  } },
+
+  { id: 'language', pal: 'tang', skip: (S) => !Object.values(langOf(S)).some((x) => x.eligible), render: (S) => {
+    const L = langOf(S), cats = ['words', 'time', 'service', 'gifts', 'touch'];
+    const who = [S.A, S.B].filter((p) => L[p]?.eligible);
+    const bars = (p) => `<div class="lang"><div class="lang-who">${esc(p)}</div>${cats.map((c) => `<div class="lang-row${c === L[p].primary ? ' top' : ''}"><span>${t(`lang_${c}`)}</span><i style="--w:${L[p].pct[c]}%"></i><b>${L[p].pct[c]}%</b></div>`).join('')}</div>`;
+    const lead = who.slice().sort((a, b) => L[b].n - L[a].n)[0];
+    return slide({
+      kicker: tm('langKicker', S), art: who.map(bars).join(''),
+      stmt: lead ? t('langStmt', esc(lead), t(`lang_${L[lead].primary}`)) : t('langNone'), remark: t('langRemark'),
+      callout: callout('', t('langHedge')),
+    });
+  } },
+
+  { id: 'weather', pal: 'cobalt', skip: (S) => !S.weather?.eligible, render: (S) => {
+    const w = S.weather, so = w.standout;
+    return slide({
+      kicker: t('weatherKicker'), art: `<div class="wx">${w.label ? t(`wx_${w.label}`) : '—'}</div>`,
+      stmt: w.label ? t(`wx_${w.label}`) : t('wxNone'),
+      remark: so ? t('wxStandout', MONTHS[getLang()]?.[so.month.getMonth()] ?? MONTHS.en[so.month.getMonth()], t(`wx_${so.label}`)) : t('wxSteady'),
+      callout: callout('', t('wxHedge')),
+    });
+  } },
+
+  { id: 'playlist', pal: 'pink', skip: (S) => !S.emotions?.eligible, render: (S) => {
+    const E = S.emotions, emos = ['joy', 'love', 'sadness', 'anger', 'worry', 'surprise'];
+    const top = (mix) => emos.reduce((a, e) => (mix.pct[e] > mix.pct[a] ? e : a), emos[0]);
+    const all = E.all, best = top(all);
+    return slide({
+      kicker: t('playlistKicker'),
+      art: `<div class="mix">${emos.map((e) => `<div class="mix-row"><span>${t(`emo_${e}`)}</span><i style="--w:${all.pct[e]}%"></i><b>${all.pct[e]}%</b></div>`).join('')}</div>`,
+      stmt: all.n ? t('playlistStmt', all.pct[best], t(`emo_${best}`)) : t('playlistNone'),
+      remark: E[S.A]?.n && E[S.B]?.n ? t('playlistRemark', esc(S.A), t(`emo_${top(E[S.A])}`), esc(S.B), t(`emo_${top(E[S.B])}`)) : '',
+      callout: callout('', t('playlistHedge')),
+    });
+  } },
+
   // The keepsake: two bubbles with your initials, both names, the years, three headline
   // numbers and a line about you two. Saved without names it reads "You two".
   { id: 'finale', pal: 'plum', render: (S) => {
@@ -303,7 +371,7 @@ export const SLIDES = [
     const y0 = S.firstDate.getFullYear(), y1 = +(S.dayKeys?.[S.dayKeys.length - 1] || String(y0)).slice(0, 4);
     const stat = (n, label) => `<div><b>${count(n)}</b><small>${label}</small></div>`;
     return slide({
-      kicker: t('finaleKicker', y0 === y1 ? y0 : `${y0} – ${y1}`),
+      kicker: tm('finaleKicker', S, y0 === y1 ? y0 : `${y0} – ${y1}`),
       art: `<div class="duo" aria-hidden="true"><span class="db a">${anon ? dots : initial(S.A)}</span><span class="db b">${anon ? dots : initial(S.B)}</span></div>`,
       stmt: `<span class="fnames">${anon ? t('youTwo') : `${esc(S.A)} &amp; ${esc(S.B)}`}</span>`,
       remark: S.pace ? paceRemark(S) : '',
@@ -312,7 +380,7 @@ export const SLIDES = [
   } },
 ];
 
-export const slidesFor = (S) => SLIDES.filter((s) => !s.skip?.(S));
+export const slidesFor = (S) => SLIDES.filter((s) => (!s.only || s.only === S.mode) && !s.skip?.(S));
 
 // The last slide: a message the sender types before playing.
 export const closingSlide = (note, signed) => ({

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
 import { stats } from '../src/stats.js';
-import { SLIDES } from '../src/slides.js';
+import { otherMode, SLIDES, slidesFor } from '../src/slides.js';
 import { setLang } from '../src/i18n.js';
 import { makeSample } from '../src/sample.js';
 
@@ -15,6 +15,7 @@ describe('the story', () => {
       'intro', 'first', 'share', // how it began
       'bubble', 'starts', 'emoji', 'words', 'love', 'reply', 'sorry', // what you're like together
       'morning', 'night', 'carried', 'streak', 'busy', // the moments you made
+      'sync', 'creatures', 'language', 'weather', 'playlist', // who you are in this chat
       'finale',
     ]);
   });
@@ -113,5 +114,43 @@ describe('layouts that follow how you text', () => {
     const html = render('bubble', withAvg(9, 1));
     const turnA = html.split('class="turn a"')[1].split('class="turn b"')[0];
     expect(turnA.match(/<i /g)).toHaveLength(6);
+  });
+});
+
+describe('two modes', () => {
+  const lovers = { ...S, mode: 'lovers' }, casual = { ...S, mode: 'casual' };
+  const ids = (s) => slidesFor(s).map((x) => x.id);
+
+  it('keeps apologies and "I love you" for lovers only', () => {
+    expect(ids(casual)).not.toContain('sorry');
+    expect(ids(casual)).not.toContain('love');
+    expect(ids(lovers)).toContain('sorry');
+    expect(ids(lovers)).toContain('love');
+  });
+
+  it('frames the same five languages as love for lovers and friendship for friends', () => {
+    expect(render('language', lovers)).toMatch(/Love language/);
+    expect(render('language', casual)).toMatch(/Friendship language/);
+  });
+
+  it('never prints anyone\'s actual messages on the new slides', () => {
+    const said = [...new Set(parse(makeSample()).map((m) => m.text).filter((x) => x.length > 12))];
+    for (const id of ['sync', 'creatures', 'language', 'weather', 'playlist']) {
+      for (const s of [lovers, casual]) {
+        const html = render(id, s);
+        for (const line of said) expect(html, `${id} quotes "${line}"`).not.toContain(line);
+      }
+    }
+  });
+
+  it('skips the weather and the playlist when the chat has too few feelings in it', () => {
+    const dry = { ...casual, emotions: { ...S.emotions, eligible: false }, weather: { eligible: false, label: null, standout: null } };
+    expect(ids(dry)).not.toContain('weather');
+    expect(ids(dry)).not.toContain('playlist');
+  });
+
+  it('swaps lovers and friends', () => {
+    expect(otherMode('lovers')).toBe('casual');
+    expect(otherMode('casual')).toBe('lovers');
   });
 });
