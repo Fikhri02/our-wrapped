@@ -54,8 +54,8 @@ describe('the redesigned art', () => {
     expect(html).toMatch(/class="rhythm[ "]/); // any variant
   });
 
-  it('night owls: a night sky behind the hours', () => {
-    expect(render('night')).toMatch(/class="sky"/);
+  it('keeps the ground flat: no background layers behind any slide', () => {
+    for (const x of SLIDES) expect(x.render(S), x.id).not.toMatch(/class="(sky|dawn|hearts|decor)\b/);
   });
 
   it('no goodbyes: a night-to-morning scene with real times and no message text', () => {
@@ -84,10 +84,8 @@ describe('a reveal per slide', () => {
     expect(SLIDES.filter((s) => s.typing).map((s) => s.id)).toEqual(['first', 'bubble', 'carried']);
   });
 
-  it('gives mornings a sun and love floating hearts, both resting in place when still', () => {
+  it('gives mornings a sun in the picture', () => {
     expect(render('morning')).toMatch(/class="sun"/);
-    expect(render('love')).toMatch(/class="hearts"/);
-    expect(render('love').match(/<i[^>]*>♥<\/i>/g).length).toBeGreaterThanOrEqual(5);
   });
 
   it('marks the apology quote for its nudge', () => {

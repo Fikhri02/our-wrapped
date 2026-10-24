@@ -7,11 +7,25 @@ import '@fontsource/instrument-sans/600.css';
 import '@fontsource/instrument-sans/700.css';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/600.css';
+// The two story themes: LOVERS reads in Fraunces and DM Sans, CASUAL in Plus Jakarta Sans
+// and IBM Plex Mono.
+import '@fontsource/fraunces/500.css';
+import '@fontsource/fraunces/600.css';
+import '@fontsource/fraunces/400-italic.css';
+import '@fontsource/dm-sans/400.css';
+import '@fontsource/dm-sans/500.css';
+import '@fontsource/dm-sans/700.css';
+import '@fontsource/plus-jakarta-sans/500.css';
+import '@fontsource/plus-jakarta-sans/700.css';
+import '@fontsource/plus-jakarta-sans/800.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
 import './style.css';
 import { parse } from './parser.js';
 import { stats } from './stats.js';
 import { createPlayer } from './player.js';
-import { closingSlide, paint, slidesFor } from './slides.js';
+import { closingSlide, slidesFor } from './slides.js';
+import { paint } from './theme.js';
 import { makeSample } from './sample.js';
 import { esc, fmtDay, nf } from './format.js';
 import { dayMessages, guessMe, renderChat } from './chat.js';
@@ -69,10 +83,10 @@ function renderGallery() {
     try { html = slide.render(forSaving()); } catch { html = `<div class="k">${t('oops')}</div><div class="mid">${t('noData')}</div><div></div>`; }
     const priv = PRIVATE_SLIDES.includes(slide.id)
       ? `<label class="priv"><input type="checkbox" id="hide-${slide.id}" data-hide="${slide.id}"${hide[slide.id] ? ' checked' : ''}> ${esc(t(`hide_${slide.id}`))}</label>` : '';
-    return `<figure class="tile"><div class="tile-frame"><div class="card" data-pal="${slide.pal}">${html}</div></div>${priv}`
+    return `<figure class="tile"><div class="tile-frame"><div class="card" data-accent="${slide.accent}">${html}</div></div>${priv}`
       + `<button class="btn" type="button" data-save="${i}">${esc(t('saveSlide'))}</button></figure>`;
   }).join('');
-  gallery.querySelectorAll('.card[data-pal]').forEach((c) => paint(c, c.dataset.pal));
+  gallery.querySelectorAll('.card[data-accent]').forEach((c) => paint(c, current.mode, c.dataset.accent));
 }
 
 // Stats for a range, into the story player and the gallery. False when the range is too thin.

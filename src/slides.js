@@ -1,4 +1,4 @@
-// Each slide: a palette, a render(stats) → HTML string, and optionally skip(stats) for
+// Each slide: an accent (CASUAL colours it; see theme.js), a render(stats) → HTML string, and optionally skip(stats) for
 // when it has nothing to show and typing (a chat scene, so the story opens it with a
 // "typing…" beat). All copy comes from i18n.js.
 import { clock, compact, esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
@@ -9,41 +9,6 @@ import { getLang, MONTHS, t, tm } from './i18n.js';
 export const MODES = ['lovers', 'casual'];
 export const otherMode = (mode) => (mode === 'lovers' ? 'casual' : 'lovers');
 
-// [background, ink, tone]: the tone is a neighbour's colour, for the bubble shapes.
-export const PALETTES = {
-  pink: ['#ff4f9a', '#1a0612', '#ffe14d'],
-  lemon: ['#ffe14d', '#241a00', '#ff4f9a'],
-  cobalt: ['#2f4bff', '#ffffff', '#ffe14d'],
-  mint: ['#3ee6b0', '#05231a', '#2f4bff'],
-  plum: ['#2a1233', '#ffd6ec', '#ff4f9a'],
-  tang: ['#ff7a3d', '#200800', '#2a1233'],
-  night: ['#0b1040', '#ffffff', '#ffe14d'], // the night owls' sky
-};
-
-// Per palette: the colour for small highlighted text (the date line, the callout's number),
-// which the tone can't always carry (yellow on pink), and the callout card's fill.
-const ACCENT = {
-  pink: ['#ffffff', 'rgba(26, 6, 18, .14)'],
-  lemon: ['#c4166a', 'rgba(36, 26, 0, .09)'],
-  cobalt: ['#ffe14d', 'rgba(10, 20, 120, .32)'],
-  mint: ['#1b2fd6', 'rgba(5, 35, 26, .1)'],
-  plum: ['#ff6fae', 'rgba(255, 255, 255, .07)'],
-  tang: ['#2a1233', 'rgba(32, 8, 0, .12)'],
-  night: ['#ffe14d', 'rgba(255, 255, 255, .08)'],
-};
-
-// Paints a card in a slide's palette. The tone colours the decorative bubbles.
-export function paint(card, pal) {
-  const [bg, fg, tone] = PALETTES[pal];
-  card.style.background = bg;
-  card.style.color = fg;
-  card.style.setProperty('--tone', tone);
-  card.style.setProperty('--bg', bg);
-  card.style.setProperty('--fg', fg);
-  card.style.setProperty('--hi', ACCENT[pal][0]);
-  card.style.setProperty('--panel', ACCENT[pal][1]);
-}
-
 // A number the player counts up from 0 on entrance.
 const count = (n, suffix = '', dec = 0) =>
   `<span data-count="${n}" data-suffix="${suffix}" data-dec="${dec}">${dec ? n.toFixed(dec) : nf(n)}${suffix}</span>`;
@@ -52,8 +17,8 @@ const count = (n, suffix = '', dec = 0) =>
 // illustration, then one big fact, a statement, a human remark and a callout card with one
 // more thing worth knowing. Parts a slide doesn't need are left out. The big number shrinks
 // with its length so 2,510 fits where 57 does.
-const slide = ({ kicker, art = '', ctx = '', hero = null, stmt = '', remark = '', more = '', callout = '', deco = '' }) =>
-  `${deco}<div class="k ow-head"><span>${kicker}</span><span class="ow-brand">Our Wrapped</span></div>`
+const slide = ({ kicker, art = '', ctx = '', hero = null, stmt = '', remark = '', more = '', callout = '' }) =>
+  `<div class="k ow-head"><span>${kicker}</span><span class="ow-brand">Our Wrapped</span></div>`
   + `<div class="body">${art ? `<div class="ow-art">${art}</div>` : ''}<div class="ow-text">`
   + `${ctx ? `<div class="ow-ctx">${ctx}</div>` : ''}`
   + `${hero ? `<div class="ow-hero" style="--len:${hero.label.length}">${count(hero.n, hero.suffix || '', hero.dec || 0)}</div>` : ''}`
@@ -76,11 +41,9 @@ const asEmoji = (e) => ([...e].length === 1 ? `${e}️` : e);
 const talk = (v = '', inner = '<s></s><s></s><s></s>') =>
   `<div class="ow-bubs${v ? ` ow-bubs-${v}` : ''}" aria-hidden="true"><i><s></s><s></s><s></s></i><i>${inner}</i></div>`;
 
-// Mornings: a sun in the illustration. Love: hearts scattered behind everything. Both rest
-// in place on still images and rise in on the story.
+// Mornings: a sun in the illustration, rising in on the story and resting in place on
+// still images.
 const sun = '<div class="ow-sunbox" aria-hidden="true"><div class="sun"></div></div>';
-const hearts = `<div class="hearts" aria-hidden="true">${[[12, 18, 26, -12], [78, 14, 34, 10], [64, 30, 18, -6], [22, 34, 16, 14], [86, 40, 22, -14], [40, 12, 14, 8]]
-  .map(([x, y, s, r], i) => `<i style="left:${x}%;top:${y}%;font-size:${s}px;--r:${r}deg;--i:${i}">♥</i>`).join('')}</div>`;
 
 // The streak as a calendar laid on its side: a column per week (Monday at the top), the
 // streak's days filled, its ends ringed, other days you talked shown faintly. Seven rows
@@ -112,7 +75,7 @@ function paceRemark(S) {
 const langOf = (S) => (S.mode === 'casual' ? S.friendLang : S.loveLang) || {};
 
 export const SLIDES = [
-  { id: 'intro', pal: 'plum', render: (S) => {
+  { id: 'intro', accent: 'teal', render: (S) => {
     const p = S.pace;
     return slide({
       kicker: tm('introKicker', S), art: talk('hero'),
@@ -125,7 +88,7 @@ export const SLIDES = [
 
   // The first message as a real chat: a date chip, the bubble with its time and ticks, and
   // up to two replies from the next hour.
-  { id: 'first', pal: 'lemon', typing: true, render: (S) => {
+  { id: 'first', accent: 'denim', typing: true, render: (S) => {
     const lead = S.first.who;
     const text = (m, i) => (S.hide?.first ? hidden(m.text) : esc(m.text.slice(0, i ? 70 : 140)));
     const bubble = (m, i) => `<div class="cb ${m.who === lead ? 'l' : 'r'}${i ? '' : ' lead'}" style="--i:${i}">${text(m, i)}<small>${clock(m.when)}${i ? '' : ' ✓✓'}</small></div>`;
@@ -137,7 +100,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'share', pal: 'pink', render: (S) => {
+  { id: 'share', accent: 'terracotta', render: (S) => {
     const a = S.count[S.A], b = S.count[S.B] || 0, pa = Math.round((a / (a + b)) * 100);
     const w = pa >= 50 ? S.A : S.B;
     const tk = S.talk, past = !!S.pace?.past;
@@ -157,7 +120,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'bubble', pal: 'lemon', typing: true, render: (S) => {
+  { id: 'bubble', accent: 'ochre', typing: true, render: (S) => {
     const { avg, feature: f } = S.bubbles;
     const w = avg[S.A] >= avg[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     const x = Math.round(avg[w] * 10) / 10, y = (Math.round(avg[l] * 10) / 10).toFixed(1);
@@ -182,7 +145,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'starts', pal: 'mint', render: (S) => {
+  { id: 'starts', accent: 'violet', render: (S) => {
     const c = S.convo;
     const w = c.starts[S.A] >= c.starts[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     const g = S.goodnight, bye = g[S.A] >= g[S.B] ? S.A : S.B;
@@ -194,7 +157,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'emoji', pal: 'lemon', skip: (S) => !S.emo[S.A].length && !S.emo[S.B].length, render: (S) => {
+  { id: 'emoji', accent: 'teal', skip: (S) => !S.emo[S.A].length && !S.emo[S.B].length, render: (S) => {
     const v = S.emoVs, past = !!S.pace?.past;
     // Stickers: sized by count against the biggest of both, tilted a little each.
     const max = Math.max(1, ...S.emoN[S.A], ...S.emoN[S.B]), tilt = [-10, 8, -5, 12, -8];
@@ -207,19 +170,19 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'words', pal: 'mint', skip: (S) => !S.words[S.A].length && !S.words[S.B].length, render: (S) => slide({
+  { id: 'words', accent: 'denim', skip: (S) => !S.words[S.A].length && !S.words[S.B].length, render: (S) => slide({
     kicker: t('vocab'),
     art: `<div class="wcols">${[S.A, S.B].map((p, side) => `<div><div class="wname">${esc(p)}</div><div class="words ${side ? 'wb' : 'wa'}">${S.words[p].map((w, i) => `<span style="--i:${i * 2 + side}">${S.hide?.words ? '•••' : esc(w)}</span>`).join('') || '—'}</div></div>`).join('')}</div>`,
     stmt: t('yourWords'), remark: t('wordsFoot'),
   }) },
 
-  { id: 'love', pal: 'tang', only: 'lovers', skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => slide({
-    kicker: t('loveKicker'), deco: hearts, art: talk('love', '<em>♥</em>'),
+  { id: 'love', accent: 'terracotta', only: 'lovers', skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => slide({
+    kicker: t('loveKicker'), art: talk('love', '<em>♥</em>'),
     hero: big(S.love[S.A] + S.love[S.B]), stmt: t('loveStmt'), remark: t('loveRemark'),
     callout: callout(`${nf(S.love[S.A])} · ${nf(S.love[S.B])}`, t('loveCall', esc(S.A), esc(S.B))),
   }) },
 
-  { id: 'reply', pal: 'pink', render: (S) => {
+  { id: 'reply', accent: 'ochre', render: (S) => {
     const r = S.reply, A = r[S.A], B = r[S.B];
     // Minute-precision exports make the median 0 for everyone, so rank by the share
     // of replies inside a minute, then by the average.
@@ -239,7 +202,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'sorry', pal: 'plum', only: 'lovers', render: (S) => {
+  { id: 'sorry', accent: 'violet', only: 'lovers', render: (S) => {
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
       kicker: t('apologies'), art: talk('a'),
@@ -248,7 +211,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'morning', pal: 'tang', render: (S) => {
+  { id: 'morning', accent: 'terracotta', render: (S) => {
     const w = S.ft[S.A] >= S.ft[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
       kicker: t('firstThought'), art: sun,
@@ -257,12 +220,12 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'night', pal: 'night', skip: (S) => !S.late, render: (S) => {
+  { id: 'night', accent: 'denim', skip: (S) => !S.late, render: (S) => {
     const mx = Math.max(...S.hours) || 1;
     // The busiest hour is the tallest bar; it gets its hour written above it.
-    const bars = S.hours.map((v, h) => `<i class="${h === S.peak ? 'peak' : ''}" style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? '#ffe14d' : '#ffffff88'}">${h === S.peak ? `<b>${hourLabel(h)}</b>` : ''}</i>`).join('');
+    const bars = S.hours.map((v, h) => `<i class="${h === S.peak ? 'peak' : ''}" style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? 'var(--accent)' : 'var(--tint)'}">${h === S.peak ? `<b>${hourLabel(h)}</b>` : ''}</i>`).join('');
     return slide({
-      kicker: t('nightOwls'), deco: '<div class="sky" aria-hidden="true"></div>',
+      kicker: t('nightOwls'),
       art: `<div class="hours">${bars}</div><div class="hours-x"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span></div>`,
       hero: big(S.late), stmt: t('afterMidnight'), remark: t('nightFoot'),
       callout: callout(hourLabel(S.peak), t('busiestHour')),
@@ -271,20 +234,20 @@ export const SLIDES = [
 
   // A night that never closed: the last message of the night, the night passing, and the
   // morning reply. Real times, no text: the bubbles hold typing dots.
-  { id: 'carried', pal: 'plum', typing: true, skip: (S) => !S.carried, render: (S) => {
+  { id: 'carried', accent: 'violet', typing: true, skip: (S) => !S.carried, render: (S) => {
     const ex = S.carriedEx, dots = '<span class="dots3"><i></i><i></i><i></i></span>';
     const scene = ex ? `<div class="overnight" aria-hidden="true">
         <div class="on-b l" style="--i:0">${dots}<small>${esc(ex.nightWho)} · ${clock(ex.night)}</small></div>
         <div class="on-gap" style="--i:1"><span>☾</span><span>·</span><span>·</span><span>·</span><span>☀</span></div>
         <div class="on-b r" style="--i:2">${dots}<small>${esc(ex.morningWho)} · ${clock(ex.morning)}</small></div></div>` : '';
     return slide({
-      kicker: t('carriedKicker'), deco: '<div class="dawn" aria-hidden="true"></div>', art: scene,
+      kicker: t('carriedKicker'), art: scene,
       hero: big(S.carried), stmt: t('carriedLine'), remark: t('carriedHead'),
       callout: callout(`${Math.max(1, Math.round((S.carried / S.days) * 100))}%`, t('carriedFoot')),
     });
   } },
 
-  { id: 'streak', pal: 'mint', render: (S) => slide({
+  { id: 'streak', accent: 'teal', render: (S) => slide({
     kicker: t('streak'), art: streakCal(S),
     ctx: S.streakNow ? t('streakToday', fmtDate(S.streakStart)) : fmtRange(S.streakStart, S.streakEnd),
     hero: big(S.streak), stmt: t('streakHead'), remark: t('streakVibe', S.streak, S.streakNow),
@@ -293,7 +256,7 @@ export const SLIDES = [
 
   // The loudest day, built to the mockup: the date in the accent colour, the count, and what
   // share of the whole chat that one day holds.
-  { id: 'busy', pal: 'cobalt', render: (S) => {
+  { id: 'busy', accent: 'ochre', render: (S) => {
     const pct = (S.busyN / S.total) * 100;
     return slide({
       kicker: t('loudest'), art: talk('loud'), ctx: fmtDay(S.busy),
@@ -305,7 +268,7 @@ export const SLIDES = [
 
   // Who you are in this chat: five playful readings, each with a hedge. They print word-list
   // phrases, labels and numbers only, never anyone's messages.
-  { id: 'sync', pal: 'mint', skip: (S) => !S.sync?.eligible, render: (S) => {
+  { id: 'sync', accent: 'violet', skip: (S) => !S.sync?.eligible, render: (S) => {
     const y = S.sync, row = (label, n) => `<div class="sync-row"><span>${label}</span><i style="--w:${n}%"></i><b>${n}%</b></div>`;
     return slide({
       kicker: tm('syncKicker', S), art: `<div class="sync">${row(t('syncThen'), y.then)}${row(t('syncNow'), y.now)}</div>`,
@@ -314,7 +277,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'creatures', pal: 'lemon', skip: (S) => !S.creatures?.eligible, render: (S) => {
+  { id: 'creatures', accent: 'terracotta', skip: (S) => !S.creatures?.eligible, render: (S) => {
     const c = S.creatures, mode = S.mode || 'lovers';
     const label = (p) => {
       const base = !c.high ? t(`creature_${mode}_tie`) : t(`creature_${mode}_${c.set}_${p === c.high ? 'hi' : 'lo'}`);
@@ -328,7 +291,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'language', pal: 'tang', skip: (S) => !Object.values(langOf(S)).some((x) => x.eligible), render: (S) => {
+  { id: 'language', accent: 'teal', skip: (S) => !Object.values(langOf(S)).some((x) => x.eligible), render: (S) => {
     const L = langOf(S), cats = ['words', 'time', 'service', 'gifts', 'touch'];
     const who = [S.A, S.B].filter((p) => L[p]?.eligible);
     const bars = (p) => `<div class="lang"><div class="lang-who">${esc(p)}</div>${cats.map((c) => `<div class="lang-row${c === L[p].primary ? ' top' : ''}"><span>${t(`lang_${c}`)}</span><i style="--w:${L[p].pct[c]}%"></i><b>${L[p].pct[c]}%</b></div>`).join('')}</div>`;
@@ -340,7 +303,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'weather', pal: 'cobalt', skip: (S) => !S.weather?.eligible, render: (S) => {
+  { id: 'weather', accent: 'denim', skip: (S) => !S.weather?.eligible, render: (S) => {
     const w = S.weather, so = w.standout;
     return slide({
       kicker: t('weatherKicker'), art: `<div class="wx">${w.label ? t(`wx_${w.label}`) : '—'}</div>`,
@@ -350,7 +313,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'playlist', pal: 'pink', skip: (S) => !S.emotions?.eligible, render: (S) => {
+  { id: 'playlist', accent: 'ochre', skip: (S) => !S.emotions?.eligible, render: (S) => {
     const E = S.emotions, emos = ['joy', 'love', 'sadness', 'anger', 'worry', 'surprise'];
     const top = (mix) => emos.reduce((a, e) => (mix.pct[e] > mix.pct[a] ? e : a), emos[0]);
     const all = E.all, best = top(all);
@@ -365,7 +328,7 @@ export const SLIDES = [
 
   // The keepsake: two bubbles with your initials, both names, the years, three headline
   // numbers and a line about you two. Saved without names it reads "You two".
-  { id: 'finale', pal: 'plum', render: (S) => {
+  { id: 'finale', accent: 'teal', render: (S) => {
     const anon = S.hide?.finale, dots = '<i></i><i></i><i></i>';
     const initial = (n) => esc([...n.trim()][0]?.toUpperCase() || '?');
     const y0 = S.firstDate.getFullYear(), y1 = +(S.dayKeys?.[S.dayKeys.length - 1] || String(y0)).slice(0, 4);
@@ -384,7 +347,7 @@ export const slidesFor = (S) => SLIDES.filter((s) => (!s.only || s.only === S.mo
 
 // The last slide: a message the sender types before playing.
 export const closingSlide = (note, signed) => ({
-  id: 'closing', pal: 'plum',
+  id: 'closing', accent: 'teal',
   render: () => slide({
     kicker: t('oneMore'), art: talk('a'),
     stmt: `<span class="note">${esc(note).replace(/\n/g, '<br>')}</span>`,
