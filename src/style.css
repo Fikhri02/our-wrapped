@@ -342,3 +342,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card.enter .wcols .words span { animation: pop .45s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * 55ms); }
 
 @media (prefers-reduced-motion: reduce) { .typing-in { display: none; } .card.enter { --wait: 0s; } }
+
+/* hide-on-save switch under the slides that can print private text */
+.priv { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.priv input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }

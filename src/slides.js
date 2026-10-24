@@ -31,6 +31,10 @@ const count = (n, suffix = '', dec = 0) =>
 const frame = (kicker, body, foot, deco = '') =>
   `${deco}<div class="k">${kicker}</div><div class="body">${body}</div><div class="foot">${foot}</div>`;
 
+// Text hidden for a saved image: dots in place of the words, roughly as long as the original,
+// so the bubble keeps its shape without saying anything.
+const hidden = (text) => Array(Math.max(1, Math.min(5, Math.round(text.length / 14)))).fill('•••').join(' ');
+
 // Counting strips the emoji presentation selector, so a lone ❤ would draw as a black text
 // heart. Put it back for display on single-symbol emoji.
 const asEmoji = (e) => ([...e].length === 1 ? `${e}\uFE0F` : e);
@@ -76,7 +80,8 @@ export const SLIDES = [
   // up to two replies from the next hour.
   { id: 'first', pal: 'lemon', render: (S) => {
     const lead = S.first.who;
-    const bubble = (m, i) => `<div class="cb ${m.who === lead ? 'l' : 'r'}${i ? '' : ' lead'}" style="--i:${i}">${esc(m.text.slice(0, i ? 70 : 140))}<small>${clock(m.when)}${i ? '' : ' ✓✓'}</small></div>`;
+    const text = (m, i) => (S.hide?.first ? hidden(m.text) : esc(m.text.slice(0, i ? 70 : 140)));
+    const bubble = (m, i) => `<div class="cb ${m.who === lead ? 'l' : 'r'}${i ? '' : ' lead'}" style="--i:${i}">${text(m, i)}<small>${clock(m.when)}${i ? '' : ' ✓✓'}</small></div>`;
     return frame(S.range ? t('rangeFirst', esc(S.range)) : t('whereStarted'),
       `<div class="scene"><div class="date-chip">${fmtDate(S.first.when)}</div><div class="cb-who">${esc(lead)}</div>${[S.first, ...(S.firstReplies || [])].map(bubble).join('')}</div>`,
       t('messageOf', nf(S.total)));
@@ -184,7 +189,7 @@ export const SLIDES = [
   { id: 'sorry', pal: 'plum', render: (S) => {
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B;
     return frame(t('apologies'),
-      `<div class="mid">${t('saidSorry', esc(w), S.sorry[w])}</div><div class="line">${S.sorryFirst[w] ? t('firstSorry', esc(S.sorryFirst[w].text.slice(0, 70))) : t('noSorry')}</div>`,
+      `<div class="mid">${t('saidSorry', esc(w), S.sorry[w])}</div><div class="line">${!S.sorryFirst[w] ? t('noSorry') : S.hide?.sorry ? t('firstSorryHidden') : t('firstSorry', esc(S.sorryFirst[w].text.slice(0, 70)))}</div>`,
       `${esc(S.A)} ${S.sorry[S.A]} · ${esc(S.B)} ${S.sorry[S.B]}`, decor('a'));
   } },
 
@@ -194,7 +199,7 @@ export const SLIDES = [
 
   { id: 'words', pal: 'mint', skip: (S) => !S.words[S.A].length && !S.words[S.B].length, render: (S) => frame(t('vocab'),
     `<div class="mid">${t('yourWords')}</div>
-     <div class="wcols">${[S.A, S.B].map((p, side) => `<div><div class="wname">${esc(p)}</div><div class="words ${side ? 'wb' : 'wa'}">${S.words[p].map((w, i) => `<span style="--i:${i * 2 + side}">${esc(w)}</span>`).join('') || '—'}</div></div>`).join('')}</div>`,
+     <div class="wcols">${[S.A, S.B].map((p, side) => `<div><div class="wname">${esc(p)}</div><div class="words ${side ? 'wb' : 'wa'}">${S.words[p].map((w, i) => `<span style="--i:${i * 2 + side}">${S.hide?.words ? '•••' : esc(w)}</span>`).join('') || '—'}</div></div>`).join('')}</div>`,
     t('wordsFoot')) },
 
   { id: 'busy', pal: 'cobalt', render: (S) => frame(t('loudest'),
