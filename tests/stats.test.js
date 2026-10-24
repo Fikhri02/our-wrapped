@@ -3,7 +3,7 @@ import { parse } from '../src/parser.js';
 import { bubbles, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker, talkRoles } from '../src/stats.js';
 import { setLang, t } from '../src/i18n.js';
 import { slidesFor } from '../src/slides.js';
-import { formatReply } from '../src/format.js';
+import { fmtRange, formatReply } from '../src/format.js';
 import { makeSample } from '../src/sample.js';
 
 describe('stats helpers', () => {
@@ -15,6 +15,38 @@ describe('stats helpers', () => {
 
   it('longestStreak counts consecutive days across a month boundary', () => {
     expect(longestStreak(['2026-07-30', '2026-07-31', '2026-08-01', '2026-08-03']).days).toBe(3);
+  });
+
+  it('longestStreak knows where the streak started and ended', () => {
+    const s = longestStreak(['2026-07-30', '2026-07-31', '2026-08-01', '2026-08-03']);
+    expect([s.startKey, s.endKey]).toEqual(['2026-07-30', '2026-08-01']);
+  });
+
+  it('formats a streak as a date range, as short as it can be', () => {
+    const d = (y, m, day) => new Date(y, m - 1, day);
+    expect(fmtRange(d(2025, 7, 1), d(2025, 7, 22))).toBe('1 – 22 Jul 2025');
+    expect(fmtRange(d(2025, 6, 28), d(2025, 7, 9))).toBe('28 Jun – 9 Jul 2025');
+    expect(fmtRange(d(2024, 12, 28), d(2025, 1, 15))).toBe('28 Dec 2024 – 15 Jan 2025');
+    expect(fmtRange(d(2025, 7, 9), d(2025, 7, 9))).toBe('9 Jul 2025');
+  });
+
+  it('gives the streak a verdict, past tense once it ended', () => {
+    setLang('en');
+    const say = (d, now = false) => t('streakVibe', d, now);
+    expect(say(2)).toBe('Pretty low-key. You two clearly don\'t need daily check-ins.');
+    expect(say(5)).toBe('Pretty normal. A few good days in a row.');
+    expect(say(10)).toBe('Okay, you two were kinda something.');
+    expect(say(10, true)).toBe('Okay, you two are kinda something.');
+    expect(say(22)).toBe('You two were properly hooked.');
+    expect(say(45)).toBe('Clingy. In the best way.');
+    expect(say(120)).toBe('At that point it wasn\'t a streak, it was a lifestyle.');
+    expect(say(120, true)).toBe('At this point it\'s not a streak, it\'s a lifestyle.');
+  });
+
+  it('knows when the longest streak is still going', () => {
+    const msgs = parse(['1/3/26, 10:00 - A: hi', '2/3/26, 10:00 - B: hi', '3/3/26, 10:00 - A: hi', ...Array(10).fill('3/3/26, 11:00 - B: ok')].join('\n'));
+    expect(stats(msgs, new Date(2026, 2, 4, 9)).streakNow).toBe(true);
+    expect(stats(msgs, new Date(2026, 2, 9)).streakNow).toBe(false);
   });
 
   it('firstTexter ignores messages before 5am', () => {
@@ -400,6 +432,19 @@ describe('bubbles', () => {
   it('calls a long burst of short reactions a spree, and a short one normal', () => {
     expect(bubbles(parse([...burst(12, 2), '1/1/26, 10:30 - B: ok'].join('\n')), ['A', 'B']).feature).toMatchObject({ kind: 'spree', n: 12 });
     expect(bubbles(parse([...burst(3, 8), '1/1/26, 10:30 - B: ok'].join('\n')), ['A', 'B']).feature).toMatchObject({ kind: 'normal', n: 3 });
+  });
+
+  it('does not call a photo dump with deletions a rant', () => {
+    const dump = [];
+    for (let i = 0; i < 40; i++) dump.push(`1/1/26, 10:${String(Math.floor(i / 2)).padStart(2, '0')} - A: ${i % 2 ? 'You deleted this message' : '<Media omitted>'}`);
+    const f = bubbles(parse([...dump, '1/1/26, 10:30 - B: wow'].join('\n')), ['A', 'B']).feature;
+    expect(f.kind).not.toBe('rant');
+  });
+
+  it('does not call a burst a rant when photos outnumber the typed messages', () => {
+    const lines = [];
+    for (let i = 0; i < 10; i++) lines.push(`1/1/26, 10:${String(i).padStart(2, '0')} - A: kata kata kata kata kata kata kata kata`, `1/1/26, 10:${String(i).padStart(2, '0')} - A: <Media omitted>`, `1/1/26, 10:${String(i).padStart(2, '0')} - A: <Media omitted>`);
+    expect(bubbles(parse([...lines, '1/1/26, 10:30 - B: ok'].join('\n')), ['A', 'B']).feature.kind).toBe('spree');
   });
 
   it('features the biggest rant over a longer spree', () => {

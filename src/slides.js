@@ -1,6 +1,6 @@
 // Each slide: a palette, a render(stats) → HTML string, and optionally skip(stats) for
 // when it has nothing to show. All copy comes from i18n.js.
-import { esc, fmtDate, fmtDay, formatReply, hourLabel, nf } from './format.js';
+import { esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
 import { t } from './i18n.js';
 
 export const PALETTES = {
@@ -94,11 +94,14 @@ export const SLIDES = [
 
   { id: 'night', pal: 'cobalt', skip: (S) => !S.late, render: (S) => {
     const mx = Math.max(...S.hours) || 1;
-    const bars = S.hours.map((v, h) => `<i style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? '#ffe14d' : '#ffffff88'}"></i>`).join('');
+    // The busiest hour is the tallest bar; it gets its hour written above it.
+    const bars = S.hours.map((v, h) => `<i class="${h === S.peak ? 'peak' : ''}" style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? '#ffe14d' : '#ffffff88'}">${h === S.peak ? `<b>${hourLabel(h)}</b>` : ''}</i>`).join('');
     return frame(t('nightOwls'),
-      `<div class="mid">${t('afterMidnight', nf(S.late))}</div><div class="hours">${bars}</div>
+      `<div class="mid">${t('afterMidnight', nf(S.late))}</div>
+       <div class="line">${t('busiestHour', hourLabel(S.peak))}</div>
+       <div class="hours">${bars}</div>
        <div class="hours-x"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span></div>`,
-      t('busiestHour', hourLabel(S.peak)));
+      t('nightFoot'));
   } },
 
   { id: 'carried', pal: 'plum', skip: (S) => !S.carried, render: (S) => frame(t('carriedKicker'),
@@ -106,8 +109,9 @@ export const SLIDES = [
     t('carriedFoot', Math.max(1, Math.round((S.carried / S.days) * 100)))) },
 
   { id: 'streak', pal: 'mint', render: (S) => frame(t('streak'),
-    `<div class="big">${count(S.streak)}</div><div class="line">${t('streakLine')}</div>`,
-    t('ended', fmtDate(S.streakEnd))) },
+    `<div class="big">${count(S.streak)}</div><div class="line">${t('streakLine')}</div>
+     <div class="mid streak-range">${S.streakNow ? t('streakToday', fmtDate(S.streakStart)) : fmtRange(S.streakStart, S.streakEnd)}</div>`,
+    t('streakVibe', S.streak, S.streakNow)) },
 
   { id: 'emoji', pal: 'lemon', skip: (S) => !S.emo[S.A].length && !S.emo[S.B].length, render: (S) => frame(t('emojiKicker'),
     `<div class="mid">${t('tenFaces')}</div><div class="emo"><div>${esc(S.A)}<div class="e">${S.emo[S.A].join('') || '—'}</div></div><div>${esc(S.B)}<div class="e">${S.emo[S.B].join('') || '—'}</div></div></div>`,

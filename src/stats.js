@@ -23,6 +23,7 @@ const seg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter(u
 
 const pad = (n) => (n < 10 ? '0' : '') + n;
 export const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const keyDate = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
 const graphemes = (s) => (seg ? Array.from(seg.segment(s), (x) => x.segment) : Array.from(s));
 const top = (obj, n) => Object.keys(obj).sort((a, b) => obj[b] - obj[a]).slice(0, n);
 
@@ -192,14 +193,14 @@ export function longestStreak(dayKeys) {
     const [y, m, d] = k.split('-').map(Number);
     return Date.UTC(y, m - 1, d) / 864e5;
   });
-  let best = 1, cur = 1, end = nums[0];
+  let best = 1, cur = 1, endIdx = 0;
   for (let i = 1; i < nums.length; i++) {
     if (nums[i] - nums[i - 1] === 1) {
       cur++;
-      if (cur > best) { best = cur; end = nums[i]; }
+      if (cur > best) { best = cur; endIdx = i; }
     } else cur = 1;
   }
-  return { days: best, end: new Date(end * 864e5) };
+  return { days: best, startKey: dayKeys[endIdx - best + 1], endKey: dayKeys[endIdx] };
 }
 
 // Reply speed per person: gaps where the sender changes inside one conversation. A
@@ -265,11 +266,12 @@ export function talkRoles(count, talk, people) {
 }
 
 // Bubbles per turn: a turn is a run of messages from one person with no reply in between,
-// broken by a 10+ minute gap (that counts as a double text, not the same burst). Media
-// is left out, so a photo dump doesn't read as a long burst.
+// broken by a 10+ minute gap (that counts as a double text, not the same burst). Media,
+// deleted and blank messages are left out, so a photo dump doesn't read as a long burst.
 // The featured burst: a rant (8+ messages and 60+ words: a story, venting, thinking out loud)
 // if there is one, the wordiest; else the longest, a spree at 8+ (excited short reactions) or
-// normal below that. 99% of real turns are 10 messages or fewer; a typical one is 2.
+// normal below that. 99% of real turns are 10 messages or fewer; a typical one is 2. A burst
+// where photos and videos outnumber the typed messages is sharing, not ranting.
 const RANT_MSGS = 8, RANT_WORDS = 60;
 export function bubbles(msgs, people) {
   const turns = Object.fromEntries(people.map((p) => [p, []]));
@@ -279,10 +281,13 @@ export function bubbles(msgs, people) {
     if (!run || !turns[run.who]) return;
     turns[run.who].push(run.n);
     if (run.n > longest.n) { longest = { who: run.who, n: run.n, when: run.start }; top = run; }
-    if (run.n >= RANT_MSGS && run.words >= RANT_WORDS && (!rant || run.words > rant.words)) rant = run;
+    if (run.n >= RANT_MSGS && run.words >= RANT_WORDS && run.media < run.n && (!rant || run.words > rant.words)) rant = run;
   };
   for (const m of msgs) {
-    if (m.media) continue;
+    if (m.media || m.deleted || !m.text.trim()) {
+      if (run && run.who === m.who) run.media++; // counted against a rant, never as a message
+      continue;
+    }
     const words = (m.text.match(/\S+/g) || []).length;
     if (run && run.who === m.who && (m.when - run.last) / 6e4 < 10) {
       run.n++;
@@ -291,7 +296,7 @@ export function bubbles(msgs, people) {
       run.lastMsg = m;
     } else {
       close();
-      run = { who: m.who, n: 1, words, start: m.when, last: m.when, firstMsg: m, lastMsg: m };
+      run = { who: m.who, n: 1, words, media: 0, start: m.when, last: m.when, firstMsg: m, lastMsg: m };
     }
   }
   close();
@@ -355,7 +360,9 @@ export function stats(all, now = new Date()) {
     A, B, group: Object.keys(count).length > 2, total: msgs.length, count,
     pace: pace(msgs, dk, now),
     days: dk.length, first: msgs.find((m) => !m.media && !m.deleted && m.text.trim()) || msgs[0], firstDate: msgs[0].when,
-    streak: streak.days, streakEnd: streak.end,
+    // A streak that reaches today or yesterday is still going.
+    streak: streak.days, streakStart: keyDate(streak.startKey), streakEnd: keyDate(streak.endKey),
+    streakNow: [dayKey(now), dayKey(new Date(now - 864e5))].includes(streak.endKey),
     ft: firstTexter(msgs, pair, quiet),
     hours, peak: hours.indexOf(Math.max(...hours)),
     late: msgs.filter((m) => m.when.getHours() < 4).length,

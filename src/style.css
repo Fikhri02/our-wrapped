@@ -234,7 +234,15 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 }
 
 /* bubble count: the featured burst under the roast, and a rant highlighted in the viewer */
-.card .burst { margin-top: 10px; font-size: 15px; }
-.burst + .slide-act { margin-top: 10px; }
+.card .burst { margin-top: 8px; font-size: 15px; line-height: 1.35; }
+.burst + .slide-act { margin-top: 9px; }
 .chat-mark { align-self: center; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; background: #ff4f9a; color: #1a0612; border-radius: 999px; padding: 3px 10px; margin: 16px 0 2px; }
 .chat-b.hl { box-shadow: 0 0 0 2.5px #ff4f9a; }
+
+/* night owls: the busiest hour's bar carries its label, above the chart */
+.hours { margin-top: 30px; }
+.hours i.peak { position: relative; }
+.hours i.peak b { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 11px; font-weight: 600; font-style: normal; white-space: nowrap; color: currentColor; }
+
+/* streak: the dates it ran, under the count */
+.card .streak-range { margin-top: 12px; font-size: 18px; letter-spacing: -.01em; }
