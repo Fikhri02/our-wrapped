@@ -454,7 +454,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card.enter .ow-bubs i:last-child { animation-delay: calc(var(--wait) + .3s); transform-origin: right bottom; }
 
 /* the art each slide brings, fitted to the illustration zone */
-.ow-art > .stacks, .ow-art > .zipper, .ow-art > .spread, .ow-art > .lanes, .ow-art > .emo, .ow-art > .wcols, .ow-art > .overnight, .ow-art > .hours { margin-top: 0; }
+.ow-art > .stacks, .ow-art > .zipper, .ow-art > .tape, .ow-art > .lanes, .ow-art > .emo, .ow-art > .wcols, .ow-art > .overnight, .ow-art > .hours { margin-top: 0; }
 .ow-art .stack .pile { height: 150px; }
 .ow-art .stack b { font-size: 24px; }
 .ow-art .lanes { gap: 10px; }
@@ -494,19 +494,19 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card.enter .arc i { transform-origin: bottom; animation: grow .6s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.2s + var(--i) * 12ms); }
 .arc-x { display: flex; justify-content: space-between; margin-top: 6px; font-family: var(--mono); font-size: 10px; color: var(--muted); }
 
-/* bubble count: each person's turns as one bar, from a single bubble (pale) to 6+ (the accent) */
-.spread { display: grid; gap: 12px; margin-top: 14px; }
-.sp-who { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--mono); font-size: 11px; margin-bottom: 4px; }
+/* bubble count: a tape of real turns, one stack each, a pill per bubble, darker as it grows */
+.tape { display: grid; gap: 14px; margin-top: 14px; }
+.sp-who { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--mono); font-size: 11px; margin-bottom: 6px; }
 .sp-who span { text-transform: uppercase; letter-spacing: .08em; color: var(--muted); overflow-wrap: anywhere; }
 .sp-who b { font-weight: 500; }
-.sp-bar { display: flex; gap: 2px; height: 18px; border-radius: 9px; overflow: hidden; }
-.sp-bar i { width: var(--w); min-width: 0; }
-.spread .s0 { background: var(--tint); }
-.spread .s1 { background: color-mix(in srgb, var(--accent) 30%, var(--tint)); }
-.spread .s2 { background: color-mix(in srgb, var(--accent) 55%, var(--tint)); }
-.spread .s3 { background: color-mix(in srgb, var(--accent) 80%, var(--tint)); }
-.spread .s4 { background: var(--accent); }
-.sp-key { display: flex; gap: 10px; font-family: var(--mono); font-size: 10px; color: var(--muted); }
-.sp-key span { display: inline-flex; align-items: center; gap: 4px; }
-.sp-key i { display: block; width: 9px; height: 9px; border-radius: 3px; }
-.card.enter .sp-bar { transform-origin: left; animation: wipe .7s cubic-bezier(.2, .8, .2, 1) .25s both; }
+.tp-line { display: flex; align-items: flex-end; gap: 3px; height: 64px; }
+.tp-stack { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; min-width: 0; }
+.tp-stack i { display: block; height: 8.5px; border-radius: 4px; }
+.tape .b1 { background: var(--tint); }
+.tape .b2 { background: color-mix(in srgb, var(--accent) 25%, var(--tint)); }
+.tape .b3 { background: color-mix(in srgb, var(--accent) 45%, var(--tint)); }
+.tape .b4 { background: color-mix(in srgb, var(--accent) 65%, var(--tint)); }
+.tape .b5 { background: color-mix(in srgb, var(--accent) 82%, var(--tint)); }
+.tape .b6 { background: var(--accent); }
+.tp-key { font-family: var(--mono); font-size: 10px; line-height: 1.4; color: var(--muted); }
+.card.enter .tp-stack { transform-origin: bottom; animation: grow .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.25s + var(--i) * 35ms); }

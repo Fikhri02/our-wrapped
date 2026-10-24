@@ -491,6 +491,27 @@ describe('bubbles', () => {
     expect(s.B).toEqual({ usual: 1, single: 100, burst: 0, dist: [100, 0, 0, 0, 0], type: 'oneliner' });
   });
 
+  it('keeps a tape of real turns: up to 20, evenly across the chat, in order', () => {
+    // A's turns are 1, 2, 3, ... 40 bubbles (one per hour), B answers once between each.
+    const lines = [];
+    for (let i = 1; i <= 40; i++) {
+      const day = String(1 + Math.floor(i / 20)).padStart(2, '0'), h = String(i % 20).padStart(2, '0');
+      for (let k = 0; k < i; k++) lines.push(`${day}/01/26, ${h}:00 - A: m`);
+      lines.push(`${day}/01/26, ${h}:30 - B: ok`);
+    }
+    const tape = bubbles(parse(lines.join('\n')), ['A', 'B']).tape;
+    expect(tape.A).toHaveLength(20);
+    expect(tape.A[0]).toBe(1);
+    expect(tape.A).toEqual([...tape.A].sort((a, b) => a - b)); // still in chat order
+    expect(tape.A.at(-1)).toBeGreaterThanOrEqual(38);
+    expect(tape.B.every((n) => n === 1)).toBe(true);
+  });
+
+  it('keeps every turn on the tape when there are fewer than 20', () => {
+    const lines = ['1/1/26, 10:00 - A: a', '1/1/26, 10:00 - A: b', '1/1/26, 10:30 - B: ok', '1/1/26, 11:00 - A: c'];
+    expect(bubbles(parse(lines.join('\n')), ['A', 'B']).tape).toEqual({ A: [2, 1], B: [1] });
+  });
+
   it('types each texter: ranter, one-liner, or normal', () => {
     expect(texterType({ usual: 3, single: 25, burst: 4 })).toBe('ranter'); // usually 3
     expect(texterType({ usual: 2, single: 31, burst: 9 })).toBe('ranter'); // bursts on 9% of turns

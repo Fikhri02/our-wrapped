@@ -49,9 +49,10 @@ describe('the redesigned art', () => {
     expect(html).not.toMatch(/class="big"|class="tally"/);
   });
 
-  it('bubble count: each person\'s usual turn and how it spreads, no averages', () => {
+  it('bubble count: each person\'s real turns as a tape of bubble stacks, no averages', () => {
     const html = render('bubble');
-    expect(html).toMatch(/class="spread"/);
+    expect(html).toMatch(/class="tape"/);
+    expect(html).not.toMatch(/class="spread"/);
     expect(html).toMatch(/Usually/);
     expect(html).not.toMatch(/\d\.\d/); // no decimals: nothing here is an average
   });
@@ -99,6 +100,15 @@ describe('layouts that follow how you text', () => {
   const withTalk = (counts, roles) => ({ ...S, count: { ...S.count, [S.A]: counts[0], [S.B]: counts[1] }, talk: { ...S.talk, roles: { ...S.talk.roles, ...roles } } });
   const shape = (usual, single, burst, dist) => ({ usual, single, burst, dist });
   const withShape = (a, b) => ({ ...S, bubbles: { ...S.bubbles, shape: { [S.A]: a, [S.B]: b } } });
+  const withTape = (a, b) => ({ ...S, bubbles: { ...S.bubbles, tape: { [S.A]: a, [S.B]: b } } });
+
+  it('bubble count: a stack per turn, a pill per bubble, capped at six with a 6+ mark', () => {
+    const html = render('bubble', withTape([1, 3, 9], [2]));
+    const rowA = html.split('class="tp-row"')[1];
+    expect(rowA.match(/class="tp-stack/g)).toHaveLength(3);
+    expect(rowA.match(/<i /g)).toHaveLength(1 + 3 + 6);
+    expect(rowA).toMatch(/class="tp-stack big"/);
+  });
 
   it('talker: an even split zips the two together instead of stacking them', () => {
     expect(render('share', withTalk([510, 490], { talker: null }))).toMatch(/class="zipper"/);

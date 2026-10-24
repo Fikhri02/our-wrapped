@@ -351,7 +351,10 @@ export function bubbles(msgs, people) {
     const sh = { usual: t[Math.floor((n - 1) / 2)], single: pc(d[0]), burst: pc(d[4]), dist: d.map(pc) };
     return [p, { ...sh, type: texterType(sh) }];
   }));
-  return { avg, shape, longest, feature };
+  // Each person's real turns, in chat order: all of them, or 20 picked evenly across the chat.
+  const evenly = (t, k = 20) => (t.length <= k ? t.slice() : Array.from({ length: k }, (_, i) => t[Math.round((i * (t.length - 1)) / (k - 1))]));
+  const tape = Object.fromEntries(people.map((p) => [p, evenly(turns[p])]));
+  return { avg, shape, tape, longest, feature };
 }
 
 // The chat's arc: messages per week (a four-week rolling average) from the first message

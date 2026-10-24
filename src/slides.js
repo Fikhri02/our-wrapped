@@ -114,7 +114,7 @@ export const SLIDES = [
   } },
 
   // Bubble count: what kind of texters you two are, read off the shape of your turns (no
-  // averages), named without hedging, with each person's bar from one bubble to 6+.
+  // averages), named without hedging, over a tape of each person's real turns.
   { id: 'bubble', accent: 'ochre', typing: true, render: (S) => {
     const { shape: sh, feature: f } = S.bubbles;
     const type = (p) => sh[p].type || texterType(sh[p]);
@@ -124,12 +124,17 @@ export const SLIDES = [
     const key = { 'ranter-ranter': 'rr', 'ranter-oneliner': 'ro', 'ranter-normal': 'rn', 'oneliner-oneliner': 'oo', 'oneliner-normal': 'on', 'normal-normal': 'nn' }[`${type(x)}-${type(y)}`];
     // Which number backs the roast: bursts for ranters and normal pairs, single bubbles for one-liners.
     const num = { rr: ['burst', 'burst'], ro: ['burst', 'single'], rn: ['burst', 'burst'], oo: ['single', 'single'], on: ['single', 'single'], nn: ['burst', 'burst'] }[key];
-    const keys = ['1', '2', '3', '4–5', '6+'];
-    const row = (p) => `<div class="sp-row"><div class="sp-who"><span>${esc(p)}</span><b>${t(`type_${type(p)}`)} · ${t('spUsual', sh[p].usual)}</b></div>`
-      + `<div class="sp-bar">${sh[p].dist.map((v, i) => `<i class="s${i}" style="--w:${v}%"></i>`).join('')}</div></div>`;
+    // The tape: a stack per real turn, a pill per bubble, darker as the turn gets longer.
+    // Six pills at most; a longer turn is marked 6+.
+    const stack = (n, i) => {
+      const h = Math.min(n, 6);
+      return `<div class="tp-stack${n >= 6 ? ' big' : ''}" style="--i:${i}">${Array.from({ length: h }, () => `<i class="b${h}"></i>`).join('')}</div>`;
+    };
+    const row = (p) => `<div class="tp-row"><div class="sp-who"><span>${esc(p)}</span><b>${t(`type_${type(p)}`)} · ${t('spUsual', sh[p].usual)}</b></div>`
+      + `<div class="tp-line">${(S.bubbles.tape?.[p] || []).map(stack).join('')}</div></div>`;
     return slide({
       kicker: t('bubbleKicker'),
-      art: `<div class="spread">${row(S.A)}${row(S.B)}<div class="sp-key">${keys.map((k, i) => `<span><i class="s${i}"></i>${k}</span>`).join('')}</div></div>`,
+      art: `<div class="tape">${row(S.A)}${row(S.B)}<div class="tp-key">${t('tapeKey')}</div></div>`,
       stmt: t(`bv_${key}`, esc(x), esc(y)),
       remark: t(`bv_${key}_why`, esc(x), sh[x][num[0]], esc(y), sh[y][num[1]]),
       more: f?.kind === 'rant' ? `<button type="button" class="slide-act" data-act="rant">${t('rantButton')}</button>` : '',
