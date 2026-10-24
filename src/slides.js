@@ -294,7 +294,7 @@ export const SLIDES = [
   { id: 'language', accent: 'teal', skip: (S) => !Object.values(langOf(S)).some((x) => x.eligible), render: (S) => {
     const L = langOf(S), cats = ['words', 'time', 'service', 'gifts', 'touch'];
     const who = [S.A, S.B].filter((p) => L[p]?.eligible);
-    const bars = (p) => `<div class="lang"><div class="lang-who">${esc(p)}</div>${cats.map((c) => `<div class="lang-row${c === L[p].primary ? ' top' : ''}"><span>${t(`lang_${c}`)}</span><i style="--w:${L[p].pct[c]}%"></i><b>${L[p].pct[c]}%</b></div>`).join('')}</div>`;
+    const bars = (p) => `<div class="ll"><div class="ll-who">${esc(p)}</div>${cats.map((c) => `<div class="ll-row${c === L[p].primary ? ' top' : ''}"><span>${t(`lang_${c}`)}</span><i style="--w:${L[p].pct[c]}%"></i><b>${L[p].pct[c]}%</b></div>`).join('')}</div>`;
     const lead = who.slice().sort((a, b) => L[b].n - L[a].n)[0];
     return slide({
       kicker: tm('langKicker', S), art: who.map(bars).join(''),
@@ -307,8 +307,8 @@ export const SLIDES = [
     const w = S.weather, so = w.standout;
     return slide({
       kicker: t('weatherKicker'), art: `<div class="wx">${w.label ? t(`wx_${w.label}`) : '—'}</div>`,
-      stmt: w.label ? t(`wx_${w.label}`) : t('wxNone'),
-      remark: so ? t('wxStandout', MONTHS[getLang()]?.[so.month.getMonth()] ?? MONTHS.en[so.month.getMonth()], t(`wx_${so.label}`)) : t('wxSteady'),
+      stmt: !w.label ? t('wxNone') : so ? t('wxStandout', MONTHS[getLang()]?.[so.month.getMonth()] ?? MONTHS.en[so.month.getMonth()], t(`wx_${so.label}`)) : t('wxSteady'),
+      remark: t('wxRemark'),
       callout: callout('', t('wxHedge')),
     });
   } },

@@ -152,3 +152,17 @@ describe('two modes', () => {
     expect(otherMode('casual')).toBe('lovers');
   });
 });
+
+describe('the new slides, as they look', () => {
+  const casual = { ...S, mode: 'casual' };
+
+  it('language bars keep clear of the page\'s language switcher class', () => {
+    expect(render('language', casual)).not.toMatch(/class="lang[ "-]/);
+  });
+
+  it('weather names the forecast once, then says how steady it was', () => {
+    const html = render('weather', casual);
+    expect(html.match(/Golden hour/g)).toHaveLength(1);
+    expect(html).toMatch(/Steady all the way through|With a /);
+  });
+});

@@ -196,6 +196,8 @@ export const STRINGS = {
     streakCall: (now) => `of all your days talking ${now ? 'are' : 'were'} in this one run.`,
     loudRemark: 'You two really had a lot to say.',
     loudCall: 'of your entire chat happened on this single day.',
+    pickTitle: 'Who\'s this chat with?', pickLovers: 'Someone I love', pickCasual: 'A friend', pickCancel: 'Cancel',
+    replayLovers: 'Replay as lovers', replayCasual: 'Replay as friends',
     // two modes
     introKicker_casual: 'The whole saga',
     finaleKicker_casual: (y) => `That's the lore · ${y}`,
@@ -224,6 +226,7 @@ export const STRINGS = {
     wx_sunshine: 'Mostly sunshine', wx_golden: 'Golden hour', wx_chaotic: 'Partly chaotic', wx_thunder: 'Random thunder',
     wx_cloud: 'Cloud watch', wx_storm: 'Thunder season', wx_rain: 'Rainy playlist', wxNone: 'Too calm to forecast.',
     wxStandout: (month, label) => `With a ${label.toLowerCase()} ${month}.`, wxSteady: 'Steady all the way through.',
+    wxRemark: 'Read from the feelings in your words and emoji, month by month.',
     wxHedge: 'Based on chat language, not the weather in your hearts.',
     playlistKicker: 'Your emotional playlist',
     emo_joy: 'Joy', emo_love: 'Love', emo_sadness: 'Sadness', emo_anger: 'Anger', emo_worry: 'Worry', emo_surprise: 'Surprise',
@@ -394,6 +397,8 @@ export const STRINGS = {
     streakCall: () => 'daripada semua hari korang berbual ada dalam streak ni.',
     loudRemark: 'Banyak betul benda korang nak cakap hari tu.',
     loudCall: 'daripada seluruh chat korang berlaku pada hari ini saja.',
+    pickTitle: 'Chat ni dengan siapa?', pickLovers: 'Orang tersayang', pickCasual: 'Kawan', pickCancel: 'Batal',
+    replayLovers: 'Main semula versi kekasih', replayCasual: 'Main semula versi kawan',
     // two modes
     introKicker_casual: 'Kisah penuh',
     finaleKicker_casual: (y) => `Itulah lore korang · ${y}`,
@@ -422,6 +427,7 @@ export const STRINGS = {
     wx_sunshine: 'Cerah selalu', wx_golden: 'Senja keemasan', wx_chaotic: 'Separuh huru-hara', wx_thunder: 'Guruh tiba-tiba',
     wx_cloud: 'Awan mendung', wx_storm: 'Musim ribut', wx_rain: 'Hujan renyai', wxNone: 'Terlalu tenang untuk diramal.',
     wxStandout: (month, label) => `Kecuali ${month}: ${label.toLowerCase()}.`, wxSteady: 'Stabil dari mula sampai habis.',
+    wxRemark: 'Dibaca dari perasaan dalam perkataan dan emoji korang, bulan demi bulan.',
     wxHedge: 'Ikut bahasa chat, bukan cuaca dalam hati korang.',
     playlistKicker: 'Playlist emosi korang',
     emo_joy: 'Gembira', emo_love: 'Sayang', emo_sadness: 'Sedih', emo_anger: 'Marah', emo_worry: 'Risau', emo_surprise: 'Terkejut',
