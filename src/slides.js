@@ -112,25 +112,21 @@ export const SLIDES = [
     });
   } },
 
+  // Bubble count: each person's usual turn and how their turns spread, from a single bubble
+  // to 6 or more. No averages: one long rant shouldn't make anyone look like a burster.
   { id: 'bubble', accent: 'ochre', typing: true, render: (S) => {
-    const { avg, feature: f } = S.bubbles;
-    const w = avg[S.A] >= avg[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
-    const x = Math.round(avg[w] * 10) / 10, y = (Math.round(avg[l] * 10) / 10).toFixed(1);
-    // Roast only when it's earned: 3+ bubbles a turn, or half again as many as the other.
-    const roast = x >= 3 || avg[w] >= avg[l] * 1.5;
-    // Two rhythms: a little chat where each sends their usual number of bubbles per turn.
-    // Both under 1.5 a turn: a ping-pong of single bubbles. One clearly bursting (the roast is
-    // earned): their turn becomes a tall stack, up to six.
-    const pingpong = avg[S.A] < 1.5 && avg[S.B] < 1.5, burst = !pingpong && roast;
-    let k = 0;
-    const turn = (p, side, label = true) => `<div class="turn ${side}">${label ? `<small>${esc(p)} · ${avg[p].toFixed(1)}</small>` : ''}${Array.from({ length: Math.min(burst ? 6 : 4, Math.max(1, Math.round(avg[p]))) }, () =>
-      `<i style="--i:${k};--w:${[70, 54, 82, 46, 64, 76][k++ % 6]}%"></i>`).join('')}</div>`;
-    const turns = pingpong ? turn(S.A, 'a') + turn(S.B, 'b') + turn(S.A, 'a', false) + turn(S.B, 'b', false) : turn(S.A, 'a') + turn(S.B, 'b');
+    const { shape: sh, feature: f } = S.bubbles;
+    const w = sh[S.A].burst !== sh[S.B].burst ? (sh[S.A].burst > sh[S.B].burst ? S.A : S.B) : sh[S.A].usual >= sh[S.B].usual ? S.A : S.B;
+    // Roast only a real habit: 6+ bubbles on one turn in ten, or usually three or more.
+    const roast = sh[w].burst >= 10 || sh[w].usual >= 3, both1 = sh[S.A].usual === 1 && sh[S.B].usual === 1;
+    const keys = ['1', '2', '3', '4–5', '6+'];
+    const row = (p) => `<div class="sp-row"><div class="sp-who"><span>${esc(p)}</span><b>${t('spUsual', sh[p].usual)}</b></div>`
+      + `<div class="sp-bar">${sh[p].dist.map((v, i) => `<i class="s${i}" style="--w:${v}%"></i>`).join('')}</div></div>`;
     return slide({
       kicker: t('bubbleKicker'),
-      art: `<div class="rhythm${pingpong ? ' pingpong' : burst ? ' burst' : ''}" aria-hidden="true">${turns}</div>`,
-      hero: big(x, '', 1), stmt: t('bubbleStmt', esc(w)),
-      remark: x < 1.5 ? t('bubbleBoth') : roast ? t('bubbleRoast', esc(l), y) : t('bubbleEven', esc(l), y),
+      art: `<div class="spread">${row(S.A)}${row(S.B)}<div class="sp-key">${keys.map((k, i) => `<span><i class="s${i}"></i>${k}</span>`).join('')}</div></div>`,
+      hero: big(sh[w].usual), stmt: t('bubbleStmt', esc(w), sh[w].usual),
+      remark: both1 ? t('bubbleBoth') : `${t('bubbleSpread', esc(w), sh[w].single, sh[w].burst)}${roast ? ` ${t('bubbleRoast')}` : ''}`,
       more: f?.kind === 'rant' ? `<button type="button" class="slide-act" data-act="rant">${t('rantButton')}</button>` : '',
       callout: !f ? '' : callout('', f.kind === 'rant' ? t('burstRant', esc(f.who), f.n, nf(f.words), fmtDate(f.start))
         : f.kind === 'spree' ? t('burstSpree', esc(f.who), f.n, fmtDate(f.start)) : t('burstNormal', esc(f.who), f.n)),

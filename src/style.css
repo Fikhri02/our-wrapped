@@ -375,16 +375,6 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card.enter .stack .pile i { animation: popIn .35s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .2s + var(--i) * 60ms); transform-origin: left bottom; }
 .card.enter .stack.b .pile i { transform-origin: right bottom; }
 
-/* bubble count: two rhythms as a little chat */
-.rhythm { display: grid; gap: 12px; margin-top: 14px; }
-.turn { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
-.turn small { font-family: var(--mono); font-size: 10.5px; font-weight: 600; opacity: .75; margin: 0 4px 2px; }
-.turn i { display: block; height: 22px; width: var(--w); border-radius: 14px 14px 14px 4px; background: var(--fg); }
-.turn.b { align-items: flex-end; }
-.turn.b i { background: var(--surface); border-radius: 14px 14px 4px 14px; }
-.card.enter .turn i { animation: popIn .35s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * 140ms); transform-origin: left bottom; }
-.card.enter .turn.b i { transform-origin: right bottom; }
-
 /* no goodbyes: the overnight scene */
 .overnight { display: grid; gap: 8px; margin-top: 16px; }
 .on-b { display: inline-flex; flex-direction: column; gap: 6px; padding: 12px 14px 8px; border-radius: 18px 18px 18px 5px; background: var(--fg); color: var(--bg); justify-self: start; min-width: 44%; }
@@ -416,10 +406,6 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .zip-l b { display: block; font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1; letter-spacing: -.02em; }
 .card.enter .zipper i { animation: popIn .35s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .2s + var(--i) * 90ms); transform-origin: left bottom; }
 .card.enter .zipper i.b { transform-origin: right bottom; }
-/* two rhythms: ping-pong turns sit closer together; a burst turn's bubbles are a touch slimmer */
-.rhythm.pingpong { gap: 8px; }
-.rhythm.burst .turn i { height: 19px; }
-
 /* ---------- one layout for every slide (after the loudest-day mockup) ----------
    header: what this is · the brand; then the illustration, the date line, one big number,
    a two-line statement, a remark, and a callout card at the bottom with one more fact */
@@ -468,17 +454,13 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card.enter .ow-bubs i:last-child { animation-delay: calc(var(--wait) + .3s); transform-origin: right bottom; }
 
 /* the art each slide brings, fitted to the illustration zone */
-.ow-art > .stacks, .ow-art > .zipper, .ow-art > .rhythm, .ow-art > .lanes, .ow-art > .emo, .ow-art > .wcols, .ow-art > .overnight, .ow-art > .hours { margin-top: 0; }
+.ow-art > .stacks, .ow-art > .zipper, .ow-art > .spread, .ow-art > .lanes, .ow-art > .emo, .ow-art > .wcols, .ow-art > .overnight, .ow-art > .hours { margin-top: 0; }
 .ow-art .stack .pile { height: 150px; }
 .ow-art .stack b { font-size: 24px; }
 .ow-art .lanes { gap: 10px; }
 .ow-art .lane-who b { font-size: 20px; }
 .ow-art .hours { height: 110px; margin-top: 18px; }
 .ow-art .duo { height: 132px; margin: 0; }
-.ow-art .rhythm { gap: 7px; }
-.ow-art .rhythm.pingpong { gap: 5px; }
-.ow-art .turn i { height: 15px; }
-.ow-art .rhythm.burst .turn i { height: 12px; }
 .ow-art .scene { gap: 5px; }
 .ow-art .cb.lead { font-size: 18px; padding: 10px 13px 7px; }
 .ow-art .cb { font-size: 13.5px; padding: 7px 11px 5px; }
@@ -511,3 +493,20 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .arc i.pk { background: var(--accent); }
 .card.enter .arc i { transform-origin: bottom; animation: grow .6s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.2s + var(--i) * 12ms); }
 .arc-x { display: flex; justify-content: space-between; margin-top: 6px; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+/* bubble count: each person's turns as one bar, from a single bubble (pale) to 6+ (the accent) */
+.spread { display: grid; gap: 12px; margin-top: 14px; }
+.sp-who { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--mono); font-size: 11px; margin-bottom: 4px; }
+.sp-who span { text-transform: uppercase; letter-spacing: .08em; color: var(--muted); overflow-wrap: anywhere; }
+.sp-who b { font-weight: 500; }
+.sp-bar { display: flex; gap: 2px; height: 18px; border-radius: 9px; overflow: hidden; }
+.sp-bar i { width: var(--w); min-width: 0; }
+.spread .s0 { background: var(--tint); }
+.spread .s1 { background: color-mix(in srgb, var(--accent) 30%, var(--tint)); }
+.spread .s2 { background: color-mix(in srgb, var(--accent) 55%, var(--tint)); }
+.spread .s3 { background: color-mix(in srgb, var(--accent) 80%, var(--tint)); }
+.spread .s4 { background: var(--accent); }
+.sp-key { display: flex; gap: 10px; font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.sp-key span { display: inline-flex; align-items: center; gap: 4px; }
+.sp-key i { display: block; width: 9px; height: 9px; border-radius: 3px; }
+.card.enter .sp-bar { transform-origin: left; animation: wipe .7s cubic-bezier(.2, .8, .2, 1) .25s both; }

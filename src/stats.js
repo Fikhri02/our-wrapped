@@ -333,7 +333,18 @@ export function bubbles(msgs, people) {
     const t = turns[p];
     return [p, t.length ? t.reduce((a, b) => a + b, 0) / t.length : 0];
   }));
-  return { avg, longest, feature };
+  // How each person's turns spread: the usual turn (the middle one, the lower of two), how
+  // often it's a single bubble, how often 6 or more, and the share in each of 1, 2, 3, 4-5, 6+.
+  const bucket = (n) => (n >= 6 ? 4 : n >= 4 ? 3 : n - 1);
+  const shape = Object.fromEntries(people.map((p) => {
+    const t = turns[p].slice().sort((a, b) => a - b), n = t.length;
+    if (!n) return [p, { usual: 0, single: 0, burst: 0, dist: [0, 0, 0, 0, 0] }];
+    const d = [0, 0, 0, 0, 0];
+    for (const x of t) d[bucket(x)]++;
+    const pc = (c) => Math.round((c / n) * 100);
+    return [p, { usual: t[Math.floor((n - 1) / 2)], single: pc(d[0]), burst: pc(d[4]), dist: d.map(pc) }];
+  }));
+  return { avg, shape, longest, feature };
 }
 
 // The chat's arc: messages per week (a four-week rolling average) from the first message

@@ -479,6 +479,24 @@ describe('bubbles', () => {
     expect(b.longest).toMatchObject({ who: 'A', n: 4 });
   });
 
+  it('describes each person\'s turns by their usual length and spread, not an average', () => {
+    // A's turns: 1, 1, 2, 3, 7 bubbles. B answers once in between.
+    const sizes = [1, 1, 2, 3, 7], lines = [];
+    sizes.forEach((n, i) => {
+      for (let k = 0; k < n; k++) lines.push(`1/1/26, ${10 + i}:0${k} - A: msg ${k}`);
+      lines.push(`1/1/26, ${10 + i}:30 - B: ok`);
+    });
+    const s = bubbles(parse(lines.join('\n')), ['A', 'B']).shape;
+    expect(s.A).toEqual({ usual: 2, single: 40, burst: 20, dist: [40, 20, 20, 0, 20] });
+    expect(s.B).toEqual({ usual: 1, single: 100, burst: 0, dist: [100, 0, 0, 0, 0] });
+  });
+
+  it('uses the lower middle turn as usual when the count is even', () => {
+    const lines = ['1/1/26, 10:00 - A: a', '1/1/26, 10:00 - A: b', '1/1/26, 10:00 - A: c', '1/1/26, 10:00 - A: d', '1/1/26, 10:30 - B: ok',
+      '1/1/26, 11:00 - A: a', '1/1/26, 11:00 - A: b', '1/1/26, 11:30 - B: ok'];
+    expect(bubbles(parse(lines.join('\n')), ['A', 'B']).shape.A.usual).toBe(2); // turns of 4 and 2
+  });
+
   it('leaves media out of a burst, so a photo dump is not a long burst', () => {
     const lines = ['1/1/26, 10:00 - A: look'];
     for (let i = 0; i < 20; i++) lines.push('1/1/26, 10:01 - A: <Media omitted>');

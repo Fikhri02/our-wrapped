@@ -48,10 +48,11 @@ describe('the redesigned art', () => {
     expect(html).not.toMatch(/class="big"|class="tally"/);
   });
 
-  it('bubble count: two rhythms as a little chat', () => {
+  it('bubble count: each person\'s usual turn and how it spreads, no averages', () => {
     const html = render('bubble');
-    expect(html).toMatch(/bubbles per turn<br>from /);
-    expect(html).toMatch(/class="rhythm[ "]/); // any variant
+    expect(html).toMatch(/class="spread"/);
+    expect(html).toMatch(/Usually/);
+    expect(html).not.toMatch(/\d\.\d/); // no decimals: nothing here is an average
   });
 
   it('keeps the ground flat: no background layers behind any slide', () => {
@@ -95,23 +96,28 @@ describe('a reveal per slide', () => {
 
 describe('layouts that follow how you text', () => {
   const withTalk = (counts, roles) => ({ ...S, count: { ...S.count, [S.A]: counts[0], [S.B]: counts[1] }, talk: { ...S.talk, roles: { ...S.talk.roles, ...roles } } });
-  const withAvg = (a, b, f = S.bubbles.feature) => ({ ...S, bubbles: { ...S.bubbles, avg: { [S.A]: a, [S.B]: b }, feature: f } });
+  const shape = (usual, single, burst, dist) => ({ usual, single, burst, dist });
+  const withShape = (a, b) => ({ ...S, bubbles: { ...S.bubbles, shape: { [S.A]: a, [S.B]: b } } });
 
   it('talker: an even split zips the two together instead of stacking them', () => {
     expect(render('share', withTalk([510, 490], { talker: null }))).toMatch(/class="zipper"/);
     expect(render('share', withTalk([700, 300], { talker: S.A }))).toMatch(/class="stacks"/);
   });
 
-  it('two rhythms: ping-pong when both send single bubbles, a tall burst when one clearly bursts', () => {
-    expect(render('bubble', withAvg(1.2, 1.1))).toMatch(/class="rhythm pingpong"/);
-    expect(render('bubble', withAvg(3.4, 1.2))).toMatch(/class="rhythm burst"/);
-    expect(render('bubble', withAvg(2.1, 1.9))).toMatch(/class="rhythm"/);
+  it('bubble count: leads with whoever bursts more, and roasts only a real habit', () => {
+    const bursty = withShape(shape(3, 25, 14, [25, 22, 18, 21, 14]), shape(2, 39, 3, [39, 28, 19, 11, 3]));
+    const html = render('bubble', bursty);
+    expect(html).toMatch(new RegExp(`from ${S.A}`));
+    expect(html).toMatch(/14%/);
+    expect(html).toMatch(/one paragraph/);
+    const calm = withShape(shape(2, 40, 3, [40, 30, 17, 10, 3]), shape(2, 41, 2, [41, 30, 18, 9, 2]));
+    expect(render('bubble', calm)).not.toMatch(/one paragraph/);
   });
 
-  it('a burst turn shows up to six bubbles, never more', () => {
-    const html = render('bubble', withAvg(9, 1));
-    const turnA = html.split('class="turn a"')[1].split('class="turn b"')[0];
-    expect(turnA.match(/<i /g)).toHaveLength(6);
+  it('bubble count: both usually sending one bubble gets its own line', () => {
+    const one = shape(1, 70, 1, [70, 20, 6, 3, 1]);
+    expect(render('bubble', withShape(one, one))).toMatch(/one message/);
+    expect(render('bubble', withShape(one, one))).toMatch(/bubble a turn/);
   });
 });
 
