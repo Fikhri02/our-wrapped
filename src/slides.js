@@ -1,4 +1,5 @@
-// Each slide: a palette and a render(stats) → HTML string. All copy comes from i18n.js.
+// Each slide: a palette, a render(stats) → HTML string, and optionally skip(stats) for
+// when it has nothing to show. All copy comes from i18n.js.
 import { esc, fmtDate, fmtDay, formatReply, hourLabel, nf } from './format.js';
 import { t } from './i18n.js';
 
@@ -44,14 +45,16 @@ export const SLIDES = [
 
   { id: 'bubble', pal: 'lemon', render: (S) => {
     const { avg, longest } = S.bubbles;
-    const w = avg[S.A] >= avg[S.B] ? S.A : S.B;
+    const w = avg[S.A] >= avg[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     const x = Math.round(avg[w] * 10) / 10;
+    // Roast only when it's earned: 3+ bubbles a turn, or half again as many as the other.
+    const roast = x >= 3 || avg[w] >= avg[l] * 1.5;
     const stack = Array.from({ length: Math.min(8, Math.max(1, Math.round(x))) }, (_, i) =>
       `<i style="--i:${i};width:${[62, 84, 48, 76, 56, 90, 44, 70][i]}%"></i>`).join('');
     return frame(t('bubbleKicker'),
       `<div class="bubbles" aria-hidden="true">${stack}</div>
        <div class="big">${count(x, '', 1)}</div>
-       <div class="line">${x < 1.5 ? t('bubbleBoth') : t('bubbleRoast', esc(w), x.toFixed(1))}</div>
+       <div class="line">${x < 1.5 ? t('bubbleBoth') : roast ? t('bubbleRoast', esc(w), x.toFixed(1)) : t('bubbleEven', esc(w), x.toFixed(1), esc(l))}</div>
        <div class="vs"><div><span>${esc(S.A)}</span><span>${avg[S.A].toFixed(1)}</span></div><div><span>${esc(S.B)}</span><span>${avg[S.B].toFixed(1)}</span></div></div>`,
       longest.n > 1 ? t('bubbleFoot', longest.n, esc(longest.who), fmtDate(longest.when)) : t('bubblesPerTurn'));
   } },
@@ -63,7 +66,18 @@ export const SLIDES = [
       t('morningFoot'));
   } },
 
-  { id: 'night', pal: 'cobalt', render: (S) => {
+  { id: 'starts', pal: 'mint', render: (S) => {
+    const c = S.convo;
+    const w = c.starts[S.A] >= c.starts[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
+    const g = S.goodnight, bye = g[S.A] >= g[S.B] ? S.A : S.B;
+    // A goodnight claim needs a few nights behind it.
+    const foot = g[bye] < 3 ? t('startsFoot') : g[S.A] === g[S.B] ? t('goodnightTie') : t('signOffFoot', esc(bye), g[bye]);
+    return frame(t('startsKicker'),
+      `<div class="big">${count(c.starts[w])}</div><div class="line">${t('startsLine', esc(w), esc(l), c.starts[l])}</div>`,
+      foot);
+  } },
+
+  { id: 'night', pal: 'cobalt', skip: (S) => !S.late, render: (S) => {
     const mx = Math.max(...S.hours) || 1;
     const bars = S.hours.map((v, h) => `<i style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? '#ffe14d' : '#ffffff88'}"></i>`).join('');
     return frame(t('nightOwls'),
@@ -72,33 +86,39 @@ export const SLIDES = [
       t('busiestHour', hourLabel(S.peak)));
   } },
 
+  { id: 'carried', pal: 'plum', skip: (S) => !S.carried, render: (S) => frame(t('carriedKicker'),
+    `<div class="big">${count(S.carried)}</div><div class="line">${t('carriedLine')}</div>`,
+    t('carriedFoot', Math.max(1, Math.round((S.carried / S.days) * 100)))) },
+
   { id: 'streak', pal: 'mint', render: (S) => frame(t('streak'),
     `<div class="big">${count(S.streak)}</div><div class="line">${t('streakLine')}</div>`,
     t('ended', fmtDate(S.streakEnd))) },
 
-  { id: 'emoji', pal: 'lemon', render: (S) => frame(t('emojiKicker'),
+  { id: 'emoji', pal: 'lemon', skip: (S) => !S.emo[S.A].length && !S.emo[S.B].length, render: (S) => frame(t('emojiKicker'),
     `<div class="mid">${t('tenFaces')}</div><div class="emo"><div>${esc(S.A)}<div class="e">${S.emo[S.A].join('') || '—'}</div></div><div>${esc(S.B)}<div class="e">${S.emo[S.B].join('') || '—'}</div></div></div>`,
     t('emojiFoot')) },
 
   { id: 'reply', pal: 'pink', render: (S) => {
     const r = S.reply, A = r[S.A], B = r[S.B];
-    const fast = (A.median ?? Infinity) <= (B.median ?? Infinity) ? S.A : S.B;
+    // Minute-precision exports make the median 0 for everyone, so rank by the share
+    // of replies inside a minute, then by the average.
+    const fast = A.within1 !== B.within1 ? (A.within1 > B.within1 ? S.A : S.B) : ((A.mean ?? Infinity) <= (B.mean ?? Infinity) ? S.A : S.B);
     const slow = fast === S.A ? S.B : S.A;
     return frame(t('replyKicker'),
       `<div class="mid">${t('repliesFaster', esc(fast))}</div>
-       <div class="vs"><div><span>${esc(S.A)}</span><span>${formatReply(A.median, r.precise)}</span></div><div><span>${esc(S.B)}</span><span>${formatReply(B.median, r.precise)}</span></div></div>
-       <div class="line">${t('replyLine', esc(fast), r[fast].within5, esc(slow), r[slow].leftOnRead)}</div>`,
-      esc(r.precise ? t('replyPrecise') : t('replyMinutes')));
+       <div class="vs"><div><span>${esc(S.A)}</span><span>${A.within1}%</span></div><div><span>${esc(S.B)}</span><span>${B.within1}%</span></div></div>
+       <div class="line">${t('replyLine', esc(fast), r[fast].within1, formatReply(r[fast].mean, r.precise), esc(slow), r[slow].slow)}</div>`,
+      t('replyFoot'));
   } },
 
   { id: 'sorry', pal: 'plum', render: (S) => {
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B;
     return frame(t('apologies'),
-      `<div class="mid">${t('saidSorry', esc(w), S.sorry[w])}</div><div class="line">${S.sorryFirst ? t('firstSorry', esc(S.sorryFirst.text.slice(0, 70))) : t('noSorry')}</div>`,
+      `<div class="mid">${t('saidSorry', esc(w), S.sorry[w])}</div><div class="line">${S.sorryFirst[w] ? t('firstSorry', esc(S.sorryFirst[w].text.slice(0, 70))) : t('noSorry')}</div>`,
       `${esc(S.A)} ${S.sorry[S.A]} · ${esc(S.B)} ${S.sorry[S.B]}`);
   } },
 
-  { id: 'love', pal: 'tang', render: (S) => frame(t('loveKicker'),
+  { id: 'love', pal: 'tang', skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => frame(t('loveKicker'),
     `<div class="big">${count(S.love[S.A] + S.love[S.B])}</div><div class="line">${t('loveLine', esc(S.A), S.love[S.A], esc(S.B), S.love[S.B])}</div>`,
     t('loveFoot')) },
 
@@ -110,6 +130,8 @@ export const SLIDES = [
     `<div class="mid">${fmtDay(S.busy)}</div><div class="big" style="margin-top:10px">${count(S.busyN)}</div><div class="line">${t('loudLine')}</div>`,
     t('stillWriting', nf(S.total))) },
 ];
+
+export const slidesFor = (S) => SLIDES.filter((s) => !s.skip?.(S));
 
 // The last slide: a message the sender types before playing.
 export const closingSlide = (note, signed) => ({

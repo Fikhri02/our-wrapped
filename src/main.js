@@ -11,7 +11,7 @@ import './style.css';
 import { parse } from './parser.js';
 import { stats } from './stats.js';
 import { createPlayer } from './player.js';
-import { closingSlide, PALETTES, SLIDES } from './slides.js';
+import { closingSlide, PALETTES, slidesFor } from './slides.js';
 import { makeSample } from './sample.js';
 import { esc, nf } from './format.js';
 import { renderSlidePng, saveOrShare, shareFileName } from './share.js';
@@ -45,7 +45,8 @@ try {
 
 function slideList() {
   const text = note.value.trim();
-  return text ? [...SLIDES, closingSlide(text, signed.value.trim())] : SLIDES;
+  const list = slidesFor(current);
+  return text ? [...list, closingSlide(text, signed.value.trim())] : list;
 }
 
 const summaryLine = (s) => t('loaded', nf(s.total), esc(s.A), esc(s.B), s.days) + (s.group ? t('group') : '') + t('private');
@@ -92,7 +93,7 @@ rangeSel.addEventListener('change', () => {
 });
 
 function playSample() {
-  preview.load(sampleStats, SLIDES);
+  preview.load(sampleStats, slidesFor(sampleStats));
   status.className = 'status';
   status.innerHTML = `<b>${esc(t('sampleLabel'))}</b>: ` + summaryLine(sampleStats);
 }
