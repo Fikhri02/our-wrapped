@@ -439,3 +439,17 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 @keyframes moon-in { from { transform: translateY(40px) rotate(-40deg); opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) { .card.enter .sky::after { animation: none !important; } }
+
+/* ---------- layouts that follow how you text ---------- */
+/* talker, even split: one zipped column of alternating bubbles */
+.zipper { display: flex; flex-direction: column; gap: 5px; margin-top: 16px; }
+.zipper i { display: block; height: 17px; width: var(--w); border-radius: 12px 12px 12px 4px; background: var(--fg); }
+.zipper i.b { align-self: flex-end; background: #fff; border-radius: 12px 12px 4px 12px; }
+.zip-l { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-size: 12px; font-weight: 600; }
+.zip-l span:last-child { text-align: right; }
+.zip-l b { display: block; font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1; letter-spacing: -.02em; }
+.card.enter .zipper i { animation: popIn .35s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .2s + var(--i) * 90ms); transform-origin: left bottom; }
+.card.enter .zipper i.b { transform-origin: right bottom; }
+/* two rhythms: ping-pong turns sit closer together; a burst turn's bubbles are a touch slimmer */
+.rhythm.pingpong { gap: 8px; }
+.rhythm.burst .turn i { height: 19px; }
