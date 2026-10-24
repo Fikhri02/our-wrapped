@@ -2,7 +2,7 @@
 // when it has nothing to show and typing (a chat scene, so the story opens it with a
 // "typing…" beat). All copy comes from i18n.js.
 import { clock, compact, esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
-import { getLang, MONTHS, t, tm } from './i18n.js';
+import { t, tm } from './i18n.js';
 
 // LOVERS or CASUAL: the stats object carries the mode (S.mode), and a slide marked
 // only: 'lovers' plays in that mode alone.
@@ -70,9 +70,6 @@ function paceRemark(S) {
   const tense = p.past ? '_past' : ''; // a chat that's gone quiet for over a week
   return !fresh ? t(`pace_${p.kind}${tense}`) : S.days === p.span ? t(`paceNewEvery${tense}`, p.span) : t(`paceNewSome${tense}`, p.span, S.days);
 }
-
-// Couples read love languages, friends read friendship languages: same five categories.
-const langOf = (S) => (S.mode === 'casual' ? S.friendLang : S.loveLang) || {};
 
 export const SLIDES = [
   { id: 'intro', accent: 'teal', render: (S) => {
@@ -263,66 +260,6 @@ export const SLIDES = [
       hero: big(S.busyN), stmt: t('loudLine'), remark: t('loudRemark'),
       more: `<button type="button" class="slide-act" data-act="chat">${t('chatButton')}</button>`,
       callout: callout(`${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%`, t('loudCall')),
-    });
-  } },
-
-  // Who you are in this chat: five playful readings, each with a hedge. They print word-list
-  // phrases, labels and numbers only, never anyone's messages.
-  { id: 'sync', accent: 'violet', skip: (S) => !S.sync?.eligible, render: (S) => {
-    const y = S.sync, row = (label, n) => `<div class="sync-row"><span>${label}</span><i style="--w:${n}%"></i><b>${n}%</b></div>`;
-    return slide({
-      kicker: tm('syncKicker', S), art: `<div class="sync">${row(t('syncThen'), y.then)}${row(t('syncNow'), y.now)}</div>`,
-      hero: big(y.now, '%'), stmt: y.delta >= 3 ? t('syncUp') : t('syncSame'), remark: t('syncRemark'),
-      callout: y.delta >= 3 ? callout(`+${y.delta}`, t('syncCall')) : callout('', t('syncCallSame')),
-    });
-  } },
-
-  { id: 'creatures', accent: 'terracotta', skip: (S) => !S.creatures?.eligible, render: (S) => {
-    const c = S.creatures, mode = S.mode || 'lovers';
-    const label = (p) => {
-      const base = !c.high ? t(`creature_${mode}_tie`) : t(`creature_${mode}_${c.set}_${p === c.high ? 'hi' : 'lo'}`);
-      return c.night[p] ? `${base}, ${t('nightShift')}` : base;
-    };
-    const card = (p) => `<div class="crit"><span>${esc(p)}</span><b>${nf(c.score[p])}</b><em>${label(p)}</em></div>`;
-    return slide({
-      kicker: tm('creaturesKicker', S), art: `<div class="crits">${card(S.A)}${card(S.B)}</div>`,
-      stmt: c.high ? t('creaturesStmt', esc(c.high), label(c.high)) : t('creaturesTie'), remark: t('creaturesRemark'),
-      callout: callout('', t('creaturesHedge')),
-    });
-  } },
-
-  { id: 'language', accent: 'teal', skip: (S) => !Object.values(langOf(S)).some((x) => x.eligible), render: (S) => {
-    const L = langOf(S), cats = ['words', 'time', 'service', 'gifts', 'touch'];
-    const who = [S.A, S.B].filter((p) => L[p]?.eligible);
-    const bars = (p) => `<div class="ll"><div class="ll-who">${esc(p)}</div>${cats.map((c) => `<div class="ll-row${c === L[p].primary ? ' top' : ''}"><span>${t(`lang_${c}`)}</span><i style="--w:${L[p].pct[c]}%"></i><b>${L[p].pct[c]}%</b></div>`).join('')}</div>`;
-    const lead = who.slice().sort((a, b) => L[b].n - L[a].n)[0];
-    return slide({
-      kicker: tm('langKicker', S), art: who.map(bars).join(''),
-      stmt: lead ? t('langStmt', esc(lead), t(`lang_${L[lead].primary}`)) : t('langNone'), remark: t('langRemark'),
-      callout: callout('', t('langHedge')),
-    });
-  } },
-
-  { id: 'weather', accent: 'denim', skip: (S) => !S.weather?.eligible, render: (S) => {
-    const w = S.weather, so = w.standout;
-    return slide({
-      kicker: t('weatherKicker'), art: `<div class="wx">${w.label ? t(`wx_${w.label}`) : '—'}</div>`,
-      stmt: !w.label ? t('wxNone') : so ? t('wxStandout', MONTHS[getLang()]?.[so.month.getMonth()] ?? MONTHS.en[so.month.getMonth()], t(`wx_${so.label}`)) : t('wxSteady'),
-      remark: t('wxRemark'),
-      callout: callout('', t('wxHedge')),
-    });
-  } },
-
-  { id: 'playlist', accent: 'ochre', skip: (S) => !S.emotions?.eligible, render: (S) => {
-    const E = S.emotions, emos = ['joy', 'love', 'sadness', 'anger', 'worry', 'surprise'];
-    const top = (mix) => emos.reduce((a, e) => (mix.pct[e] > mix.pct[a] ? e : a), emos[0]);
-    const all = E.all, best = top(all);
-    return slide({
-      kicker: t('playlistKicker'),
-      art: `<div class="mix">${emos.map((e) => `<div class="mix-row"><span>${t(`emo_${e}`)}</span><i style="--w:${all.pct[e]}%"></i><b>${all.pct[e]}%</b></div>`).join('')}</div>`,
-      stmt: all.n ? t('playlistStmt', all.pct[best], t(`emo_${best}`)) : t('playlistNone'),
-      remark: E[S.A]?.n && E[S.B]?.n ? t('playlistRemark', esc(S.A), t(`emo_${top(E[S.A])}`), esc(S.B), t(`emo_${top(E[S.B])}`)) : '',
-      callout: callout('', t('playlistHedge')),
     });
   } },
 

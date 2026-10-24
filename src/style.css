@@ -505,28 +505,13 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 /* LOVERS: Fraunces for what's said, DM Sans for everything else. CASUAL: Plus Jakarta Sans,
    with IBM Plex Mono for dates, labels and counts. */
 .card[data-mode="lovers"] { --display: "Fraunces", Georgia, serif; --body: "DM Sans", "Helvetica Neue", Arial, sans-serif; --mono: "DM Sans", "Helvetica Neue", Arial, sans-serif; font-family: var(--body); }
-.card[data-mode="lovers"] :where(.ow-hero, .ow-stmt, .ow-call > b, .big, .mid, .quote, .db, .wx) { font-weight: 600; letter-spacing: -.015em; }
+.card[data-mode="lovers"] :where(.ow-hero, .ow-stmt, .ow-call > b, .big, .mid, .quote, .db) { font-weight: 600; letter-spacing: -.015em; }
 .card[data-mode="lovers"] .ow-stmt { color: var(--deep); }
 .card[data-mode="casual"] { --display: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif; --body: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-family: var(--body); }
 .card[data-mode="casual"] .ow-head > span:first-child { color: var(--accent); }
 /* LOVERS arrives slowly and settles; nothing overshoots. CASUAL keeps the quick snaps. */
 .card[data-mode="lovers"].enter * { animation-timing-function: cubic-bezier(.2, .8, .2, 1) !important; }
 .card[data-mode="lovers"].enter .ow-text > * { animation-duration: .6s; }
-
-/* who you are in this chat: rows of a label, a bar and a number */
-.sync, .mix, .ll { display: grid; gap: 8px; margin-top: 8px; }
-.sync-row, .mix-row, .ll-row { display: grid; grid-template-columns: 7.5em 1fr 3.2em; align-items: center; gap: 10px; font-size: 13px; }
-.sync-row i, .mix-row i, .ll-row i { display: block; height: 10px; border-radius: 6px; background: linear-gradient(to right, var(--accent) var(--w), var(--tint) var(--w)); }
-.sync-row b, .mix-row b, .ll-row b { font-family: var(--mono); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
-.ll + .ll { margin-top: 10px; }
-.ll-who { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-.ll-row.top span { font-weight: 700; }
-.crits { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.crit { display: grid; gap: 2px; background: var(--surface); border-radius: 16px; padding: 14px; }
-.crit span { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); overflow-wrap: anywhere; }
-.crit b { font-family: var(--display); font-size: 44px; line-height: 1; color: var(--accent); font-variant-numeric: tabular-nums; }
-.crit em { font-style: normal; font-weight: 700; font-size: 14px; line-height: 1.2; }
-.wx { font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; letter-spacing: -.03em; color: var(--accent); }
 
 /* the mode popup after upload: page chrome, so it keeps the page's look */
 .pick { border: 0; border-radius: 20px; padding: 24px; width: min(360px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); }

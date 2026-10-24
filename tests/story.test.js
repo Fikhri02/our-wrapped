@@ -15,7 +15,6 @@ describe('the story', () => {
       'intro', 'first', 'share', // how it began
       'bubble', 'starts', 'emoji', 'words', 'love', 'reply', 'sorry', // what you're like together
       'morning', 'night', 'carried', 'streak', 'busy', // the moments you made
-      'sync', 'creatures', 'language', 'weather', 'playlist', // who you are in this chat
       'finale',
     ]);
   });
@@ -126,44 +125,12 @@ describe('two modes', () => {
     expect(ids(lovers)).toContain('love');
   });
 
-  it('frames the same five languages as love for lovers and friendship for friends', () => {
-    expect(render('language', lovers)).toMatch(/Love language/);
-    expect(render('language', casual)).toMatch(/Friendship language/);
-  });
 
-  it('never prints anyone\'s actual messages on the new slides', () => {
-    const said = [...new Set(parse(makeSample()).map((m) => m.text).filter((x) => x.length > 12))];
-    for (const id of ['sync', 'creatures', 'language', 'weather', 'playlist']) {
-      for (const s of [lovers, casual]) {
-        const html = render(id, s);
-        for (const line of said) expect(html, `${id} quotes "${line}"`).not.toContain(line);
-      }
-    }
-  });
 
-  it('skips the weather and the playlist when the chat has too few feelings in it', () => {
-    const dry = { ...casual, emotions: { ...S.emotions, eligible: false }, weather: { eligible: false, label: null, standout: null } };
-    expect(ids(dry)).not.toContain('weather');
-    expect(ids(dry)).not.toContain('playlist');
-  });
 
   it('swaps lovers and friends', () => {
     expect(otherMode('lovers')).toBe('casual');
     expect(otherMode('casual')).toBe('lovers');
-  });
-});
-
-describe('the new slides, as they look', () => {
-  const casual = { ...S, mode: 'casual' };
-
-  it('language bars keep clear of the page\'s language switcher class', () => {
-    expect(render('language', casual)).not.toMatch(/class="lang[ "-]/);
-  });
-
-  it('weather names the forecast once, then says how steady it was', () => {
-    const html = render('weather', casual);
-    expect(html.match(/Golden hour/g)).toHaveLength(1);
-    expect(html).toMatch(/Steady all the way through|With a /);
   });
 });
 
