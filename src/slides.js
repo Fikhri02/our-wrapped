@@ -223,7 +223,7 @@ export const SLIDES = [
   { id: 'night', accent: 'denim', skip: (S) => !S.late, render: (S) => {
     const mx = Math.max(...S.hours) || 1;
     // The busiest hour is the tallest bar; it gets its hour written above it.
-    const bars = S.hours.map((v, h) => `<i class="${h === S.peak ? 'peak' : ''}" style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? 'var(--accent)' : 'var(--tint)'}">${h === S.peak ? `<b>${hourLabel(h)}</b>` : ''}</i>`).join('');
+    const bars = S.hours.map((v, h) => `<i class="${h === S.peak ? 'peak' : ''}" style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? 'var(--accent)' : 'color-mix(in srgb, var(--fg) 35%, transparent)'}">${h === S.peak ? `<b>${hourLabel(h)}</b>` : ''}</i>`).join('');
     return slide({
       kicker: t('nightOwls'),
       art: `<div class="hours">${bars}</div><div class="hours-x"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span></div>`,

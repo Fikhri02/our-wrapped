@@ -158,3 +158,58 @@ describe('weather', () => {
     expect(r.standout.month.getMonth()).toBe(7);
   });
 });
+
+import { FRIEND_LEX } from '../src/lexicon.js';
+import { vibes } from '../src/vibes.js';
+import { conversations, quietHours } from '../src/stats.js';
+
+describe('negation, as people actually text', () => {
+  const ten = (t) => [...lines('A', times(30, 'happy')), ...lines('B', times(10, t), 30)];
+
+  it('keeps endearments after a "never mind" ("tak pe sayang", "not now, love you")', () => {
+    for (const t of ['tak pe sayang', 'tak kisah, sayang', 'not now, love you', 'no lah sayang']) {
+      expect(emotions(ten(t), pair).B.pct.love, t).toBe(100);
+      expect(languages(ten(t), pair, LOVE_LEX).B.pct.words, t).toBe(100);
+    }
+  });
+
+  it('reads reassurance as no feeling ("jangan risau", "dont cry", "tak pernah sedih")', () => {
+    for (const t of ['jangan risau', 'dont cry', "don't worry", 'tak pernah sedih', 'never sad']) {
+      expect(emotions(ten(t), pair).B.n, t).toBe(0);
+    }
+  });
+});
+
+describe('vibes on a big chat', () => {
+  // 20,000 messages of mixed Malay and English, two people, 37 seconds apart.
+  function bigChat(n) {
+    const W = 'aku tak tahu la nak cakap apa tapi okay je kan jom makan nanti sayang haha best gila you dah makan ke belum i rindu you so much lol omg seriously wait what kau ni memang lawak betul 😂😂 ❤️ sedih la hari ni risau pasal kerja'.split(' ');
+    let seed = 1;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    return Array.from({ length: n }, (_, i) => ({
+      who: rnd() < 0.5 ? 'A' : 'B', media: false, deleted: false, when: new Date(2024, 0, 1, 0, 0, i * 37),
+      text: Array.from({ length: 3 + Math.floor(rnd() * 14) }, () => W[Math.floor(rnd() * W.length)]).join(' '),
+    }));
+  }
+
+  it('reads all five in well under a second', () => {
+    const msgs = bigChat(20000), quiet = quietHours(msgs, pair), convs = conversations(msgs, quiet);
+    const t0 = performance.now();
+    const v = vibes(msgs, pair, { quiet, convs });
+    const ms = performance.now() - t0;
+    expect(v.emotions.eligible).toBe(true);
+    expect(v.friendLang.A.n).toBeGreaterThan(0);
+    expect(ms).toBeLessThan(600);
+  });
+
+  it('gives the same answers through vibes() as through each function', () => {
+    const msgs = bigChat(3000), quiet = quietHours(msgs, pair), convs = conversations(msgs, quiet);
+    const v = vibes(msgs, pair, { quiet, convs });
+    expect(v.emotions).toEqual(emotions(msgs, pair));
+    expect(v.weather).toEqual(weather(msgs, pair));
+    expect(v.creatures).toEqual(creatures(msgs, pair));
+    expect(v.loveLang).toEqual(languages(msgs, pair, LOVE_LEX));
+    expect(v.friendLang).toEqual(languages(msgs, pair, FRIEND_LEX));
+    expect(v.sync).toEqual(styleSync(msgs, pair));
+  });
+});

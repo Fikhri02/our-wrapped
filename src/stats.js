@@ -1,6 +1,5 @@
 // One pure function per slide's data. stats() bundles them for the player.
-import { FRIEND_LEX, LOVE_LEX } from './lexicon.js';
-import { creatures, emotions, languages, styleSync, weather } from './vibes.js';
+import { vibes } from './vibes.js';
 
 const STOP = new Set(
   ("the and you for that this with are was but not have just what yes okay its it's can will dah tak nak ada yang ini itu kat dengan untuk lagi pun tu ni la lah je jer kan ke dia aku saya you i me my your we our ok oke haha hahaha hahahaha omitted media deleted message was too lol kau so dont don't then them they how why when who where tengah boleh nanti esok tadi"
@@ -353,6 +352,7 @@ export function stats(all, now = new Date()) {
   const hours = new Array(24).fill(0);
   for (const m of msgs) hours[m.when.getHours()]++;
   const quiet = quietHours(msgs, pair);
+  const convs = conversations(msgs, quiet);
 
   // Word counts live in prototype-free objects: a chat that says "constructor" must not
   // find Object's own property there.
@@ -403,7 +403,7 @@ export function stats(all, now = new Date()) {
     emoVs: emojiVs(emo, count, pair),
     words: Object.fromEntries(pair.map((p) => [p, (signatureWords(words, pair)[p] || []).map(spelled)])), sorry, love, sorryFirst,
     reply: replySpeed(msgs, pair, quiet),
-    convo: convoStats(conversations(msgs, quiet), pair),
+    convo: convoStats(convs, pair),
     goodnight: goodnightFirst(msgs, pair),
     carried: carriedNights(msgs, quiet),
     carriedEx: carriedExample(msgs, quiet),
@@ -412,8 +412,6 @@ export function stats(all, now = new Date()) {
     busy, busyN: days[busy],
     media: msgs.filter((m) => m.media).length,
     // Who you are in this chat. The caller adds the mode ({ ...stats(msgs), mode }).
-    sync: styleSync(msgs, pair), creatures: creatures(msgs, pair),
-    loveLang: languages(msgs, pair, LOVE_LEX), friendLang: languages(msgs, pair, FRIEND_LEX),
-    emotions: emotions(msgs, pair), weather: weather(msgs, pair),
+    ...vibes(msgs, pair, { convs }),
   };
 }

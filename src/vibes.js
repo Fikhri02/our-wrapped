@@ -1,6 +1,6 @@
 // Playful "who are you in this chat" stats: how alike you type, how loud each of you
 // texts. Heuristics over the parsed messages; the slides hedge every reading.
-import { EMO_LEX } from './lexicon.js';
+import { EMO_LEX, FRIEND_LEX, LOVE_LEX } from './lexicon.js';
 import { conversations, quietHours } from './stats.js';
 
 // Small words people use without thinking. How often each one shows up is a fingerprint
@@ -41,14 +41,13 @@ export function styleSync(msgs, pair) {
 }
 
 const LOUD = /!!|\p{Lu}{3,}/u;
-const PICT = /\p{Extended_Pictographic}/u;
-const seg = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
-const emojiCount = (text) => [...seg.segment(text)].filter((g) => PICT.test(g.segment)).length;
+const PICTS = /\p{Extended_Pictographic}/gu;
+const emojiCount = (text) => (text.match(PICTS) || []).length;
 
 // Texting expressiveness, scored between the two of you: each feature is your share of
 // the pair's total, and the score is the average share. The biggest gap names the set of
-// archetypes the slide uses.
-export function creatures(msgs, pair) {
+// archetypes the slide uses. stats() passes the conversations it already has.
+export function creatures(msgs, pair, convs = null) {
   const t = texts(msgs);
   const feat = Object.fromEntries(pair.map((p) => [p, { n: 0, words: 0, turns: 0, loud: 0, emoji: 0, starts: 0, night: 0 }]));
   let prev = null;
@@ -63,7 +62,7 @@ export function creatures(msgs, pair) {
     if (!prev || prev.who !== m.who || (m.when - prev.when) / 6e4 >= 10) f.turns++;
     prev = m;
   }
-  for (const c of conversations(t, quietHours(t, pair))) {
+  for (const c of convs || conversations(t, quietHours(t, pair))) {
     if (feat[c[0].who] && c.some((m) => m.who !== c[0].who)) feat[c[0].who].starts++;
   }
   const eligible = pair.every((p) => feat[p].n >= 50);
@@ -86,33 +85,71 @@ export function creatures(msgs, pair) {
   return { eligible, score, set, high, night };
 }
 
-// A negator just before a match ("tak sedih", "not happy") cancels it.
-const NEG = new Set(['tak', 'not', 'no', 'bukan', 'x', 'tidak', 'takde']);
-const negated = (text, at) => (text.slice(0, at).toLowerCase().match(/[\p{L}']+/gu) || []).slice(-2).some((w) => NEG.has(w));
-const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const asRe = (p) => (p instanceof RegExp ? new RegExp(p.source, 'giu') : new RegExp(`(?<![\\p{L}\\p{N}])${esc(p)}(?![\\p{L}\\p{N}])`, 'giu'));
+// A negator right before a match, in the same clause, cancels it: "tak sedih", "jangan
+// risau", "tak pernah sedih". One softener may sit between ("not very happy"). A comma ends
+// the clause, so "tak kisah, sayang" keeps its sayang, and so does "tak pe sayang".
+const NEG = new Set(['tak', 'not', 'no', 'bukan', 'x', 'tidak', 'takde', 'tiada', 'jangan', 'jgn', 'dont', "don't", 'don’t', 'never']);
+const SOFT = new Set(['very', 'that', 'so', 'too', 'really', 'ever', 'pernah', 'sangat', 'terlalu']);
+const negatedAt = (toks, i) => {
+  let j = i - 1;
+  if (j > 0 && SOFT.has(toks[j])) j--;
+  return j >= 0 && NEG.has(toks[j]);
+};
 
-// The longest un-negated match of any phrase in the list, or 0.
-function longest(text, res) {
-  let best = 0;
-  for (const re of res) {
-    re.lastIndex = 0;
-    for (const m of text.matchAll(re)) if (m[0].length > best && !negated(text, m.index)) best = m[0].length;
+// Words (and each emoji) of one clause at a time. Matching on tokens, not regexes over the
+// raw text, keeps a 50,000-message chat fast.
+const TOKEN = /[\p{L}\p{N}'’]+|\p{Extended_Pictographic}/gu;
+const toClauses = (text) => text.toLowerCase().split(/[,.!?;\n]/).map((c) => c.match(TOKEN) || []);
+// Tokenised once per message, however many word lists read it.
+const seen = new WeakMap();
+const clauses = (m) => { if (!seen.has(m)) seen.set(m, toClauses(m.text)); return seen.get(m); };
+
+// A matcher for a word list ({ category: [phrase or RegExp] }): for each category, the
+// length of its longest un-negated phrase in a message. A RegExp is tested against single
+// words; phrases match whole words, up to four in a row.
+function matcher(cats) {
+  const phrases = new Map(), patterns = [];
+  let span = 1;
+  for (const [c, list] of Object.entries(cats)) {
+    for (const p of list) {
+      if (p instanceof RegExp) { patterns.push([c, new RegExp(`^(?:${p.source.replace(/\\b/g, '')})$`, 'iu')]); continue; }
+      const key = (p.toLowerCase().match(TOKEN) || []).join(' ');
+      if (!phrases.has(key)) phrases.set(key, c);
+      span = Math.max(span, key.split(' ').length);
+    }
   }
-  return best;
+  return (m) => {
+    const out = {};
+    const hit = (c, len, toks, i) => { if (len > (out[c] || 0) && !negatedAt(toks, i)) out[c] = len; };
+    for (const toks of clauses(m)) {
+      for (let i = 0; i < toks.length; i++) {
+        for (const [c, re] of patterns) if (re.test(toks[i])) hit(c, toks[i].length, toks, i);
+        let key = '';
+        for (let n = 1; n <= span && i + n <= toks.length; n++) {
+          key = n === 1 ? toks[i] : `${key} ${toks[i + n - 1]}`;
+          const c = phrases.get(key);
+          if (c) hit(c, key.length, toks, i);
+        }
+      }
+    }
+    return out;
+  };
 }
 
 const pcts = (counts, n) => Object.fromEntries(Object.entries(counts).map(([k, v]) => [k, n ? Math.round((v / n) * 100) : 0]));
 
 // Love (or friendship) languages: each affectionate message counts once, under the
 // category of its longest matching phrase.
+const compiled = new WeakMap();
 export function languages(msgs, pair, lex) {
-  const cats = Object.keys(lex), res = Object.fromEntries(cats.map((c) => [c, lex[c].map(asRe)]));
+  const cats = Object.keys(lex);
+  if (!compiled.has(lex)) compiled.set(lex, matcher(lex));
+  const match = compiled.get(lex);
   const out = Object.fromEntries(pair.map((p) => [p, Object.fromEntries(cats.map((c) => [c, 0]))]));
   for (const m of texts(msgs)) {
     if (!out[m.who]) continue;
-    let pick = null, len = 0;
-    for (const c of cats) { const l = longest(m.text, res[c]); if (l > len) { len = l; pick = c; } }
+    const h = match(m);
+    const pick = Object.keys(h).reduce((a, c) => (!a || h[c] > h[a] ? c : a), null);
     if (pick) out[m.who][pick]++;
   }
   return Object.fromEntries(pair.map((p) => {
@@ -123,15 +160,18 @@ export function languages(msgs, pair, lex) {
 }
 
 const EMOS = Object.keys(EMO_LEX);
-const EMO_RES = Object.fromEntries(EMOS.map((e) => [e, EMO_LEX[e].words.map(asRe)]));
-const emosIn = (text) => EMOS.filter((e) => longest(text, EMO_RES[e]) || EMO_LEX[e].emoji.some((x) => text.includes(x) && !negated(text, text.indexOf(x))));
+const emoMatch = matcher(Object.fromEntries(EMOS.map((e) => [e, [...EMO_LEX[e].words, ...EMO_LEX[e].emoji]])));
+const emosIn = (m) => { const h = emoMatch(m); return EMOS.filter((e) => h[e]); };
+
+// Each text message with the emotions it carries, worked out once and shared by the
+// playlist and the weather.
+const tag = (msgs) => texts(msgs).map((m) => ({ m, es: emosIn(m) }));
 
 // A message carrying k emotions adds 1/k to each.
-function mix(msgs) {
+function mix(tagged) {
   const acc = Object.fromEntries(EMOS.map((e) => [e, 0]));
   let n = 0;
-  for (const m of msgs) {
-    const es = emosIn(m.text);
+  for (const { es } of tagged) {
     if (!es.length) continue;
     n++;
     for (const e of es) acc[e] += 1 / es.length;
@@ -139,9 +179,9 @@ function mix(msgs) {
   return { n, pct: pcts(acc, n) };
 }
 
-export function emotions(msgs, pair) {
-  const t = texts(msgs), all = mix(t);
-  return { eligible: all.n >= 30, all, ...Object.fromEntries(pair.map((p) => [p, mix(t.filter((m) => m.who === p))])) };
+export function emotions(msgs, pair, tagged = tag(msgs)) {
+  const all = mix(tagged);
+  return { eligible: all.n >= 30, all, ...Object.fromEntries(pair.map((p) => [p, mix(tagged.filter((x) => x.m.who === p))])) };
 }
 
 // The emotion mix as a forecast.
@@ -154,24 +194,32 @@ function forecast(pct) {
 }
 
 // The whole chat's weather, and the month that broke from it most.
-export function weather(msgs, pair) {
-  const t = texts(msgs).filter((m) => pair.includes(m.who)), all = mix(t);
+export function weather(msgs, pair, tagged = tag(msgs)) {
+  const t = tagged.filter((x) => pair.includes(x.m.who)), all = mix(t);
   if (all.n < 30) return { eligible: false, label: null, standout: null };
   const overall = forecast(all.pct).label;
   const months = new Map();
-  for (const m of t) {
-    const k = `${m.when.getFullYear()}-${m.when.getMonth()}`;
+  for (const x of t) {
+    const k = `${x.m.when.getFullYear()}-${x.m.when.getMonth()}`;
     if (!months.has(k)) months.set(k, []);
-    months.get(k).push(m);
+    months.get(k).push(x);
   }
   let standout = null;
-  for (const ms of months.values()) {
-    const x = mix(ms);
-    if (x.n < 20) continue;
-    const f = forecast(x.pct);
-    if (f.label !== overall && (!standout || f.top > standout.top)) {
-      standout = { month: new Date(ms[0].when.getFullYear(), ms[0].when.getMonth(), 1), label: f.label, top: f.top };
-    }
+  for (const xs of months.values()) {
+    const mx = mix(xs);
+    if (mx.n < 20) continue;
+    const f = forecast(mx.pct), w = xs[0].m.when;
+    if (f.label !== overall && (!standout || f.top > standout.top)) standout = { month: new Date(w.getFullYear(), w.getMonth(), 1), label: f.label, top: f.top };
   }
   return { eligible: true, label: overall, standout: standout && { month: standout.month, label: standout.label } };
+}
+
+// All five, sharing the work: emotions are tagged once, conversations come from stats().
+export function vibes(msgs, pair, { convs = null } = {}) {
+  const tagged = tag(msgs);
+  return {
+    sync: styleSync(msgs, pair), creatures: creatures(msgs, pair, convs),
+    loveLang: languages(msgs, pair, LOVE_LEX), friendLang: languages(msgs, pair, FRIEND_LEX),
+    emotions: emotions(msgs, pair, tagged), weather: weather(msgs, pair, tagged),
+  };
 }

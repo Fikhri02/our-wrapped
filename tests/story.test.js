@@ -166,3 +166,10 @@ describe('the new slides, as they look', () => {
     expect(html).toMatch(/Steady all the way through|With a /);
   });
 });
+
+describe('night owls on a light ground', () => {
+  it('draws daytime hours in the ink, not the pale tint', () => {
+    const html = render('night', { ...S, mode: 'casual', late: S.late || 1 });
+    expect(html).not.toMatch(/background:var\(--tint\)/);
+  });
+});
