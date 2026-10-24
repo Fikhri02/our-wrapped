@@ -424,6 +424,11 @@ export function comebacks(msgs, pair) {
   return { eligible: true, count: all.length, by, longest, longestGap, silences: all.filter((x) => keep.has(x)) };
 }
 
+// Lovers or friends, for the illustrations: a couple says it all the time (the example chat
+// runs ~127 per 1,000 messages), friends hardly ever (six real friendships: 0 to 1.4). Five
+// per 1,000 and at least ten in all is well clear of both.
+export const vibeOf = (love, total) => (love >= 10 && (love / total) * 1000 >= 5 ? 'lovers' : 'friends');
+
 export function stats(all, now = new Date()) {
   const count = {};
   for (const m of all) count[m.who] = (count[m.who] || 0) + 1;
@@ -479,6 +484,7 @@ export function stats(all, now = new Date()) {
   const streak = longestStreak(dk);
 
   return {
+    vibe: vibeOf(love[A] + love[B], msgs.length),
     A, B, group: Object.keys(count).length > 2, total: msgs.length, count,
     pace: pace(msgs, dk, now),
     days: dk.length, dayKeys: dk, first, firstReplies, firstWait, firstDate: msgs[0].when,

@@ -32,8 +32,10 @@ const hidden = (text) => Array(Math.max(1, Math.min(5, Math.round(text.length / 
 const asEmoji = (e) => ([...e].length === 1 ? `${e}️` : e);
 
 // The illustration a headline slide opens with: the bubble character acting out the stat
-// (public/art/{id}.webp). Decorative: the number and the words say it all.
-const art = (id) => `<img class="ow-pic" src="./art/${id}.webp" alt="" aria-hidden="true">`;
+// (public/art/{id}.webp, or art/friends/ for a chat between friends). Decorative: the number
+// and the words say it all.
+const friends = (vibe) => (vibe === 'friends' ? 'friends/' : '');
+const art = (id, S) => `<img class="ow-pic" src="./art/${friends(S?.vibe)}${id}.webp" alt="" aria-hidden="true">`;
 
 // The streak as a calendar laid on its side: a column per week (Monday at the top), the
 // streak's days filled, its ends ringed, other days you talked shown faintly. Seven rows
@@ -126,17 +128,17 @@ function fastest(S) {
 // A chapter's cover: its number, title, a line on what's in it, and its picture.
 const cover = (n) => ({
   id: `ch${n}`, chapter: n, cover: true,
-  render: () => `<div class="k ow-head"><span>${t('chapterK', n)}</span><span class="ow-brand">Our Wrapped</span></div>`
+  render: (S) => `<div class="k ow-head"><span>${t('chapterK', n)}</span><span class="ow-brand">Our Wrapped</span></div>`
     + `<div class="body ch-body"><div class="ow-text"><div class="ch-num">${String(n).padStart(2, '0')}</div>`
     + `<div class="ch-title">${t(`ch${n}Title`)}</div><div class="ch-teaser">${t(`ch${n}Teaser`)}</div></div>`
-    + `<img class="ch-art" src="./chapters/${n}.webp" alt="${t(`ch${n}Alt`)}"></div><div class="foot"></div>`,
+    + `<img class="ch-art" src="./chapters/${friends(S?.vibe)}${n}.webp" alt="${t(`ch${n}Alt${S?.vibe === 'friends' ? 'F' : ''}`)}"></div><div class="foot"></div>`,
 });
 
 export const SLIDES = [
   { id: 'intro', chapter: 1, render: (S) => {
     const p = S.pace;
     return slide({
-      kicker: t('introKicker'), art: art('intro'),
+      kicker: t('introKicker'), art: art('intro', S),
       ctx: S.range ? t('rangeFrom', esc(S.range), fmtDate(S.firstDate)) : t('since', fmtDate(S.firstDate)),
       hero: big(S.total), stmt: t('introStmt', esc(S.A), esc(S.B)),
       remark: p ? paceRemark(S) : '',
@@ -166,7 +168,7 @@ export const SLIDES = [
     const g = S.goodnight, bye = g[S.A] >= g[S.B] ? S.A : S.B;
     // A goodnight claim needs a few nights behind it.
     return slide({
-      lead: leads.starts(S), kicker: t('startsKicker'), art: art('starts'),
+      lead: leads.starts(S), kicker: t('startsKicker'), art: art('starts', S),
       hero: big(c.starts[w]), stmt: t('startsStmt', esc(w), c.starts[w]), remark: t('startsRemark', esc(l), nf(c.starts[l])),
       callout: g[bye] < 3 ? callout('', t('startsFoot')) : g[S.A] === g[S.B] ? callout('', t('goodnightTie')) : callout(g[bye], t('goodnightCall', esc(bye))),
     });
@@ -175,7 +177,7 @@ export const SLIDES = [
   { id: 'morning', chapter: 1, render: (S) => {
     const w = S.ft[S.A] >= S.ft[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
-      lead: leads.morning(S), kicker: t('firstThought'), art: art('morning'),
+      lead: leads.morning(S), kicker: t('firstThought'), art: art('morning', S),
       hero: big(S.ft[w]), stmt: t('mornings', esc(w), S.ft[w]), remark: t('morningFoot'),
       callout: callout(S.ft[l], t('morningCall', esc(l))),
     });
@@ -275,7 +277,7 @@ export const SLIDES = [
   cover(3),
 
   { id: 'love', chapter: 3, skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => slide({
-    kicker: t('loveKicker'), art: art('love'),
+    kicker: t('loveKicker'), art: art('love', S),
     hero: big(S.love[S.A] + S.love[S.B]), stmt: t('loveStmt', S.love[S.A] + S.love[S.B]), remark: t('loveRemark'),
     callout: callout(`${nf(S.love[S.A])} · ${nf(S.love[S.B])}`, t('loveCall', esc(S.A), esc(S.B))),
   }) },
@@ -283,7 +285,7 @@ export const SLIDES = [
   { id: 'sorry', chapter: 3, skip: (S) => !(S.sorry[S.A] + S.sorry[S.B]), render: (S) => {
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
-      lead: leads.sorry(S), kicker: t('apologies'), art: art('sorry'),
+      lead: leads.sorry(S), kicker: t('apologies'), art: art('sorry', S),
       hero: big(S.sorry[w]), stmt: t('saidSorry', esc(w), S.sorry[w]), remark: t('sorryRemark', esc(l), S.sorry[l]),
       callout: callout('', !S.sorryFirst[w] ? t('noSorry') : S.hide?.sorry ? t('firstSorryHidden') : t('firstSorry', esc(S.sorryFirst[w].text.slice(0, 70))), 'nudge'),
     });
@@ -332,7 +334,7 @@ export const SLIDES = [
   { id: 'busy', chapter: 4, render: (S) => {
     const pct = (S.busyN / S.total) * 100;
     return slide({
-      kicker: t('loudest'), art: art('busy'), ctx: fmtDay(S.busy),
+      kicker: t('loudest'), art: art('busy', S), ctx: fmtDay(S.busy),
       hero: big(S.busyN), stmt: t('loudLine'), remark: t('loudRemark'),
       more: `<button type="button" class="slide-act" data-act="chat">${t('chatButton')}</button>`,
       callout: callout(`${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%`, t('loudCall')),
@@ -408,10 +410,10 @@ export function slidesFor(S) {
 }
 
 // The last slide: a message the sender types before playing.
-export const closingSlide = (note, signed) => ({
+export const closingSlide = (note, signed, vibe) => ({
   id: 'closing', chapter: 5,
   render: () => slide({
-    kicker: t('oneMore'), art: art('closing'),
+    kicker: t('oneMore'), art: art('closing', { vibe }),
     stmt: `<span class="note">${esc(note).replace(/\n/g, '<br>')}</span>`,
     remark: signed ? t('withLoveFrom', esc(signed)) : t('withLove'),
   }),

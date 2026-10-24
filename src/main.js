@@ -63,7 +63,7 @@ try {
 function slideList() {
   const text = note.value.trim();
   const list = slidesFor(current);
-  return text ? [...list, closingSlide(text, signed.value.trim())] : list;
+  return text ? [...list, closingSlide(text, signed.value.trim(), current.vibe)] : list;
 }
 
 const summaryLine = (s) => t('loaded', nf(s.total), esc(s.A), esc(s.B), s.days) + (s.group ? t('group') : '') + t('private');

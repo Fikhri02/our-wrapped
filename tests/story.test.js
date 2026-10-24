@@ -122,6 +122,19 @@ describe('character art', () => {
   it('ships every illustration it points at', () => {
     for (const id of [...ART, 'closing']) expect(existsSync(new URL(`../public/art/${id}.webp`, import.meta.url)), id).toBe(true);
   });
+
+  it('friends get their own set: no hearts and blushes for a chat that never says it', () => {
+    const F = { ...S, vibe: 'friends' };
+    for (const id of ART) expect(render(id, F), id).toMatch(new RegExp(`src="\\./art/friends/${id}\\.webp"`));
+    expect(closingSlide('hi', '', 'friends').render()).toMatch(/src="\.\/art\/friends\/closing\.webp"/);
+    for (const n of [1, 2, 3, 4, 5]) {
+      const html = SLIDES.find((x) => x.id === `ch${n}`).render(F);
+      expect(html, `ch${n}`).toMatch(new RegExp(`<img class="ch-art" src="\\./chapters/friends/${n}\\.webp" alt="[^"]+"`));
+      expect(html).not.toContain(`alt="${SLIDES.find((x) => x.id === `ch${n}`).render(S).match(/alt="([^"]+)"/)[1]}"`);
+    }
+    for (const id of [...ART, 'closing']) expect(existsSync(new URL(`../public/art/friends/${id}.webp`, import.meta.url)), id).toBe(true);
+    for (const n of [1, 2, 3, 4, 5]) expect(existsSync(new URL(`../public/chapters/friends/${n}.webp`, import.meta.url)), `ch${n}`).toBe(true);
+  });
 });
 
 describe('a reveal per slide', () => {

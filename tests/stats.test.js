@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
-import { bubbles, texterType, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker, talkRoles } from '../src/stats.js';
+import { bubbles, vibeOf, texterType, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker, talkRoles } from '../src/stats.js';
 import { setLang, t } from '../src/i18n.js';
 import { SLIDES, slidesFor } from '../src/slides.js';
 import { compact, fmtRange, formatReply } from '../src/format.js';
@@ -86,6 +86,24 @@ describe('stats helpers', () => {
       for (let h = 0; h < 24; h++) if (h < 4 || h >= 10) lines.push(`${d}/1/26, ${String(h).padStart(2, '0')}:00 - A: hi`);
     }
     expect(quietHours(parse(lines.join('\n')), ['A'])).toEqual({ A: { start: 4, end: 10 } });
+  });
+});
+
+describe('vibe: lovers or friends', () => {
+  it('a chat that keeps saying it is lovers; one that rarely does is friends', () => {
+    expect(vibeOf(318, 2510)).toBe('lovers'); // the example couple: ~127 per 1,000 messages
+    expect(vibeOf(80, 56258)).toBe('friends'); // a long real friendship: 1.4 per 1,000
+    expect(vibeOf(0, 850)).toBe('friends');
+  });
+
+  it('needs both the rate and a handful of mentions', () => {
+    expect(vibeOf(5, 1000)).toBe('friends'); // the rate, but only five times
+    expect(vibeOf(10, 2000)).toBe('lovers');
+    expect(vibeOf(10, 2100)).toBe('friends');
+  });
+
+  it('is part of the stats', () => {
+    expect(stats(parse(makeSample())).vibe).toBe('lovers');
   });
 });
 
