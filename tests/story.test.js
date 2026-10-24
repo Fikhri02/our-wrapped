@@ -13,8 +13,8 @@ const render = (id, s = S) => SLIDES.find((x) => x.id === id).render(s);
 describe('the story', () => {
   it('runs in three acts and ends on the finale', () => {
     expect(SLIDES.map((s) => s.id)).toEqual([
-      'intro', 'first', 'share', // how it began
-      'bubble', 'starts', 'emoji', 'words', 'love', 'reply', 'sorry', // what you're like together
+      'intro', 'first', 'starts', 'share', // how it began, and who keeps starting it
+      'bubble', 'emoji', 'words', 'love', 'reply', 'sorry', // what you're like together
       'morning', 'night', 'carried', 'streak', 'busy', // the moments you made
       'arc', 'comebacks', // how it rose, settled, and came back
       'finale',

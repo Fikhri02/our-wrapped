@@ -114,6 +114,18 @@ export const SLIDES = [
     });
   } },
 
+  { id: 'starts', accent: 'violet', render: (S) => {
+    const c = S.convo;
+    const w = c.starts[S.A] >= c.starts[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
+    const g = S.goodnight, bye = g[S.A] >= g[S.B] ? S.A : S.B;
+    // A goodnight claim needs a few nights behind it.
+    return slide({
+      kicker: t('startsKicker'), art: talk('b'),
+      hero: big(c.starts[w]), stmt: t('startsStmt', esc(w)), remark: t('startsRemark', esc(l), nf(c.starts[l])),
+      callout: g[bye] < 3 ? callout('', t('startsFoot')) : g[S.A] === g[S.B] ? callout('', t('goodnightTie')) : callout(g[bye], t('goodnightCall', esc(bye))),
+    });
+  } },
+
   { id: 'share', accent: 'terracotta', render: (S) => {
     const a = S.count[S.A], b = S.count[S.B] || 0, pa = Math.round((a / (a + b)) * 100);
     const w = pa >= 50 ? S.A : S.B;
@@ -161,18 +173,6 @@ export const SLIDES = [
       more: f?.kind === 'rant' ? `<button type="button" class="slide-act" data-act="rant">${t('rantButton')}</button>` : '',
       callout: !f ? '' : callout('', f.kind === 'rant' ? t('burstRant', esc(f.who), f.n, nf(f.words), fmtDate(f.start))
         : f.kind === 'spree' ? t('burstSpree', esc(f.who), f.n, fmtDate(f.start)) : t('burstNormal', esc(f.who), f.n)),
-    });
-  } },
-
-  { id: 'starts', accent: 'violet', render: (S) => {
-    const c = S.convo;
-    const w = c.starts[S.A] >= c.starts[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
-    const g = S.goodnight, bye = g[S.A] >= g[S.B] ? S.A : S.B;
-    // A goodnight claim needs a few nights behind it.
-    return slide({
-      kicker: t('startsKicker'), art: talk('b'),
-      hero: big(c.starts[w]), stmt: t('startsStmt', esc(w)), remark: t('startsRemark', esc(l), nf(c.starts[l])),
-      callout: g[bye] < 3 ? callout('', t('startsFoot')) : g[S.A] === g[S.B] ? callout('', t('goodnightTie')) : callout(g[bye], t('goodnightCall', esc(bye))),
     });
   } },
 
