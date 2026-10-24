@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
-import { bubbles, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker, talkRoles } from '../src/stats.js';
+import { bubbles, texterType, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker, talkRoles } from '../src/stats.js';
 import { setLang, t } from '../src/i18n.js';
 import { SLIDES, slidesFor } from '../src/slides.js';
 import { compact, fmtRange, formatReply } from '../src/format.js';
@@ -487,8 +487,16 @@ describe('bubbles', () => {
       lines.push(`1/1/26, ${10 + i}:30 - B: ok`);
     });
     const s = bubbles(parse(lines.join('\n')), ['A', 'B']).shape;
-    expect(s.A).toEqual({ usual: 2, single: 40, burst: 20, dist: [40, 20, 20, 0, 20] });
-    expect(s.B).toEqual({ usual: 1, single: 100, burst: 0, dist: [100, 0, 0, 0, 0] });
+    expect(s.A).toEqual({ usual: 2, single: 40, burst: 20, dist: [40, 20, 20, 0, 20], type: 'ranter' });
+    expect(s.B).toEqual({ usual: 1, single: 100, burst: 0, dist: [100, 0, 0, 0, 0], type: 'oneliner' });
+  });
+
+  it('types each texter: ranter, one-liner, or normal', () => {
+    expect(texterType({ usual: 3, single: 25, burst: 4 })).toBe('ranter'); // usually 3
+    expect(texterType({ usual: 2, single: 31, burst: 9 })).toBe('ranter'); // bursts on 9% of turns
+    expect(texterType({ usual: 2, single: 49, burst: 3 })).toBe('oneliner');
+    expect(texterType({ usual: 2, single: 39, burst: 3 })).toBe('normal');
+    expect(texterType({ usual: 2, single: 46, burst: 6 })).toBe('normal'); // many one-liners, but bursts too
   });
 
   it('uses the lower middle turn as usual when the count is even', () => {

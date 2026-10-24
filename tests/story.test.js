@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
 import { stats } from '../src/stats.js';
 import { SLIDES, slidesFor } from '../src/slides.js';
+import { texterType } from '../src/stats.js';
 import { setLang } from '../src/i18n.js';
 import { makeSample } from '../src/sample.js';
 
@@ -104,20 +105,30 @@ describe('layouts that follow how you text', () => {
     expect(render('share', withTalk([700, 300], { talker: S.A }))).toMatch(/class="stacks"/);
   });
 
-  it('bubble count: leads with whoever bursts more, and roasts only a real habit', () => {
-    const bursty = withShape(shape(3, 25, 14, [25, 22, 18, 21, 14]), shape(2, 39, 3, [39, 28, 19, 11, 3]));
-    const html = render('bubble', bursty);
-    expect(html).toMatch(new RegExp(`from ${S.A}`));
-    expect(html).toMatch(/14%/);
-    expect(html).toMatch(/one paragraph/);
-    const calm = withShape(shape(2, 40, 3, [40, 30, 17, 10, 3]), shape(2, 41, 2, [41, 30, 18, 9, 2]));
-    expect(render('bubble', calm)).not.toMatch(/one paragraph/);
+  const R = shape(3, 25, 14, [25, 22, 18, 21, 14]), O = shape(2, 49, 3, [49, 27, 13, 8, 3]), N = shape(2, 39, 3, [39, 28, 19, 11, 3]);
+  const verdict = (a, b) => render('bubble', withShape({ ...a, type: texterType(a) }, { ...b, type: texterType(b) }));
+
+  it('bubble count: names the pair, never hedges', () => {
+    expect(verdict(R, O)).toMatch(/The essay and the ‘ok’/);
+    expect(verdict(O, R)).toMatch(/The essay and the ‘ok’/);
+    expect(verdict(R, R)).toMatch(/Two ranters/);
+    expect(verdict(R, N)).toMatch(new RegExp(`${S.A} rants`));
+    expect(verdict(O, O)).toMatch(/Two telegrams/);
+    expect(verdict(N, O)).toMatch(new RegExp(`${S.B} doesn’t do paragraphs`));
+    expect(verdict(N, N)).toMatch(/Suspiciously normal/);
   });
 
-  it('bubble count: both usually sending one bubble gets its own line', () => {
-    const one = shape(1, 70, 1, [70, 20, 6, 3, 1]);
-    expect(render('bubble', withShape(one, one))).toMatch(/one message/);
-    expect(render('bubble', withShape(one, one))).toMatch(/bubble a turn/);
+  it('bubble count: puts the real numbers in the roast', () => {
+    const html = verdict(R, O);
+    expect(html).toMatch(/14%/);
+    expect(html).toMatch(/49%/);
+  });
+
+  it('bubble count: labels each bar with the person\'s type', () => {
+    const html = verdict(R, O);
+    expect(html).toMatch(/The Ranter/);
+    expect(html).toMatch(/The One-Liner/);
+    expect(html).not.toMatch(/class="ow-hero"/); // the verdict is the headline, not a number
   });
 });
 

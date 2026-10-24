@@ -3,6 +3,7 @@
 // "typing…" beat). All copy comes from i18n.js.
 import { clock, compact, esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
 import { t } from './i18n.js';
+import { texterType } from './stats.js';
 
 // A number the player counts up from 0 on entrance.
 const count = (n, suffix = '', dec = 0) =>
@@ -112,21 +113,25 @@ export const SLIDES = [
     });
   } },
 
-  // Bubble count: each person's usual turn and how their turns spread, from a single bubble
-  // to 6 or more. No averages: one long rant shouldn't make anyone look like a burster.
+  // Bubble count: what kind of texters you two are, read off the shape of your turns (no
+  // averages), named without hedging, with each person's bar from one bubble to 6+.
   { id: 'bubble', accent: 'ochre', typing: true, render: (S) => {
     const { shape: sh, feature: f } = S.bubbles;
-    const w = sh[S.A].burst !== sh[S.B].burst ? (sh[S.A].burst > sh[S.B].burst ? S.A : S.B) : sh[S.A].usual >= sh[S.B].usual ? S.A : S.B;
-    // Roast only a real habit: 6+ bubbles on one turn in ten, or usually three or more.
-    const roast = sh[w].burst >= 10 || sh[w].usual >= 3, both1 = sh[S.A].usual === 1 && sh[S.B].usual === 1;
+    const type = (p) => sh[p].type || texterType(sh[p]);
+    // The louder type leads: ranter, then one-liner, then normal. Same type: A leads.
+    const rank = { ranter: 0, oneliner: 1, normal: 2 };
+    const [x, y] = rank[type(S.B)] < rank[type(S.A)] ? [S.B, S.A] : [S.A, S.B];
+    const key = { 'ranter-ranter': 'rr', 'ranter-oneliner': 'ro', 'ranter-normal': 'rn', 'oneliner-oneliner': 'oo', 'oneliner-normal': 'on', 'normal-normal': 'nn' }[`${type(x)}-${type(y)}`];
+    // Which number backs the roast: bursts for ranters and normal pairs, single bubbles for one-liners.
+    const num = { rr: ['burst', 'burst'], ro: ['burst', 'single'], rn: ['burst', 'burst'], oo: ['single', 'single'], on: ['single', 'single'], nn: ['burst', 'burst'] }[key];
     const keys = ['1', '2', '3', '4–5', '6+'];
-    const row = (p) => `<div class="sp-row"><div class="sp-who"><span>${esc(p)}</span><b>${t('spUsual', sh[p].usual)}</b></div>`
+    const row = (p) => `<div class="sp-row"><div class="sp-who"><span>${esc(p)}</span><b>${t(`type_${type(p)}`)} · ${t('spUsual', sh[p].usual)}</b></div>`
       + `<div class="sp-bar">${sh[p].dist.map((v, i) => `<i class="s${i}" style="--w:${v}%"></i>`).join('')}</div></div>`;
     return slide({
       kicker: t('bubbleKicker'),
       art: `<div class="spread">${row(S.A)}${row(S.B)}<div class="sp-key">${keys.map((k, i) => `<span><i class="s${i}"></i>${k}</span>`).join('')}</div></div>`,
-      hero: big(sh[w].usual), stmt: t('bubbleStmt', esc(w), sh[w].usual),
-      remark: both1 ? t('bubbleBoth') : `${t('bubbleSpread', esc(w), sh[w].single, sh[w].burst)}${roast ? ` ${t('bubbleRoast')}` : ''}`,
+      stmt: t(`bv_${key}`, esc(x), esc(y)),
+      remark: t(`bv_${key}_why`, esc(x), sh[x][num[0]], esc(y), sh[y][num[1]]),
       more: f?.kind === 'rant' ? `<button type="button" class="slide-act" data-act="rant">${t('rantButton')}</button>` : '',
       callout: !f ? '' : callout('', f.kind === 'rant' ? t('burstRant', esc(f.who), f.n, nf(f.words), fmtDate(f.start))
         : f.kind === 'spree' ? t('burstSpree', esc(f.who), f.n, fmtDate(f.start)) : t('burstNormal', esc(f.who), f.n)),

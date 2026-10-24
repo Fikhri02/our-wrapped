@@ -297,6 +297,12 @@ export function emojiVs(emo, count, people) {
 // normal below that. 99% of real turns are 10 messages or fewer; a typical one is 2. A burst
 // where photos and videos outnumber the typed messages is sharing, not ranting.
 const RANT_MSGS = 8, RANT_WORDS = 60;
+// What kind of texter someone is, from the shape of their turns. Thresholds set against
+// real chats: a ranter bursts 6+ bubbles on 8% of turns or usually sends 3 or more; a
+// one-liner sends a single bubble on 45%+ of turns and almost never bursts.
+export const texterType = ({ usual, single, burst }) =>
+  burst >= 8 || usual >= 3 ? 'ranter' : single >= 45 && burst <= 3 ? 'oneliner' : 'normal';
+
 export function bubbles(msgs, people) {
   const turns = Object.fromEntries(people.map((p) => [p, []]));
   let longest = { who: null, n: 0, when: null }, rant = null, top = null;
@@ -338,11 +344,12 @@ export function bubbles(msgs, people) {
   const bucket = (n) => (n >= 6 ? 4 : n >= 4 ? 3 : n - 1);
   const shape = Object.fromEntries(people.map((p) => {
     const t = turns[p].slice().sort((a, b) => a - b), n = t.length;
-    if (!n) return [p, { usual: 0, single: 0, burst: 0, dist: [0, 0, 0, 0, 0] }];
+    if (!n) return [p, { usual: 0, single: 0, burst: 0, dist: [0, 0, 0, 0, 0], type: 'normal' }];
     const d = [0, 0, 0, 0, 0];
     for (const x of t) d[bucket(x)]++;
     const pc = (c) => Math.round((c / n) * 100);
-    return [p, { usual: t[Math.floor((n - 1) / 2)], single: pc(d[0]), burst: pc(d[4]), dist: d.map(pc) }];
+    const sh = { usual: t[Math.floor((n - 1) / 2)], single: pc(d[0]), burst: pc(d[4]), dist: d.map(pc) };
+    return [p, { ...sh, type: texterType(sh) }];
   }));
   return { avg, shape, longest, feature };
 }
