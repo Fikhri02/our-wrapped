@@ -87,3 +87,74 @@ describe('creatures', () => {
     expect(creatures(msgs, pair).eligible).toBe(false);
   });
 });
+
+import { emotions, languages, weather } from '../src/vibes.js';
+import { LOVE_LEX } from '../src/lexicon.js';
+
+// Lines from one person, one per day starting 1 Mar, all at noon.
+const lines = (who, texts, from = 0) => texts.map((t, i) => msg(who, from + i, '12:00', t));
+const times = (n, t) => Array(n).fill(t);
+
+describe('languages', () => {
+  it('gives each person a primary love language from the share of their affectionate messages', () => {
+    const msgs = lines('A', [...times(8, 'dah makan?'), ...times(4, 'sayang')]);
+    const r = languages(msgs, pair, LOVE_LEX).A;
+    expect(r.eligible).toBe(true);
+    expect(r.primary).toBe('service');
+    expect(r.pct.service).toBe(67);
+    expect(r.pct.words).toBe(33);
+  });
+
+  it('counts "nak i belikan" as acts of service, not gifts', () => {
+    const msgs = lines('A', times(10, 'nak i belikan nasi lemak?'));
+    expect(languages(msgs, pair, LOVE_LEX).A.pct).toMatchObject({ service: 100, gifts: 0 });
+  });
+
+  it('is not eligible, with no primary, on five affectionate messages', () => {
+    const r = languages(lines('A', times(5, 'peluk')), pair, LOVE_LEX).A;
+    expect(r.eligible).toBe(false);
+    expect(r.primary).toBe(null);
+  });
+});
+
+describe('emotions', () => {
+  const base = [...lines('A', times(20, 'happy gila')), ...lines('B', times(20, 'rindu you'))];
+
+  it('ignores negated words and the ambiguous 😭', () => {
+    const r = emotions([...base, ...lines('A', ['tak sedih pun', '😭'], 40)], pair);
+    expect(r.all.n).toBe(40);
+    expect(r.all.pct.sadness).toBe(0);
+  });
+
+  it('splits a message carrying two emotions between them', () => {
+    const r = emotions([...base, ...lines('B', times(40, 'haha omg'), 40)], pair);
+    expect(r.B.pct.joy).toBe(r.B.pct.surprise);
+    const sum = Object.values(r.all.pct).reduce((a, b) => a + b, 0);
+    expect(Math.abs(sum - 100)).toBeLessThanOrEqual(1);
+  });
+
+  it('is not eligible, and neither is the weather, on twenty emotional messages', () => {
+    const msgs = lines('A', times(20, 'happy'));
+    expect(emotions(msgs, pair).eligible).toBe(false);
+    expect(weather(msgs, pair).eligible).toBe(false);
+  });
+});
+
+describe('weather', () => {
+  // March to early June: 70 laughing messages, then 30 plain ones.
+  const sunny = lines('A', [...times(70, 'hahaha'), ...times(30, 'ok on my way')]);
+
+  it('calls a mostly-joy chat sunshine', () => {
+    const r = weather(sunny, pair);
+    expect(r.eligible).toBe(true);
+    expect(r.label).toBe('sunshine');
+  });
+
+  it('picks out a worried August as the standout month', () => {
+    const aug = Array.from({ length: 25 }, (_, i) => ({ ...msg('B', 0, '12:00', 'risau la'), when: new Date(2026, 7, 1 + i, 12) }));
+    const r = weather([...sunny, ...aug], pair);
+    expect(r.label).toBe('sunshine');
+    expect(r.standout.label).toBe('cloud');
+    expect(r.standout.month.getMonth()).toBe(7);
+  });
+});
