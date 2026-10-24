@@ -21,6 +21,7 @@ export async function renderSlidePng(slide, stats) {
   card.style.background = bg;
   card.style.color = fg;
   card.innerHTML = slide.render(stats); // count-ups start at their final value, so no animation to wait for
+  card.querySelectorAll('.slide-act').forEach((b) => b.remove()); // buttons belong on screen, not in the image
   const mark = document.createElement('div');
   mark.className = 'export-mark';
   mark.textContent = 'Our Wrapped';
