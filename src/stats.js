@@ -265,11 +265,12 @@ export function talkRoles(count, talk, people) {
 }
 
 // Bubbles per turn: a turn is a run of messages from one person with no reply in between,
-// broken by a 10+ minute gap (that counts as a double text, not the same burst). Media
-// is left out, so a photo dump doesn't read as a long burst.
+// broken by a 10+ minute gap (that counts as a double text, not the same burst). Media,
+// deleted and blank messages are left out, so a photo dump doesn't read as a long burst.
 // The featured burst: a rant (8+ messages and 60+ words: a story, venting, thinking out loud)
 // if there is one, the wordiest; else the longest, a spree at 8+ (excited short reactions) or
-// normal below that. 99% of real turns are 10 messages or fewer; a typical one is 2.
+// normal below that. 99% of real turns are 10 messages or fewer; a typical one is 2. A burst
+// where photos and videos outnumber the typed messages is sharing, not ranting.
 const RANT_MSGS = 8, RANT_WORDS = 60;
 export function bubbles(msgs, people) {
   const turns = Object.fromEntries(people.map((p) => [p, []]));
@@ -279,10 +280,13 @@ export function bubbles(msgs, people) {
     if (!run || !turns[run.who]) return;
     turns[run.who].push(run.n);
     if (run.n > longest.n) { longest = { who: run.who, n: run.n, when: run.start }; top = run; }
-    if (run.n >= RANT_MSGS && run.words >= RANT_WORDS && (!rant || run.words > rant.words)) rant = run;
+    if (run.n >= RANT_MSGS && run.words >= RANT_WORDS && run.media < run.n && (!rant || run.words > rant.words)) rant = run;
   };
   for (const m of msgs) {
-    if (m.media) continue;
+    if (m.media || m.deleted || !m.text.trim()) {
+      if (run && run.who === m.who) run.media++; // counted against a rant, never as a message
+      continue;
+    }
     const words = (m.text.match(/\S+/g) || []).length;
     if (run && run.who === m.who && (m.when - run.last) / 6e4 < 10) {
       run.n++;
@@ -291,7 +295,7 @@ export function bubbles(msgs, people) {
       run.lastMsg = m;
     } else {
       close();
-      run = { who: m.who, n: 1, words, start: m.when, last: m.when, firstMsg: m, lastMsg: m };
+      run = { who: m.who, n: 1, words, media: 0, start: m.when, last: m.when, firstMsg: m, lastMsg: m };
     }
   }
   close();

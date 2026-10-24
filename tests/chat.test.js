@@ -87,6 +87,7 @@ describe('bubble count slide', () => {
       .concat(Array.from({ length: 10 }, (_, i) => `1/1/26, 11:${String(i * 2).padStart(2, '0')} - ${i % 2 ? 'A' : 'B'}: ok`)).join('\n');
     const slide = SLIDES.find((s) => s.id === 'bubble');
     expect(slide.render(stats(parse(lines(8))))).toMatch(/data-act="rant"/);
+    expect(slide.render(stats(parse(lines(8))))).toMatch(/ranted here 👀:<br>10 messages/);
     expect(slide.render(stats(parse(lines(2))))).not.toMatch(/data-act="rant"/);
   });
 });

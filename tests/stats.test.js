@@ -402,6 +402,19 @@ describe('bubbles', () => {
     expect(bubbles(parse([...burst(3, 8), '1/1/26, 10:30 - B: ok'].join('\n')), ['A', 'B']).feature).toMatchObject({ kind: 'normal', n: 3 });
   });
 
+  it('does not call a photo dump with deletions a rant', () => {
+    const dump = [];
+    for (let i = 0; i < 40; i++) dump.push(`1/1/26, 10:${String(Math.floor(i / 2)).padStart(2, '0')} - A: ${i % 2 ? 'You deleted this message' : '<Media omitted>'}`);
+    const f = bubbles(parse([...dump, '1/1/26, 10:30 - B: wow'].join('\n')), ['A', 'B']).feature;
+    expect(f.kind).not.toBe('rant');
+  });
+
+  it('does not call a burst a rant when photos outnumber the typed messages', () => {
+    const lines = [];
+    for (let i = 0; i < 10; i++) lines.push(`1/1/26, 10:${String(i).padStart(2, '0')} - A: kata kata kata kata kata kata kata kata`, `1/1/26, 10:${String(i).padStart(2, '0')} - A: <Media omitted>`, `1/1/26, 10:${String(i).padStart(2, '0')} - A: <Media omitted>`);
+    expect(bubbles(parse([...lines, '1/1/26, 10:30 - B: ok'].join('\n')), ['A', 'B']).feature.kind).toBe('spree');
+  });
+
   it('features the biggest rant over a longer spree', () => {
     const msgs = parse([...burst(15, 2), '1/1/26, 10:20 - B: ok', ...burst(9, 8, 30), '1/1/26, 10:50 - B: ok'].join('\n'));
     expect(bubbles(msgs, ['A', 'B']).feature).toMatchObject({ kind: 'rant', n: 9, words: 72 });
