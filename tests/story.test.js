@@ -36,7 +36,7 @@ describe('the last four, redesigned', () => {
   it('bubble count: two rhythms as a little chat, no giant number', () => {
     const html = render('bubble');
     expect(html).toMatch(/Two rhythms/);
-    expect(html).toMatch(/class="rhythm"/);
+    expect(html).toMatch(/class="rhythm[ "]/); // any variant
     expect(html).not.toMatch(/class="big"/);
   });
 
@@ -79,5 +79,27 @@ describe('a reveal per slide', () => {
 
   it('marks the apology quote for its nudge', () => {
     expect(render('sorry')).toMatch(/class="line nudge"/);
+  });
+});
+
+describe('layouts that follow how you text', () => {
+  const withTalk = (counts, roles) => ({ ...S, count: { ...S.count, [S.A]: counts[0], [S.B]: counts[1] }, talk: { ...S.talk, roles: { ...S.talk.roles, ...roles } } });
+  const withAvg = (a, b, f = S.bubbles.feature) => ({ ...S, bubbles: { ...S.bubbles, avg: { [S.A]: a, [S.B]: b }, feature: f } });
+
+  it('talker: an even split zips the two together instead of stacking them', () => {
+    expect(render('share', withTalk([510, 490], { talker: null }))).toMatch(/class="zipper"/);
+    expect(render('share', withTalk([700, 300], { talker: S.A }))).toMatch(/class="stacks"/);
+  });
+
+  it('two rhythms: ping-pong when both send single bubbles, a tall burst when one clearly bursts', () => {
+    expect(render('bubble', withAvg(1.2, 1.1))).toMatch(/class="rhythm pingpong"/);
+    expect(render('bubble', withAvg(3.4, 1.2))).toMatch(/class="rhythm burst"/);
+    expect(render('bubble', withAvg(2.1, 1.9))).toMatch(/class="rhythm"/);
+  });
+
+  it('a burst turn shows up to six bubbles, never more', () => {
+    const html = render('bubble', withAvg(9, 1));
+    const turnA = html.split('class="turn a"')[1].split('class="turn b"')[0];
+    expect(turnA.match(/<i /g)).toHaveLength(6);
   });
 });

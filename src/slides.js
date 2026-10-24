@@ -103,9 +103,13 @@ export const SLIDES = [
     // Two stacks of bubbles, one bubble per tenth of the messages each sent.
     const stack = (p, pct, n, side) => `<div class="stack ${side}"><div class="pile">${Array.from({ length: Math.max(1, Math.round(pct / 10)) }, (_, i) =>
       `<i style="--i:${i};--w:${[78, 92, 64, 86, 70, 96, 60, 82, 74, 88][i]}%"></i>`).join('')}</div><b>${pct}%</b><span>${esc(p)} · ${nf(n)} ${t('finMessages')}</span></div>`;
+    // An even split (no clear talker) zips the two together instead: one column of
+    // alternating bubbles, because nobody out-talks anybody.
+    const zipper = `<div class="zipper">${Array.from({ length: 8 }, (_, i) =>
+      `<i class="${i % 2 ? 'b' : 'a'}" style="--i:${i};--w:${[58, 66, 52, 72, 60, 54, 70, 62][i]}%"></i>`).join('')}<div class="zip-l"><span><b>${pa}%</b>${esc(S.A)}</span><span><b>${100 - pa}%</b>${esc(S.B)}</span></div></div>`;
     return frame(t('talker'),
       `<div class="mid">${!tk.roles.talker ? t('matched') : t('hadMore', esc(w))}</div>
-       <div class="stacks">${stack(S.A, pa, a, 'a')}${stack(S.B, 100 - pa, b, 'b')}</div>
+       ${!tk.roles.talker ? zipper : `<div class="stacks">${stack(S.A, pa, a, 'a')}${stack(S.B, 100 - pa, b, 'b')}</div>`}
        <div class="line roles">${t('rolesLine', tk.roles, esc(S.A), esc(S.B), past)}</div>`,
       t('rolesKey'));
   } },
@@ -117,12 +121,16 @@ export const SLIDES = [
     // Roast only when it's earned: 3+ bubbles a turn, or half again as many as the other.
     const roast = x >= 3 || avg[w] >= avg[l] * 1.5;
     // Two rhythms: a little chat where each sends their usual number of bubbles per turn.
+    // Both under 1.5 a turn: a ping-pong of single bubbles. One clearly bursting (the roast is
+    // earned): their turn becomes a tall stack, up to six.
+    const pingpong = avg[S.A] < 1.5 && avg[S.B] < 1.5, burst = !pingpong && roast;
     let k = 0;
-    const turn = (p, side) => `<div class="turn ${side}"><small>${esc(p)} · ${avg[p].toFixed(1)}</small>${Array.from({ length: Math.min(4, Math.max(1, Math.round(avg[p]))) }, () =>
+    const turn = (p, side, label = true) => `<div class="turn ${side}">${label ? `<small>${esc(p)} · ${avg[p].toFixed(1)}</small>` : ''}${Array.from({ length: Math.min(burst ? 6 : 4, Math.max(1, Math.round(avg[p]))) }, () =>
       `<i style="--i:${k};--w:${[70, 54, 82, 46, 64, 76][k++ % 6]}%"></i>`).join('')}</div>`;
+    const turns = pingpong ? turn(S.A, 'a') + turn(S.B, 'b') + turn(S.A, 'a', false) + turn(S.B, 'b', false) : turn(S.A, 'a') + turn(S.B, 'b');
     return frame(t('bubbleKicker'),
       `<div class="mid">${t('bubbleHead')}</div>
-       <div class="rhythm" aria-hidden="true">${turn(S.A, 'a')}${turn(S.B, 'b')}</div>
+       <div class="rhythm${pingpong ? ' pingpong' : burst ? ' burst' : ''}" aria-hidden="true">${turns}</div>
        <div class="line">${x < 1.5 ? t('bubbleBoth') : roast ? t('bubbleRoast', esc(w), x.toFixed(1)) : t('bubbleEven', esc(w), x.toFixed(1), esc(l))}</div>
        ${f ? `<div class="line burst">${f.kind === 'rant' ? t('burstRant', esc(f.who), f.n, nf(f.words), fmtDate(f.start))
          : f.kind === 'spree' ? t('burstSpree', esc(f.who), f.n, fmtDate(f.start)) : t('burstNormal', esc(f.who), f.n)}</div>` : ''}
