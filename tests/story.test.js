@@ -313,3 +313,42 @@ describe('chapters', () => {
     expect(SLIDES.filter((s) => s.cover).map((s) => s.id)).toEqual(['ch1', 'ch2', 'ch3', 'ch4', 'ch5']);
   });
 });
+
+describe('the narration that carries the story', () => {
+  const lead = (html) => (html.match(/class="ow-lead">(.*?)<\/div>/) || [])[1] || '';
+  const pair = (a, b) => ({ [S.A]: a, [S.B]: b });
+
+  it('who starts it: a habit when the first texter still starts things, ironic when not', () => {
+    const first = { ...S.first, who: S.A };
+    expect(lead(render('starts', { ...S, first, convo: { ...S.convo, starts: pair(60, 40) } }))).toMatch(new RegExp(`${S.A} sent the first text\\. Turns out it became a habit`));
+    expect(lead(render('starts', { ...S, first, convo: { ...S.convo, starts: pair(30, 70) } }))).toMatch(new RegExp(`Ironic, because these days ${S.B} starts most conversations`));
+  });
+
+  it('mornings: picks up from who starts it', () => {
+    expect(lead(render('morning', { ...S, convo: { ...S.convo, starts: pair(60, 40) }, ft: pair(5, 20) }))).toMatch(new RegExp(`But the mornings\\? That's ${S.B}'s shift`));
+  });
+
+  it('reply speed: the talker against the fastest thumbs', () => {
+    const reply = { ...S.reply, [S.A]: { ...S.reply[S.A], within1: 30, mean: 9 }, [S.B]: { ...S.reply[S.B], within1: 70, mean: 2 } };
+    expect(lead(render('reply', { ...S, count: pair(900, 400), reply }))).toMatch(new RegExp(`${S.A} does most of the talking\\. But the fastest thumbs here are ${S.B}'s`));
+  });
+
+  it('apologies: set against who says I love you, only when that slide played', () => {
+    expect(lead(render('sorry', { ...S, love: pair(10, 3), sorry: pair(2, 9) }))).toMatch(/Make of that what you will/);
+    expect(lead(render('sorry', { ...S, love: pair(0, 0), sorry: pair(2, 9) }))).toBe('');
+  });
+
+  it('the timeline: ties the loudest day to the peak when they were close', () => {
+    const arc = { ...S.arc, peak: { ...S.arc.peak, week: new Date(2025, 10, 10) } };
+    expect(lead(render('arc', { ...S, busy: '2025-11-04', arc }))).toMatch(/6 days later, you hit your peak/);
+    expect(lead(render('arc', { ...S, busy: '2025-01-04', arc }))).toBe('');
+  });
+
+  it('the comebacks: picks up from the timeline', () => {
+    const cooled = { ...S.arc, now: { ...S.arc.now, temp: 'cold' } };
+    expect(lead(render('comebacks', { ...S, arc: cooled, comebacks: { ...S.comebacks, count: 3, by: pair(2, 1), longest: { days: 20, from: new Date(2026, 0, 1), who: S.A }, silences: [] } }))).toMatch(/It cooled down\. But someone kept bringing it back/);
+    const never = render('comebacks', { ...S, comebacks: { ...S.comebacks, count: 0, longest: null, longestGap: 9 } });
+    expect(lead(never)).toMatch(/never gone/);
+    expect(lead(never)).not.toMatch(/went dark/); // the headline below already says it
+  });
+});

@@ -13,9 +13,9 @@ const count = (n, suffix = '', dec = 0) =>
 // illustration, then one big fact, a statement, a human remark and a callout card with one
 // more thing worth knowing. Parts a slide doesn't need are left out. The big number shrinks
 // with its length so 2,510 fits where 57 does.
-const slide = ({ kicker, art = '', ctx = '', hero = null, stmt = '', remark = '', more = '', callout = '' }) =>
+const slide = ({ kicker, lead = '', art = '', ctx = '', hero = null, stmt = '', remark = '', more = '', callout = '' }) =>
   `<div class="k ow-head"><span>${kicker}</span><span class="ow-brand">Our Wrapped</span></div>`
-  + `<div class="body">${art ? `<div class="ow-art">${art}</div>` : ''}<div class="ow-text">`
+  + `<div class="body">${lead ? `<div class="ow-lead">${lead}</div>` : ''}${art ? `<div class="ow-art">${art}</div>` : ''}<div class="ow-text">`
   + `${ctx ? `<div class="ow-ctx">${ctx}</div>` : ''}`
   + `${hero ? `<div class="ow-hero" style="--len:${hero.label.length}">${count(hero.n, hero.suffix || '', hero.dec || 0)}</div>` : ''}`
   + `${stmt ? `<div class="ow-stmt">${stmt}</div>` : ''}${remark ? `<div class="ow-remark">${remark}</div>` : ''}${more}</div></div>`
@@ -88,6 +88,47 @@ function firstWaitCallout(S) {
   return callout('', t('firstWait', esc(w.who), when, quip));
 }
 
+// The narration: a line at the top of a slide that picks up from the slide before it. Each
+// has a version for when the two facts agree and one for when they contradict; a tie, or a
+// slide that didn't play, gets no line.
+const leader = (o, S) => (o[S.A] === o[S.B] ? null : o[S.A] > o[S.B] ? S.A : S.B);
+const leads = {
+  starts: (S) => {
+    const s = leader(S.convo.starts, S), f = S.first?.who;
+    return !s || !f ? '' : s === f ? t('leadStartsSame', esc(f)) : t('leadStartsIrony', esc(f), esc(s));
+  },
+  morning: (S) => {
+    const s = leader(S.convo.starts, S), m = leader(S.ft, S);
+    return !s || !m ? '' : s === m ? t('leadMornSame', esc(m)) : t('leadMornDiff', esc(m));
+  },
+  reply: (S) => {
+    const talk = leader(S.count, S), f = fastest(S);
+    return !talk || !f ? '' : talk === f ? t('leadReplySame', esc(f)) : t('leadReplyDiff', esc(talk), esc(f));
+  },
+  sorry: (S) => {
+    if (!(S.love[S.A] + S.love[S.B])) return ''; // the I-love-you slide didn't play
+    const l = leader(S.love, S), s = leader(S.sorry, S);
+    return !l || !s ? '' : l === s ? t('leadSorrySame', esc(l)) : t('leadSorryDiff', esc(l), esc(s));
+  },
+  arc: (S) => {
+    if (!S.arc?.eligible || !S.busy) return '';
+    const [y, m, d] = S.busy.split('-').map(Number), busy = new Date(y, m - 1, d);
+    const days = Math.round((S.arc.peak.week - busy) / 864e5);
+    if (Math.abs(days) > 14) return '';
+    return days === 0 ? t('leadArcSame', fmtDate(busy)) : days > 0 ? t('leadArcBefore', fmtDate(busy), days) : t('leadArcAfter', fmtDate(busy), -days);
+  },
+  comebacks: (S) => (!S.comebacks?.count ? t('leadCbNever') : S.arc?.now?.temp === 'hot' ? t('leadCbHot') : t('leadCbCooled')),
+};
+
+// Who replies faster: the share of replies inside a minute, then the average. Null when it's
+// too close to call (under 3 points apart, averages within a quarter of each other).
+function fastest(S) {
+  const r = S.reply, A = r[S.A], B = r[S.B];
+  const ma = A.mean ?? 0, mb = B.mean ?? 0;
+  if (Math.abs(A.within1 - B.within1) < 3 && Math.max(ma, mb) <= 1.25 * Math.max(0.01, Math.min(ma, mb))) return null;
+  return A.within1 !== B.within1 ? (A.within1 > B.within1 ? S.A : S.B) : ((A.mean ?? Infinity) <= (B.mean ?? Infinity) ? S.A : S.B);
+}
+
 // A chapter's cover: its number, title, a line on what's in it, and its picture.
 const cover = (n) => ({
   id: `ch${n}`, chapter: n, cover: true,
@@ -131,7 +172,7 @@ export const SLIDES = [
     const g = S.goodnight, bye = g[S.A] >= g[S.B] ? S.A : S.B;
     // A goodnight claim needs a few nights behind it.
     return slide({
-      kicker: t('startsKicker'), art: talk('b'),
+      lead: leads.starts(S), kicker: t('startsKicker'), art: talk('b'),
       hero: big(c.starts[w]), stmt: t('startsStmt', esc(w)), remark: t('startsRemark', esc(l), nf(c.starts[l])),
       callout: g[bye] < 3 ? callout('', t('startsFoot')) : g[S.A] === g[S.B] ? callout('', t('goodnightTie')) : callout(g[bye], t('goodnightCall', esc(bye))),
     });
@@ -140,7 +181,7 @@ export const SLIDES = [
   { id: 'morning', chapter: 1, render: (S) => {
     const w = S.ft[S.A] >= S.ft[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
-      kicker: t('firstThought'), art: sun,
+      lead: leads.morning(S), kicker: t('firstThought'), art: sun,
       hero: big(S.ft[w]), stmt: t('mornings', esc(w)), remark: t('morningFoot'),
       callout: callout(S.ft[l], t('morningCall', esc(l))),
     });
@@ -209,7 +250,7 @@ export const SLIDES = [
     const ma = A.mean ?? 0, mb = B.mean ?? 0;
     const even = Math.abs(A.within1 - B.within1) < 3 && Math.max(ma, mb) <= 1.25 * Math.max(0.01, Math.min(ma, mb));
     return slide({
-      kicker: t('replyKicker'),
+      lead: leads.reply(S), kicker: t('replyKicker'),
       art: `<div class="lanes">${[fast, slow].map((p) => `<div class="lane"><div class="lane-who"><span>${esc(p)}</span><b>${r[p].within1}%</b></div><div class="dots">${
         Array.from({ length: 100 }, (_, i) => `<i${i < r[p].within1 ? ` class="on" style="--i:${i}"` : ''}></i>`).join('')}</div></div>`).join('')}</div>`,
       stmt: even ? t('repliesEven') : t('repliesFaster', esc(fast)),
@@ -248,7 +289,7 @@ export const SLIDES = [
   { id: 'sorry', chapter: 3, skip: (S) => !(S.sorry[S.A] + S.sorry[S.B]), render: (S) => {
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
-      kicker: t('apologies'), art: talk('a'),
+      lead: leads.sorry(S), kicker: t('apologies'), art: talk('a'),
       hero: big(S.sorry[w]), stmt: t('saidSorry', esc(w)), remark: t('sorryRemark', esc(l), S.sorry[l]),
       callout: callout('', !S.sorryFirst[w] ? t('noSorry') : S.hide?.sorry ? t('firstSorryHidden') : t('firstSorry', esc(S.sorryFirst[w].text.slice(0, 70))), 'nudge'),
     });
@@ -310,7 +351,7 @@ export const SLIDES = [
     const a = S.arc;
     const bars = a.bars.map((h, i) => `<i class="${i === a.peakBar ? 'pk' : ''}" style="--i:${i};height:${Math.max(3, Math.round(h * 100))}%"></i>`).join('');
     return slide({
-      kicker: t('arcKicker'),
+      lead: leads.arc(S), kicker: t('arcKicker'),
       art: `<div class="arc">${bars}</div><div class="arc-x"><span>${t('arcStart')} · ${fmtDate(a.start)}</span><span>${t('arcNowLabel')}</span></div>`,
       ctx: `${t('arcPeak')} · ${fmtDate(a.peak.week)}`, hero: big(a.peak.perWeek), stmt: t('arcStmt'),
       // The temperature picture sits beside the line it illustrates.
@@ -325,7 +366,7 @@ export const SLIDES = [
   { id: 'comebacks', chapter: 5, skip: (S) => !S.comebacks?.eligible, render: (S) => {
     const c = S.comebacks;
     if (!c.count) {
-      return slide({ kicker: t('cbKicker'), stmt: t('cbNever'), remark: t('cbNeverWhy'), callout: callout('', t('cbLongestGap', c.longestGap)) });
+      return slide({ lead: leads.comebacks(S), kicker: t('cbKicker'), stmt: t('cbNever'), remark: t('cbNeverWhy'), callout: callout('', t('cbLongestGap', c.longestGap)) });
     }
     // The scoreboard: the one who brought it back more gets the big circle and the solid colour.
     const lead = c.by[S.B] > c.by[S.A] ? [S.B, S.A] : [S.A, S.B];
@@ -338,7 +379,7 @@ export const SLIDES = [
     // A habit is one person making 60% or more of the comebacks, at least twice.
     const w = lead[0], habit = c.count >= 2 && c.by[w] / c.count >= 0.6;
     return slide({
-      kicker: t('cbKicker'),
+      lead: leads.comebacks(S), kicker: t('cbKicker'),
       art: `<div class="cmb-score">${who(lead[0])}${who(lead[1])}<small>${t('cbBrought')}</small></div><div class="cmb-bars">${bars}</div>`,
       stmt: t('cbStmt', c.count),
       remark: c.count === 1 ? t('cbOne', esc(c.longest.who)) : habit ? t('cbRevived', esc(w), c.by[w] === c.count ? null : c.by[w], c.count >= 3) : t('cbTurns'),
