@@ -280,6 +280,27 @@ export const SLIDES = [
     });
   } },
 
+  // The comebacks: the chat as a strip of active stretches, a gap for every silence of two
+  // weeks or more, a mark where someone came back, and who did the coming back.
+  { id: 'comebacks', accent: 'terracotta', skip: (S) => !S.comebacks?.eligible, render: (S) => {
+    const c = S.comebacks, pc = (x) => Math.round(x * 1000) / 10;
+    const strip = `<div class="cb-strip">${c.spans.map((s) => `<i class="cb-span" style="left:${pc(s.from)}%;width:${Math.max(0.6, pc(s.to - s.from))}%"></i>`).join('')}`
+      + `${c.marks.map((k) => `<b class="cb-mark ${k.who === S.A ? 'a' : 'b'}" style="left:${pc(k.at)}%"></b>`).join('')}</div>`
+      + `<div class="cb-x"><span>${fmtDate(S.firstDate)}</span><span>${fmtDate(c.end)}</span></div>`
+      + `<div class="cb-key"><span><b class="cb-dot a"></b>${esc(S.A)}</span><span><b class="cb-dot b"></b>${esc(S.B)}</span></div>`;
+    if (!c.count) {
+      return slide({ kicker: t('cbKicker'), art: strip, stmt: t('cbNever'), remark: t('cbNeverWhy'), callout: callout('', t('cbLongestGap', c.longestGap)) });
+    }
+    // A habit is one person making 60% or more of the comebacks, at least twice.
+    const w = c.by[S.A] >= c.by[S.B] ? S.A : S.B, habit = c.count >= 2 && c.by[w] / c.count >= 0.6;
+    return slide({
+      kicker: t('cbKicker'), art: strip,
+      hero: big(c.count), stmt: t('cbStmt', c.count),
+      remark: c.count === 1 ? t('cbOne', esc(c.longest.who)) : habit ? t('cbCrawl', esc(w), c.by[w] === c.count ? null : c.by[w], c.count >= 3) : t('cbTurns'),
+      callout: callout('', t('cbLongest', c.longest.days, fmtDate(c.longest.from), esc(c.longest.who))),
+    });
+  } },
+
   // The keepsake: two bubbles with your initials, both names, the years, three headline
   // numbers and a line about you two. Saved without names it reads "You two".
   { id: 'finale', accent: 'teal', render: (S) => {

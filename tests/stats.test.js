@@ -655,3 +655,42 @@ describe('arc: how the chat rose and settled', () => {
     expect(Math.max(...long.bars)).toBe(1);
   });
 });
+
+import { comebacks } from '../src/stats.js';
+
+describe('comebacks: the silences and who broke them', () => {
+  const DAY = 864e5, t0 = new Date(2026, 0, 1, 12);
+  // One message a day on each listed day, alternating sender unless one is given.
+  const days = (list) => list.map(([d, who]) => ({ who, text: 'hi', media: false, deleted: false, when: new Date(+t0 + d * DAY) }));
+  const daily = (from, to, who) => Array.from({ length: to - from + 1 }, (_, i) => [from + i, who ?? (i % 2 ? 'B' : 'A')]);
+
+  it('counts silences of two weeks or more and who came back', () => {
+    const msgs = days([...daily(0, 10), [30, 'B'], ...daily(31, 40), [55, 'A'], ...daily(56, 70)]);
+    const c = comebacks(msgs, ['A', 'B']);
+    expect(c.eligible).toBe(true);
+    expect(c.count).toBe(2);
+    expect(c.by).toEqual({ A: 1, B: 1 });
+    expect(c.longest).toMatchObject({ days: 20, who: 'B' });
+    expect(c.longest.from).toEqual(new Date(+t0 + 10 * DAY));
+  });
+
+  it('lays the chat out as active stretches and the comebacks between them', () => {
+    const msgs = days([...daily(0, 10), [30, 'B'], ...daily(31, 70)]);
+    const c = comebacks(msgs, ['A', 'B']);
+    expect(c.spans).toHaveLength(2);
+    expect(c.spans[0].from).toBe(0);
+    expect(c.spans.at(-1).to).toBe(1);
+    expect(c.marks).toEqual([{ at: c.spans[1].from, who: 'B' }]);
+  });
+
+  it('says how long the longest gap was even when it never went dark', () => {
+    const c = comebacks(days([...daily(0, 30), ...daily(40, 70)]), ['A', 'B']);
+    expect(c.count).toBe(0);
+    expect(c.longest).toBe(null);
+    expect(c.longestGap).toBe(10);
+  });
+
+  it('is not eligible under eight weeks', () => {
+    expect(comebacks(days(daily(0, 40)), ['A', 'B']).eligible).toBe(false);
+  });
+});

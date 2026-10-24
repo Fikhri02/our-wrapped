@@ -16,7 +16,7 @@ describe('the story', () => {
       'intro', 'first', 'share', // how it began
       'bubble', 'starts', 'emoji', 'words', 'love', 'reply', 'sorry', // what you're like together
       'morning', 'night', 'carried', 'streak', 'busy', // the moments you made
-      'arc', // how it rose and settled
+      'arc', 'comebacks', // how it rose, settled, and came back
       'finale',
     ]);
   });
@@ -197,5 +197,50 @@ describe('night owls on a light ground', () => {
   it('draws daytime hours in the ink, not the pale tint', () => {
     const html = render('night', { ...S, late: S.late || 1 });
     expect(html).not.toMatch(/background:var\(--tint\)/);
+  });
+});
+
+describe('the comebacks', () => {
+  const at = (c) => ({ ...S, comebacks: { ...S.comebacks, ...c } });
+  const longest = { days: 46, from: new Date(2026, 3, 29), to: new Date(2026, 5, 14), who: S.A };
+
+  it('names who kept coming back, with teeth when it is a habit', () => {
+    const html = render('comebacks', at({ count: 7, by: { [S.A]: 5, [S.B]: 2 }, longest }));
+    expect(html).toMatch(/went dark/);
+    expect(html).toMatch(new RegExp(`${S.A} came crawling back 5 of them`));
+    expect(html).toMatch(/Cockroach energy/);
+    expect(html).toMatch(/46 days/);
+  });
+
+  it('says time, not times, for a single silence, and doesn\'t repeat itself', () => {
+    const html = render('comebacks', at({ count: 1, by: { [S.A]: 0, [S.B]: 1 }, longest: { ...longest, days: 15, who: S.B } }));
+    expect(html).toMatch(/time this chat went dark/);
+    expect(html).not.toMatch(/times this chat|Once\./);
+    expect(html).toMatch(new RegExp(`${S.B} broke the silence`));
+  });
+
+  it('says every time when one person made all the comebacks', () => {
+    expect(render('comebacks', at({ count: 2, by: { [S.A]: 2, [S.B]: 0 }, longest }))).toMatch(new RegExp(`${S.A} came crawling back every time`));
+  });
+
+  it('calls it fair when they took turns', () => {
+    expect(render('comebacks', at({ count: 4, by: { [S.A]: 2, [S.B]: 2 }, longest }))).toMatch(/took turns/);
+  });
+
+  it('has its own line for a chat that never went dark', () => {
+    const html = render('comebacks', at({ count: 0, by: { [S.A]: 0, [S.B]: 0 }, longest: null, longestGap: 9 }));
+    expect(html).toMatch(/Never once went dark/);
+    expect(html).toMatch(/9 days/);
+  });
+
+  it('draws the strip with a mark at each comeback', () => {
+    const html = render('comebacks', at({ spans: [{ from: 0, to: 0.4 }, { from: 0.6, to: 1 }], marks: [{ at: 0.6, who: S.B }] }));
+    expect(html).toMatch(/class="cb-strip"/);
+    expect(html.match(/class="cb-span"/g)).toHaveLength(2);
+    expect(html.match(/class="cb-mark b"/g)).toHaveLength(1);
+  });
+
+  it('skips a chat too short for comebacks', () => {
+    expect(slidesFor({ ...S, comebacks: { eligible: false } }).map((x) => x.id)).not.toContain('comebacks');
   });
 });
