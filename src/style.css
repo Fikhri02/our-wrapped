@@ -50,7 +50,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .hours { display: flex; align-items: flex-end; gap: 2px; height: 120px; margin-top: 14px; }
 .hours i { flex: 1; border-radius: 2px 2px 0 0; min-height: 2px; }
 .hours-x { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10px; opacity: .75; margin-top: 4px; }
-.emo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.emo { display: grid; gap: 18px; margin-top: 14px; }
 .emo div { font-size: 13px; font-weight: 600; }
 /* each emoji with its count underneath */
 .emo .e { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 8px; }
@@ -133,6 +133,8 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 /* story: the real chat, full screen. Phones fill the viewport; desktops get a 9:16 frame */
 .story { position: fixed; inset: 0; z-index: 50; background: #0c060e; display: grid; place-items: center; }
 .story-screen { height: min(calc(100dvh - 32px), 900px); width: auto; max-width: 100vw; aspect-ratio: 9 / 16; border-radius: 28px; }
+/* a size container, so a short phone screen can tighten the slides (see the end of the file) */
+.story-screen { container: story / size; }
 .story-screen:focus-visible { outline: none; }
 .story-screen .card { padding: 72px 28px calc(28px + env(safe-area-inset-bottom)); }
 /* progress bars right at the top, then borderless icon buttons (40px tap targets) */
@@ -249,6 +251,8 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .hours { margin-top: 30px; }
 .hours i.peak { position: relative; }
 .hours i.peak b { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 11px; font-weight: 600; font-style: normal; white-space: nowrap; color: currentColor; }
+.hours i.peak.start b { left: 0; transform: none; }
+.hours i.peak.end b { left: auto; right: 0; transform: none; }
 
 /* streak: the dates it ran, under the count */
 .card .streak-range { margin-top: 12px; font-size: 18px; letter-spacing: -.01em; }
@@ -341,8 +345,8 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .duo { position: relative; height: 150px; margin-bottom: 6px; }
 .db { position: absolute; display: grid; grid-auto-flow: column; place-items: center; place-content: center; gap: 2px; font-family: var(--display); font-weight: 800; letter-spacing: -.04em; }
 .db { transform: rotate(var(--r)); }
-.db.a { --r: -6deg; left: -6px; top: 6px; width: 170px; height: 124px; background: var(--accent); color: var(--surface); font-size: 76px; border-radius: 999px 999px 999px 26px; }
-.db.b { --r: 7deg; left: 128px; top: 30px; width: 146px; height: 108px; background: var(--surface); color: var(--accent); font-size: 64px; border-radius: 999px 999px 24px 999px; }
+.db.a { --r: -6deg; left: 4px; top: 6px; width: 170px; height: 124px; background: var(--accent); color: var(--surface); font-size: 76px; border-radius: 999px 999px 999px 26px; }
+.db.b { --r: 7deg; left: min(138px, calc(100% - 152px)); top: 30px; width: 146px; height: 108px; background: var(--surface); color: var(--accent); font-size: 64px; border-radius: 999px 999px 24px 999px; }
 .db i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: currentColor; margin: 0 4px; opacity: .8; }
 .card .fnames { margin-top: 4px; overflow-wrap: anywhere; }
 .fstats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1.5px solid currentColor; }
@@ -353,7 +357,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 @container (max-width: 320px) {
   .duo { height: 122px; }
   .db.a { width: 140px; height: 102px; font-size: 62px; }
-  .db.b { left: 104px; width: 120px; height: 90px; font-size: 52px; }
+  .db.b { left: 114px; width: 120px; height: 90px; font-size: 52px; }
   .fstats b { font-size: 23px; }
 }
 
@@ -386,11 +390,6 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card.enter .overnight > * { animation: popIn .5s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * .45s); }
 
 /* ---------- a reveal per slide ---------- */
-/* mornings: the sun comes up behind the number */
-.sun { position: absolute; z-index: 0; pointer-events: none; right: -18%; top: 12%; width: 62%; aspect-ratio: 1; border-radius: 50%;
-  background: radial-gradient(circle, var(--accent) 0 55%, transparent 56%), radial-gradient(circle, var(--tint) 0 64%, transparent 70%); }
-.card.enter .sun { animation: rise-sun 1.2s cubic-bezier(.2, .8, .2, 1) both; }
-@keyframes rise-sun { from { transform: translateY(70%); opacity: 0; } }
 
 /* apologies: the quote gives one little nudge, like a buzz */
 .card.enter .nudge { animation: nudge .5s ease-in-out 1.1s both; }
@@ -411,7 +410,8 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
    a two-line statement, a remark, and a callout card at the bottom with one more fact */
 .card .ow-head { display: flex; justify-content: space-between; gap: 12px; font-family: var(--body); font-weight: 600; font-size: 11px; letter-spacing: .08em; opacity: .9; }
 .ow-brand { flex: none; opacity: .75; }
-.ow-head ~ .body { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 14px; }
+/* centred between the header and the callout, so a light slide doesn't leave a hole at the bottom */
+.ow-head ~ .body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: safe center; margin-top: 14px; }
 .ow-art { position: relative; flex: none; margin-bottom: 14px; }
 .ow-ctx { font-weight: 700; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; color: var(--hi); }
 .ow-hero { font-family: var(--display); font-weight: 800; font-size: min(108px, calc(400px / var(--len))); line-height: .86; letter-spacing: -.05em; margin: 2px 0 8px -3px; font-variant-numeric: tabular-nums; }
@@ -428,30 +428,11 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 /* the brand is in the header now; the saved image's corner label would say it twice */
 .export-frame:has(.ow-head) .export-mark { display: none; }
 
-/* the two speech bubbles: a translucent one in the ink colour, a solid one in the tone */
-.ow-bubs { position: relative; aspect-ratio: 2.3 / 1; }
-.ow-bubs i { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 9%; padding: 0 9%; border-radius: 22px; }
-.ow-bubs i::after { content: ""; position: absolute; bottom: -15%; border-style: solid; border-color: transparent; }
-.ow-bubs s { display: block; height: 7px; border-radius: 9px; text-decoration: none; }
-.ow-bubs s:nth-child(2) { width: 78%; } .ow-bubs s:nth-child(3) { width: 88%; }
-.ow-bubs i:first-child { left: 5%; top: 3%; width: 56%; height: 62%; transform: rotate(-9deg); background: color-mix(in srgb, var(--fg) 26%, transparent); }
-.ow-bubs i:first-child::after { left: 22%; border-width: 16px 14px 0 4px; border-top-color: color-mix(in srgb, var(--fg) 26%, transparent); }
-.ow-bubs i:first-child s { background: color-mix(in srgb, var(--fg) 32%, transparent); }
-.ow-bubs i:last-child { right: 3%; top: 26%; width: 50%; height: 62%; transform: rotate(7deg); background: var(--tone); }
-.ow-bubs i:last-child::after { right: 18%; border-width: 18px 4px 0 16px; border-top-color: var(--tone); }
-.ow-bubs i:last-child s { background: var(--bg); }
-.ow-bubs em { font-style: normal; font-size: 44px; line-height: 1; text-align: center; color: var(--bg); }
-.ow-bubs-hero { aspect-ratio: 1.95 / 1; }
-.ow-bubs-hero i:first-child { width: 62%; height: 66%; }
-.ow-bubs-loud i:first-child { width: 60%; height: 58%; top: 6%; }
-.ow-bubs-loud i:last-child { width: 54%; height: 58%; top: 34%; }
-.ow-bubs-b i:first-child { left: auto; right: 5%; transform: rotate(8deg); }
-.ow-bubs-b i:first-child::after { left: auto; right: 22%; border-width: 16px 4px 0 14px; }
-.ow-bubs-b i:last-child { right: auto; left: 3%; transform: rotate(-6deg); }
-.ow-bubs-b i:last-child::after { right: auto; left: 18%; border-width: 18px 16px 0 4px; }
-.ow-bubs-a, .ow-bubs-love { aspect-ratio: 2.6 / 1; }
-.card.enter .ow-bubs i { animation: popIn .6s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .1s); transform-origin: left bottom; }
-.card.enter .ow-bubs i:last-child { animation-delay: calc(var(--wait) + .3s); transform-origin: right bottom; }
+/* the bubble character acting out the stat, cut out on a transparent ground */
+/* gives up height (down to 100px) before the words get squeezed off the card */
+.ow-art:has(> .ow-pic) { flex: 0 1 170px; min-height: 100px; }
+.ow-pic { display: block; height: 100%; width: auto; max-width: 100%; aspect-ratio: 23 / 17; object-fit: cover; margin: 0 auto; }
+.card.enter .ow-pic { animation: popIn .6s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .1s); }
 
 /* the art each slide brings, fitted to the illustration zone */
 .ow-art > .stacks, .ow-art > .zipper, .ow-art > .tape, .ow-art > .lanes, .ow-art > .emo, .ow-art > .wcols, .ow-art > .overnight, .ow-art > .hours { margin-top: 0; }
@@ -464,8 +445,6 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .ow-art .scene { gap: 5px; }
 .ow-art .cb.lead { font-size: 18px; padding: 10px 13px 7px; }
 .ow-art .cb { font-size: 13.5px; padding: 7px 11px 5px; }
-.ow-sunbox { position: relative; aspect-ratio: 2.3 / 1; }
-.ow-sunbox .sun { right: 4%; top: 0; width: 44%; }
 .ow-stmt .fnames { margin: 0; }
 
 @container (max-width: 320px) {
@@ -477,7 +456,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
   .ow-remark { font-size: 13px; margin-top: 6px; }
   .ow-call { font-size: 12.5px; padding: 10px 13px 11px; border-radius: 13px; }
   .ow-call > b { font-size: 22px; }
-  .ow-bubs s { height: 5px; }
+  .ow-art:has(> .ow-pic) { flex-basis: 130px; }
   .ow-art .stack .pile { height: 118px; }
   .ow-art .hours { height: 84px; }
   .ow-art .duo { height: 108px; }
@@ -531,7 +510,9 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .cmb-col em { font-style: normal; font-family: var(--mono); font-size: 10.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .cmb-col em small { font-size: 9px; margin-left: 1px; }
 .cmb-col span { font-size: 9.5px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cmb-bar { display: block; width: 100%; max-width: 30px; border-radius: 8px 8px 4px 4px; }
+/* --h is the bar's share of the tallest; it scales in what the day count and the name leave */
+.cmb-bar { display: block; width: 100%; max-width: 30px; height: calc((100% - 36px) * var(--h)); border-radius: 8px 8px 4px 4px; }
+.cmb-col em, .cmb-col span { flex: none; }
 .cmb-bar.a { background: var(--accent); }
 .cmb-bar.b { background: color-mix(in srgb, var(--accent) 35%, var(--tint)); }
 .cmb-bar.top { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -551,3 +532,38 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 
 /* the narration: a line that picks up from the slide before, in the same face, italic */
 .ow-lead { font-style: italic; font-size: 14px; line-height: 1.4; color: var(--muted); margin-bottom: 10px; text-wrap: pretty; }
+
+/* ---------- short screens ---------- */
+/* Small phones (an SE, or any phone with the browser bars showing) leave ~550-680px for the
+   card; the data slides were sized for a 9:16 frame and ran under the callout. Tighten the
+   type, the gaps and the fixed art heights so everything still fits. */
+@container story (max-height: 680px) {
+  .ow-head ~ .body { margin-top: 8px; }
+  .ow-lead { font-size: 13px; line-height: 1.35; margin-bottom: 6px; }
+  .ow-art { margin-bottom: 10px; }
+  .ow-art:has(> .ow-pic) { flex-basis: 120px; min-height: 80px; }
+  .ow-ctx { font-size: 12px; }
+  .ow-hero { font-size: min(80px, calc(320px / var(--len))); margin-bottom: 6px; }
+  .ow-stmt { font-size: 22px; }
+  .ow-remark { font-size: 13.5px; line-height: 1.35; margin-top: 6px; }
+  .ow-head ~ .foot { margin-top: 8px; }
+  .ow-call { font-size: 13px; line-height: 1.35; padding: 10px 13px 11px; border-radius: 14px; }
+  .ow-call > b { font-size: 22px; }
+  .scene { gap: 4px; }
+  .cb { font-size: 13px; padding: 7px 11px 6px; }
+  .cb.lead { font-size: 18px; padding: 10px 13px 7px; }
+  .ow-art .stack .pile { height: 110px; }
+  .ow-art .hours { height: 80px; margin-top: 16px; }
+  .tape { gap: 8px; }
+  .tp-line { height: 50px; }
+  .tp-stack i { height: 6.5px; }
+  .ow-art .lanes { gap: 6px; }
+  .arc { height: 80px; }
+  .arc-temp { width: 80px; height: 70px; }
+  .cmb-who { width: calc(var(--s) * .8); height: calc(var(--s) * .8); }
+  .cmb-who b { font-size: calc(var(--s) * .34); }
+  .cmb-bars { height: 84px; margin-top: 10px; }
+  /* where it started: the opening line and three replies (date chip and name come first) */
+  .scene > .cb:nth-child(n + 7) { display: none; }
+}
+

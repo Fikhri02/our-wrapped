@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
 import { stats } from '../src/stats.js';
-import { SLIDES, slidesFor } from '../src/slides.js';
+import { SLIDES, slidesFor, closingSlide } from '../src/slides.js';
+import { existsSync } from 'node:fs';
 import { texterType } from '../src/stats.js';
 import { setLang } from '../src/i18n.js';
 import { makeSample } from '../src/sample.js';
@@ -38,11 +39,18 @@ describe('the loudest day, built to the mockup', () => {
     expect(html).toMatch(/messages\.<br>In one day\./);
     const pct = (S.busyN / S.total) * 100;
     expect(html).toContain(`<b>${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%</b> <span>of your entire chat happened on this single day.`);
-    expect(html).toMatch(/class="ow-bubs ow-bubs-loud"/);
+    expect(html).toMatch(/<img class="ow-pic" src="\.\/art\/busy\.webp"/);
   });
 });
 
 describe('the redesigned art', () => {
+  it('after dark: a peak at either end of the day keeps its hour label inside the card', () => {
+    const at = (peak) => render('night', { ...S, late: S.late || 1, peak });
+    expect(at(23)).toMatch(/<i class="peak end"[^>]*><b>11pm<\/b>/);
+    expect(at(0)).toMatch(/<i class="peak start"[^>]*><b>12am<\/b>/);
+    expect(at(14)).toMatch(/<i class="peak"[^>]*><b>/);
+  });
+
   it('talker: who had more to say, as two stacks of bubbles instead of a giant percentage', () => {
     const html = render('share');
     expect(html).toMatch(/had more to say/);
@@ -83,13 +91,46 @@ describe('the redesigned art', () => {
   });
 });
 
+describe('headlines count in the singular too', () => {
+  const one = (a, b) => ({ [S.A]: a, [S.B]: b });
+  it('says time, morning and conversation when the number is 1', () => {
+    expect(render('love', { ...S, love: one(1, 0) })).toMatch(/>time love made it<br>into the chat\./);
+    expect(render('sorry', { ...S, sorry: one(1, 0) })).toMatch(new RegExp(`>time ${S.A}<br>said sorry\\.`));
+    expect(render('morning', { ...S, ft: one(1, 0) })).toMatch(new RegExp(`>morning ${S.A}<br>texted first\\.`));
+    expect(render('starts', { ...S, convo: { ...S.convo, starts: one(1, 0) } })).toMatch(new RegExp(`>conversation<br>started by ${S.A}\\.`));
+  });
+
+  it('keeps the plural for anything else', () => {
+    expect(render('love', { ...S, love: one(2, 0) })).toMatch(/>times love made it/);
+    expect(render('sorry', { ...S, sorry: one(3, 1) })).toMatch(new RegExp(`>times ${S.A}<br>said sorry`));
+  });
+});
+
+describe('character art', () => {
+  const ART = ['intro', 'starts', 'morning', 'love', 'sorry', 'busy'];
+
+  it('gives each headline slide its own illustration instead of a flat shape', () => {
+    for (const id of ART) expect(render(id), id).toMatch(new RegExp(`<img class="ow-pic" src="\\./art/${id}\\.webp" alt="" aria-hidden="true"`));
+    expect(closingSlide('hi').render()).toMatch(/<img class="ow-pic" src="\.\/art\/closing\.webp"/);
+  });
+
+  it('draws no flat bubbles or sun anywhere', () => {
+    for (const x of SLIDES) expect(x.render(S), x.id).not.toMatch(/ow-bubs|class="sun"/);
+    expect(closingSlide('hi').render()).not.toMatch(/ow-bubs/);
+  });
+
+  it('ships every illustration it points at', () => {
+    for (const id of [...ART, 'closing']) expect(existsSync(new URL(`../public/art/${id}.webp`, import.meta.url)), id).toBe(true);
+  });
+});
+
 describe('a reveal per slide', () => {
   it('keeps the typing beat only for the chat scenes', () => {
     expect(SLIDES.filter((s) => s.typing).map((s) => s.id)).toEqual(['first', 'bubble', 'carried']);
   });
 
-  it('gives mornings a sun in the picture', () => {
-    expect(render('morning')).toMatch(/class="sun"/);
+  it('gives mornings the alarm-clock character', () => {
+    expect(render('morning')).toMatch(/<img class="ow-pic" src="\.\/art\/morning\.webp"/);
   });
 
   it('marks the apology quote for its nudge', () => {
@@ -249,6 +290,9 @@ describe('the comebacks', () => {
     expect(html.match(/class="cmb-bar [ab] top"/g)).toHaveLength(1);
     expect(html).toMatch(/46<small>/);
     expect(html).not.toMatch(/cb-strip|cb-span|cb-mark/);
+    // bars scale in the room the day count and the name leave, so the tallest never squeezes its name
+    expect(html).toMatch(/class="cmb-bar a top" style="--h:1"/);
+    expect(html).toMatch(/class="cmb-bar a" style="--h:0\.39"/);
     // whoever brought it back more gets the solid colour, whichever side of the chat they're on
     const flipped = render('comebacks', at({ count: 3, by: { [S.A]: 1, [S.B]: 2 }, longest, silences }));
     expect(flipped).toMatch(new RegExp(`class="cmb-who a"[^>]*><b>2</b><span>${S.B.split(' ')[0]}`));

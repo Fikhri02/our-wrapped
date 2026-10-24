@@ -31,15 +31,9 @@ const hidden = (text) => Array(Math.max(1, Math.min(5, Math.round(text.length / 
 // heart. Put it back for display on single-symbol emoji.
 const asEmoji = (e) => ([...e].length === 1 ? `${e}️` : e);
 
-// The illustration most slides open with: two flat speech bubbles, a translucent one in the
-// ink colour and a solid one in the tone, each with lines of "text". Variants move them
-// around; `inner` replaces the solid bubble's lines (love puts a heart there).
-const talk = (v = '', inner = '<s></s><s></s><s></s>') =>
-  `<div class="ow-bubs${v ? ` ow-bubs-${v}` : ''}" aria-hidden="true"><i><s></s><s></s><s></s></i><i>${inner}</i></div>`;
-
-// Mornings: a sun in the illustration, rising in on the story and resting in place on
-// still images.
-const sun = '<div class="ow-sunbox" aria-hidden="true"><div class="sun"></div></div>';
+// The illustration a headline slide opens with: the bubble character acting out the stat
+// (public/art/{id}.webp). Decorative: the number and the words say it all.
+const art = (id) => `<img class="ow-pic" src="./art/${id}.webp" alt="" aria-hidden="true">`;
 
 // The streak as a calendar laid on its side: a column per week (Monday at the top), the
 // streak's days filled, its ends ringed, other days you talked shown faintly. Seven rows
@@ -142,7 +136,7 @@ export const SLIDES = [
   { id: 'intro', chapter: 1, render: (S) => {
     const p = S.pace;
     return slide({
-      kicker: t('introKicker'), art: talk('hero'),
+      kicker: t('introKicker'), art: art('intro'),
       ctx: S.range ? t('rangeFrom', esc(S.range), fmtDate(S.firstDate)) : t('since', fmtDate(S.firstDate)),
       hero: big(S.total), stmt: t('introStmt', esc(S.A), esc(S.B)),
       remark: p ? paceRemark(S) : '',
@@ -172,8 +166,8 @@ export const SLIDES = [
     const g = S.goodnight, bye = g[S.A] >= g[S.B] ? S.A : S.B;
     // A goodnight claim needs a few nights behind it.
     return slide({
-      lead: leads.starts(S), kicker: t('startsKicker'), art: talk('b'),
-      hero: big(c.starts[w]), stmt: t('startsStmt', esc(w)), remark: t('startsRemark', esc(l), nf(c.starts[l])),
+      lead: leads.starts(S), kicker: t('startsKicker'), art: art('starts'),
+      hero: big(c.starts[w]), stmt: t('startsStmt', esc(w), c.starts[w]), remark: t('startsRemark', esc(l), nf(c.starts[l])),
       callout: g[bye] < 3 ? callout('', t('startsFoot')) : g[S.A] === g[S.B] ? callout('', t('goodnightTie')) : callout(g[bye], t('goodnightCall', esc(bye))),
     });
   } },
@@ -181,8 +175,8 @@ export const SLIDES = [
   { id: 'morning', chapter: 1, render: (S) => {
     const w = S.ft[S.A] >= S.ft[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
-      lead: leads.morning(S), kicker: t('firstThought'), art: sun,
-      hero: big(S.ft[w]), stmt: t('mornings', esc(w)), remark: t('morningFoot'),
+      lead: leads.morning(S), kicker: t('firstThought'), art: art('morning'),
+      hero: big(S.ft[w]), stmt: t('mornings', esc(w), S.ft[w]), remark: t('morningFoot'),
       callout: callout(S.ft[l], t('morningCall', esc(l))),
     });
   } },
@@ -281,16 +275,16 @@ export const SLIDES = [
   cover(3),
 
   { id: 'love', chapter: 3, skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => slide({
-    kicker: t('loveKicker'), art: talk('love', '<em>♥</em>'),
-    hero: big(S.love[S.A] + S.love[S.B]), stmt: t('loveStmt'), remark: t('loveRemark'),
+    kicker: t('loveKicker'), art: art('love'),
+    hero: big(S.love[S.A] + S.love[S.B]), stmt: t('loveStmt', S.love[S.A] + S.love[S.B]), remark: t('loveRemark'),
     callout: callout(`${nf(S.love[S.A])} · ${nf(S.love[S.B])}`, t('loveCall', esc(S.A), esc(S.B))),
   }) },
 
   { id: 'sorry', chapter: 3, skip: (S) => !(S.sorry[S.A] + S.sorry[S.B]), render: (S) => {
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
-      lead: leads.sorry(S), kicker: t('apologies'), art: talk('a'),
-      hero: big(S.sorry[w]), stmt: t('saidSorry', esc(w)), remark: t('sorryRemark', esc(l), S.sorry[l]),
+      lead: leads.sorry(S), kicker: t('apologies'), art: art('sorry'),
+      hero: big(S.sorry[w]), stmt: t('saidSorry', esc(w), S.sorry[w]), remark: t('sorryRemark', esc(l), S.sorry[l]),
       callout: callout('', !S.sorryFirst[w] ? t('noSorry') : S.hide?.sorry ? t('firstSorryHidden') : t('firstSorry', esc(S.sorryFirst[w].text.slice(0, 70))), 'nudge'),
     });
   } },
@@ -299,8 +293,10 @@ export const SLIDES = [
 
   { id: 'night', chapter: 4, skip: (S) => !S.late, render: (S) => {
     const mx = Math.max(...S.hours) || 1;
-    // The busiest hour is the tallest bar; it gets its hour written above it.
-    const bars = S.hours.map((v, h) => `<i class="${h === S.peak ? 'peak' : ''}" style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? 'var(--accent)' : 'color-mix(in srgb, var(--fg) 35%, transparent)'}">${h === S.peak ? `<b>${hourLabel(h)}</b>` : ''}</i>`).join('');
+    // The busiest hour is the tallest bar; it gets its hour written above it, pinned to the
+    // outer edge when the bar is at either end of the day so the label stays on the card.
+    const peakCls = `peak${S.peak < 2 ? ' start' : S.peak > 21 ? ' end' : ''}`;
+    const bars = S.hours.map((v, h) => `<i class="${h === S.peak ? peakCls : ''}" style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? 'var(--accent)' : 'color-mix(in srgb, var(--fg) 35%, transparent)'}">${h === S.peak ? `<b>${hourLabel(h)}</b>` : ''}</i>`).join('');
     return slide({
       kicker: t('nightOwls'),
       art: `<div class="hours">${bars}</div><div class="hours-x"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span></div>`,
@@ -336,7 +332,7 @@ export const SLIDES = [
   { id: 'busy', chapter: 4, render: (S) => {
     const pct = (S.busyN / S.total) * 100;
     return slide({
-      kicker: t('loudest'), art: talk('loud'), ctx: fmtDay(S.busy),
+      kicker: t('loudest'), art: art('busy'), ctx: fmtDay(S.busy),
       hero: big(S.busyN), stmt: t('loudLine'), remark: t('loudRemark'),
       more: `<button type="button" class="slide-act" data-act="chat">${t('chatButton')}</button>`,
       callout: callout(`${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%`, t('loudCall')),
@@ -375,7 +371,7 @@ export const SLIDES = [
     const who = (p) => `<div class="cmb-who ${side(p)}" style="--s:${Math.round(56 + 40 * Math.sqrt(c.by[p] / most))}px"><b>${nf(c.by[p])}</b><span>${first(p)}</span></div>`;
     const tall = Math.max(...c.silences.map((x) => x.days)), top = c.silences.findIndex((x) => x.days === tall);
     const bars = c.silences.map((x, i) => `<div class="cmb-col" style="--i:${i}"><em>${x.days}<small>${t('cbDays')}</small></em>`
-      + `<i class="cmb-bar ${side(x.who)}${i === top ? ' top' : ''}" style="height:${Math.max(14, Math.round((x.days / tall) * 100))}%"></i><span>${first(x.who)}</span></div>`).join('');
+      + `<i class="cmb-bar ${side(x.who)}${i === top ? ' top' : ''}" style="--h:${Math.max(0.14, Math.round((x.days / tall) * 100) / 100)}"></i><span>${first(x.who)}</span></div>`).join('');
     // A habit is one person making 60% or more of the comebacks, at least twice.
     const w = lead[0], habit = c.count >= 2 && c.by[w] / c.count >= 0.6;
     return slide({
@@ -415,7 +411,7 @@ export function slidesFor(S) {
 export const closingSlide = (note, signed) => ({
   id: 'closing', chapter: 5,
   render: () => slide({
-    kicker: t('oneMore'), art: talk('a'),
+    kicker: t('oneMore'), art: art('closing'),
     stmt: `<span class="note">${esc(note).replace(/\n/g, '<br>')}</span>`,
     remark: signed ? t('withLoveFrom', esc(signed)) : t('withLove'),
   }),
