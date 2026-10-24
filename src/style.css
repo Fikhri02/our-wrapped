@@ -544,7 +544,8 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .ch-num { font-family: var(--display); font-weight: 800; font-size: 96px; line-height: .85; letter-spacing: -.05em; color: var(--accent); font-variant-numeric: tabular-nums; }
 .ch-title { font-family: var(--display); font-weight: 800; font-size: 34px; line-height: 1.02; letter-spacing: -.03em; margin-top: 6px; }
 .ch-teaser { font-size: 16px; line-height: 1.4; color: var(--muted); margin-top: 8px; max-width: 28ch; }
-.ch-art { display: block; width: 176px; height: 176px; object-fit: contain; align-self: center; }
+/* the art sits mid-square in wide empty margins: a wide box with cover crops them */
+.ch-art { display: block; width: 100%; max-width: 300px; height: 230px; object-fit: cover; align-self: center; }
 .card.enter .ch-num { animation: popIn .5s cubic-bezier(.3, 1.4, .5, 1) .1s both; }
 .card.enter .ch-art { animation: popIn .6s cubic-bezier(.3, 1.4, .5, 1) .45s both; }
 
