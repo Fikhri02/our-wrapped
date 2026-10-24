@@ -16,6 +16,7 @@ export const nf = (n) => n.toLocaleString('en-MY');
 export const compact = (n) => (n < 1000 ? nf(n) : n < 10000 ? `${+(n / 1000).toFixed(1)}k` : `${Math.round(n / 1000)}k`);
 export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 export const hourLabel = (h) => `${h % 12 || 12}${h < 12 ? 'am' : 'pm'}`;
+export const clock = (d) => `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}${d.getHours() < 12 ? 'am' : 'pm'}`;
 
 // Reply time in minutes → label. Minute-only exports can't resolve under a minute,
 // so they read "< 1 min" instead of a fake "0s".

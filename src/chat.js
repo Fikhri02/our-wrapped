@@ -1,7 +1,7 @@
 // One day of the chat as bubbles, for the "read that day" viewer. My bubbles sit on the
 // right and theirs on the left; each run of messages gets its label once.
 import { dayKey } from './stats.js';
-import { esc, hourLabel } from './format.js';
+import { clock, esc, hourLabel } from './format.js';
 import { t } from './i18n.js';
 
 export const dayMessages = (msgs, key, people) =>
@@ -13,8 +13,6 @@ export function guessMe(msgs, people) {
   const m = msgs.find((x) => people.includes(x.who) && /^You deleted this message/i.test(x.text));
   return m ? m.who : null;
 }
-
-const clock = (d) => `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}${d.getHours() < 12 ? 'am' : 'pm'}`;
 
 // `mark` ({ who, first, last }) highlights a run of one person's messages, like a rant, with a
 // marker before its first bubble. It goes by the messages themselves, not their times: exports

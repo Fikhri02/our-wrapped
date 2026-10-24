@@ -96,9 +96,6 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes wipe { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.card.enter > * { animation: rise .6s cubic-bezier(.2, .8, .2, 1) both; }
-.card.enter > :nth-child(2) { animation-delay: .12s; }
-.card.enter > :nth-child(3) { animation-delay: .3s; }
 .card.enter .hours i { transform-origin: bottom; animation: grow .6s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.25s + var(--i) * 25ms); }
 .card.enter .split { transform-origin: left; animation: wipe .7s cubic-bezier(.2, .8, .2, 1) .25s both; }
 @media (prefers-reduced-motion: reduce) { .card.enter *, .card.enter > * { animation: none !important; } }
@@ -250,3 +247,98 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 
 /* streak: the dates it ran, under the count */
 .card .streak-range { margin-top: 12px; font-size: 18px; letter-spacing: -.01em; }
+
+/* ---------- visual refresh: the shared kit ---------- */
+/* film grain over every slide (story, cards and saved images) */
+.card::after { content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: .14; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.card > .k, .card > .body, .card > .foot { position: relative; z-index: 1; }
+/* saved images skip the grain: noise makes the PNG about six times bigger (2 MB vs 330 KB),
+   and Stories and WhatsApp recompress it away anyway */
+.export-frame .card::after { display: none; }
+
+/* decorative bubbles in the slide's tone, behind the content */
+.decor { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.decor i { position: absolute; display: block; }
+.decor i:first-child { background: var(--tone); border-radius: 999px 999px 999px 28px; }
+.decor i:last-child { background: currentColor; opacity: .1; border-radius: 999px 999px 24px 999px; }
+.decor-a i:first-child { width: 62%; height: 20%; right: -14%; top: 15%; transform: rotate(-9deg); }
+.decor-a i:last-child { width: 40%; height: 12%; right: 30%; top: 13%; transform: rotate(8deg); }
+.decor-b i:first-child { width: 58%; height: 19%; left: -16%; top: 15%; transform: rotate(10deg); border-radius: 999px 999px 28px 999px; }
+.decor-b i:last-child { width: 38%; height: 12%; left: 38%; top: 12%; transform: rotate(-7deg); }
+.decor-c i:first-child { width: 54%; height: 18%; right: -18%; top: 18%; transform: rotate(14deg); }
+.decor-c i:last-child { width: 40%; height: 12%; left: -14%; top: 12%; transform: rotate(-10deg); }
+/* the intro: two big bubbles the total spills across */
+.decor-hero i:first-child { width: 92%; height: 28%; left: -22%; top: 16%; transform: rotate(-8deg); }
+.decor-hero i:last-child { width: 62%; height: 19%; right: -20%; top: 11%; transform: rotate(10deg); background: #ffe14d; opacity: .95; }
+.card .big.hero { font-size: 96px; letter-spacing: -.06em; margin-left: -4px; color: #fff; }
+
+/* "typing…" before each reveal, in the story only */
+.typing { display: inline-flex; gap: 4px; padding: 8px 11px; border-radius: 14px 14px 14px 4px; background: currentColor; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--tone, #000); animation: blink 1.1s infinite; }
+.typing i:nth-child(2) { animation-delay: .18s; } .typing i:nth-child(3) { animation-delay: .36s; }
+.typing-in { position: absolute; left: 24px; top: 46%; z-index: 3; animation: typingGone .55s ease-in both; pointer-events: none; }
+@keyframes blink { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-2px); } }
+@keyframes typingGone { 0%, 75% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-8px) scale(.9); } }
+
+/* entrance, keyed to roles (not position) and waiting for the typing beat */
+.card.enter { --wait: .55s; }
+.card.enter > .k, .card.enter > .body, .card.enter > .foot { animation: rise .6s cubic-bezier(.2, .8, .2, 1) both; }
+.card.enter > .k { animation-delay: var(--wait); }
+.card.enter > .body { animation-delay: calc(var(--wait) + .12s); }
+.card.enter > .foot { animation-delay: calc(var(--wait) + .3s); }
+.card.enter > .decor i { animation: pop .7s cubic-bezier(.3, 1.4, .5, 1) both; }
+.card.enter > .decor i:last-child { animation-delay: .12s; }
+.card.enter .hours i { animation-delay: calc(var(--wait) + .25s + var(--i) * 25ms); }
+.card.enter .split { animation-delay: calc(var(--wait) + .25s); }
+.card.enter .bubbles i { animation-delay: calc(var(--wait) + .2s + var(--i) * 90ms); }
+
+/* ---------- visual refresh: the redesigned slides ---------- */
+/* first message: a chat scene */
+.scene { display: flex; flex-direction: column; gap: 7px; }
+.date-chip { align-self: center; font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; background: color-mix(in srgb, currentColor 10%, transparent); padding: 3px 10px; border-radius: 999px; margin-bottom: 6px; }
+.cb-who { font-family: var(--mono); font-size: 11px; font-weight: 600; opacity: .75; margin-left: 4px; }
+.cb { max-width: 86%; padding: 9px 12px 7px; border-radius: 18px 18px 18px 5px; background: #fff; font-size: 14.5px; line-height: 1.3; box-shadow: 0 2px 0 color-mix(in srgb, currentColor 18%, transparent); overflow-wrap: anywhere; }
+.cb small { display: block; text-align: right; font-family: var(--mono); font-size: 9.5px; opacity: .6; margin-top: 3px; }
+.cb.lead { font-family: var(--display); font-weight: 700; font-size: 21px; line-height: 1.12; padding: 13px 15px 9px; }
+.cb.r { align-self: flex-end; background: var(--fg); border-radius: 18px 18px 5px 18px; }
+.cb.r, .cb.r small { color: var(--bg); }
+.card.enter .cb { animation: pop .5s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * .45s); transform-origin: left bottom; }
+.card.enter .cb.r { transform-origin: right bottom; }
+
+/* streak: the calendar */
+.cal-wd, .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; max-width: 290px; }
+.cal-wd { margin-top: 16px; font-family: var(--mono); font-size: 9px; text-align: center; opacity: .6; }
+.cal { margin-top: 5px; }
+.cal i { aspect-ratio: 1; border-radius: 6px; background: color-mix(in srgb, currentColor 12%, transparent); }
+.cal i.seen { background: color-mix(in srgb, currentColor 32%, transparent); }
+.cal i.on { background: currentColor; }
+.cal i.edge { box-shadow: 0 0 0 2px var(--tone); }
+.card.enter .cal i.on { animation: pop .3s ease-out both; animation-delay: calc(var(--wait) + .3s + var(--i) * 18ms); }
+
+/* reply speed: 100 dots each */
+.lanes { display: grid; gap: 14px; margin-top: 14px; }
+.lane-who { display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; font-size: 14px; }
+.lane-who b { font-family: var(--display); font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+.dots { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
+.dots i { aspect-ratio: 1; border-radius: 50%; background: color-mix(in srgb, currentColor 16%, transparent); }
+.dots i.on { background: currentColor; }
+.card.enter .dots i.on { animation: pop .25s ease-out both; animation-delay: calc(var(--wait) + .3s + var(--i) * 12ms); }
+
+/* emoji: stickers sized by count, tilted, count on a tag */
+.emo .e { gap: 6px 8px; align-items: end; }
+.emo .ec { transform: rotate(var(--r, 0deg)); }
+.emo .ec i { font-size: var(--s, 28px); filter: drop-shadow(0 3px 0 color-mix(in srgb, currentColor 22%, transparent)); }
+.emo .ec b { background: var(--fg); border-radius: 999px; padding: 0 6px; margin-top: -2px; }
+.emo .ec b { color: var(--bg); }
+.card.enter .emo .ec { animation: drop .6s cubic-bezier(.3, 1.3, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * 60ms); }
+@keyframes drop { from { opacity: 0; transform: translateY(-40px) rotate(0deg); } to { opacity: 1; transform: rotate(var(--r, 0deg)); } }
+
+/* vocabulary: each person's words as chat bubbles in their own colour */
+.wcols .words span { border: 0; border-radius: 999px 999px 999px 6px; }
+.wcols .words.wa span { background: var(--fg); }
+.wcols .words.wa span { color: var(--bg); }
+.wcols .words.wb span { background: #fff; border-radius: 999px 999px 6px 999px; }
+.card.enter .wcols .words span { animation: pop .45s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * 55ms); }
+
+@media (prefers-reduced-motion: reduce) { .typing-in { display: none; } .card.enter { --wait: 0s; } }
