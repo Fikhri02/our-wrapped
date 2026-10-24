@@ -12,6 +12,8 @@ export function fmtRange(a, b) {
 }
 export const fmtDay = (k) => { const [y, m, d] = k.split('-'); return `${+d} ${months()[m - 1]} ${y}`; };
 export const nf = (n) => n.toLocaleString('en-MY');
+// Short counts for tight spots: 845, 1.2k, 12k.
+export const compact = (n) => (n < 1000 ? nf(n) : n < 10000 ? `${+(n / 1000).toFixed(1)}k` : `${Math.round(n / 1000)}k`);
 export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 export const hourLabel = (h) => `${h % 12 || 12}${h < 12 ? 'am' : 'pm'}`;
 

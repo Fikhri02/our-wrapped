@@ -1,6 +1,6 @@
 // Each slide: a palette, a render(stats) → HTML string, and optionally skip(stats) for
 // when it has nothing to show. All copy comes from i18n.js.
-import { esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
+import { compact, esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
 import { t } from './i18n.js';
 
 export const PALETTES = {
@@ -114,8 +114,11 @@ export const SLIDES = [
     t('streakVibe', S.streak, S.streakNow)) },
 
   { id: 'emoji', pal: 'lemon', skip: (S) => !S.emo[S.A].length && !S.emo[S.B].length, render: (S) => frame(t('emojiKicker'),
-    `<div class="mid">${t('tenFaces')}</div><div class="emo"><div>${esc(S.A)}<div class="e">${S.emo[S.A].join('') || '—'}</div></div><div>${esc(S.B)}<div class="e">${S.emo[S.B].join('') || '—'}</div></div></div>`,
-    t('emojiFoot')) },
+    `<div class="mid">${t('tenFaces')}</div>
+     <div class="line">${t('emojiDiff', { ...S.emoVs, hi: esc(S.emoVs.hi), lo: esc(S.emoVs.lo) }, !!S.pace?.past)}</div>
+     <div class="emo">${[S.A, S.B].map((p) => `<div>${esc(p)}<div class="e">${
+      S.emo[p].map((e, i) => `<span class="ec"><i>${e}</i><b>${compact(S.emoN[p][i])}</b></span>`).join('') || '—'}</div></div>`).join('')}</div>`,
+    '') },
 
   { id: 'reply', pal: 'pink', render: (S) => {
     const r = S.reply, A = r[S.A], B = r[S.B];
