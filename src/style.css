@@ -287,7 +287,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card.enter > .k { animation-delay: var(--wait); }
 .card.enter > .body { animation-delay: calc(var(--wait) + .12s); }
 .card.enter > .foot { animation-delay: calc(var(--wait) + .3s); }
-.card.enter > .decor i { animation: pop .7s cubic-bezier(.3, 1.4, .5, 1) both; }
+.card.enter > .decor i { animation: popIn .7s cubic-bezier(.3, 1.4, .5, 1) both; }
 .card.enter > .decor i:last-child { animation-delay: .12s; }
 .card.enter .hours i { animation-delay: calc(var(--wait) + .25s + var(--i) * 25ms); }
 .card.enter .split { animation-delay: calc(var(--wait) + .25s); }
@@ -303,7 +303,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .cb.lead { font-family: var(--display); font-weight: 700; font-size: 21px; line-height: 1.12; padding: 13px 15px 9px; }
 .cb.r { align-self: flex-end; background: var(--fg); border-radius: 18px 18px 5px 18px; }
 .cb.r, .cb.r small { color: var(--bg); }
-.card.enter .cb { animation: pop .5s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * .45s); transform-origin: left bottom; }
+.card.enter .cb { animation: popIn .5s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * .45s); transform-origin: left bottom; }
 .card.enter .cb.r { transform-origin: right bottom; }
 
 /* streak: the calendar */
@@ -314,7 +314,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .cal i.seen { background: color-mix(in srgb, currentColor 32%, transparent); }
 .cal i.on { background: currentColor; }
 .cal i.edge { box-shadow: 0 0 0 2px var(--tone); }
-.card.enter .cal i.on { animation: pop .3s ease-out both; animation-delay: calc(var(--wait) + .3s + var(--i) * 18ms); }
+.card.enter .cal i.on { animation: popIn .3s ease-out both; animation-delay: calc(var(--wait) + .3s + var(--i) * 18ms); }
 
 /* reply speed: 100 dots each */
 .lanes { display: grid; gap: 14px; margin-top: 14px; }
@@ -323,7 +323,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .dots { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
 .dots i { aspect-ratio: 1; border-radius: 50%; background: color-mix(in srgb, currentColor 16%, transparent); }
 .dots i.on { background: currentColor; }
-.card.enter .dots i.on { animation: pop .25s ease-out both; animation-delay: calc(var(--wait) + .3s + var(--i) * 12ms); }
+.card.enter .dots i.on { animation: popIn .25s ease-out both; animation-delay: calc(var(--wait) + .3s + var(--i) * 12ms); }
 
 /* emoji: stickers sized by count, tilted, count on a tag */
 .emo .e { gap: 6px 8px; align-items: end; }
@@ -339,10 +339,34 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .wcols .words.wa span { background: var(--fg); }
 .wcols .words.wa span { color: var(--bg); }
 .wcols .words.wb span { background: #fff; border-radius: 999px 999px 6px 999px; }
-.card.enter .wcols .words span { animation: pop .45s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * 55ms); }
+.card.enter .wcols .words span { animation: popIn .45s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * 55ms); }
 
 @media (prefers-reduced-motion: reduce) { .typing-in { display: none; } .card.enter { --wait: 0s; } }
 
 /* hide-on-save switch under the slides that can print private text */
 .priv { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); cursor: pointer; }
 .priv input { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }
+
+/* finale: two bubbles with your initials, names, three numbers */
+.duo { position: relative; height: 150px; margin-bottom: 6px; }
+.db { position: absolute; display: grid; grid-auto-flow: column; place-items: center; place-content: center; gap: 2px; font-family: var(--display); font-weight: 800; letter-spacing: -.04em; }
+.db { transform: rotate(var(--r)); }
+.db.a { --r: -6deg; left: -6px; top: 6px; width: 170px; height: 124px; background: #ff4f9a; color: #fff; font-size: 76px; border-radius: 999px 999px 999px 26px; }
+.db.b { --r: 7deg; left: 128px; top: 30px; width: 146px; height: 108px; background: #ffe14d; color: #2a1233; font-size: 64px; border-radius: 999px 999px 24px 999px; }
+.db i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: currentColor; margin: 0 4px; opacity: .8; }
+.card .fnames { margin-top: 4px; overflow-wrap: anywhere; }
+.fstats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1.5px solid currentColor; }
+.fstats b { display: block; font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.fstats small { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; opacity: .8; margin-top: 4px; }
+.card.enter .db { animation: popIn .7s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .15s); }
+.card.enter .db.b { animation-delay: calc(var(--wait) + .4s); }
+@container (max-width: 320px) {
+  .duo { height: 122px; }
+  .db.a { width: 140px; height: 102px; font-size: 62px; }
+  .db.b { left: 104px; width: 120px; height: 90px; font-size: 52px; }
+  .fstats b { font-size: 23px; }
+}
+
+/* entrance for the refresh: from small and clear to the element's own look (only a "from"
+   keyframe, so each keeps its own opacity and tilt instead of the bubble stack's .85) */
+@keyframes popIn { from { opacity: 0; transform: scale(.4) rotate(var(--r, 0deg)); } }
