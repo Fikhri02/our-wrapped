@@ -19,14 +19,16 @@ export function createPlayer({ screen, card, bars, pauseButton, onEnd = null }) 
   const syncPause = () => { pauseButton.textContent = paused ? t('play') : t('pause'); };
   syncPause();
 
-  // Before each slide's content, a short "typing…" beat, borrowed from the chat itself.
+  // Chat-scene slides open with a short "typing…" beat, borrowed from the chat itself; the
+  // others go straight to their own reveal.
   const TYPING_MS = 550;
+  let typingNow = false;
 
   function countUp() {
     if (reduceMotion) return;
     for (const el of card.querySelectorAll('[data-count]')) {
       const target = +el.dataset.count, suffix = el.dataset.suffix || '', dec = +(el.dataset.dec || 0);
-      const start = performance.now() + TYPING_MS;
+      const start = performance.now() + (typingNow ? TYPING_MS : 0);
       const step = (now) => {
         const p = Math.max(0, Math.min(1, (now - start) / COUNT_MS));
         const eased = 1 - Math.pow(1 - p, 3);
@@ -50,7 +52,9 @@ export function createPlayer({ screen, card, bars, pauseButton, onEnd = null }) 
       console.error(`[our-wrapped] slide "${slide.id}" failed`, err);
       card.innerHTML = `<div class="k">${t('oops')}</div><div class="mid">${t('noData')}</div><div></div>`;
     }
-    if (!reduceMotion) card.insertAdjacentHTML('beforeend', '<div class="typing-in" aria-hidden="true"><span class="typing"><i></i><i></i><i></i></span></div>');
+    typingNow = !reduceMotion && !!slide.typing;
+    if (typingNow) card.insertAdjacentHTML('beforeend', '<div class="typing-in" aria-hidden="true"><span class="typing"><i></i><i></i><i></i></span></div>');
+    card.classList.toggle('typing-on', typingNow);
     card.classList.remove('enter');
     void card.offsetWidth; // restart the CSS entrance
     card.classList.add('enter');

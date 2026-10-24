@@ -65,3 +65,19 @@ describe('the last four, redesigned', () => {
     expect(render('reply', clear)).toMatch(/replies faster/);
   });
 });
+
+describe('a reveal per slide', () => {
+  it('keeps the typing beat only for the chat scenes', () => {
+    expect(SLIDES.filter((s) => s.typing).map((s) => s.id)).toEqual(['first', 'bubble', 'carried']);
+  });
+
+  it('gives mornings a sun and love floating hearts, both resting in place when still', () => {
+    expect(render('morning')).toMatch(/class="sun"/);
+    expect(render('love')).toMatch(/class="hearts"/);
+    expect(render('love').match(/<i[^>]*>♥<\/i>/g).length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('marks the apology quote for its nudge', () => {
+    expect(render('sorry')).toMatch(/class="line nudge"/);
+  });
+});

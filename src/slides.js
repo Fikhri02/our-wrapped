@@ -1,5 +1,6 @@
 // Each slide: a palette, a render(stats) → HTML string, and optionally skip(stats) for
-// when it has nothing to show. All copy comes from i18n.js.
+// when it has nothing to show, giant (its main visual is one big number) and typing (a chat
+// scene, so the story opens it with a "typing…" beat). All copy comes from i18n.js.
 import { clock, compact, esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
 import { t } from './i18n.js';
 
@@ -38,6 +39,12 @@ const hidden = (text) => Array(Math.max(1, Math.min(5, Math.round(text.length / 
 // Counting strips the emoji presentation selector, so a lone ❤ would draw as a black text
 // heart. Put it back for display on single-symbol emoji.
 const asEmoji = (e) => ([...e].length === 1 ? `${e}\uFE0F` : e);
+
+// Mornings: a sun behind the number. Love: hearts scattered behind it. Both rest in place
+// on still images and rise in on the story.
+const sun = '<div class="sun" aria-hidden="true"></div>';
+const hearts = `<div class="hearts" aria-hidden="true">${[[12, 18, 26, -12], [78, 14, 34, 10], [64, 30, 18, -6], [22, 34, 16, 14], [86, 40, 22, -14], [40, 12, 14, 8]]
+  .map(([x, y, s, r], i) => `<i style="left:${x}%;top:${y}%;font-size:${s}px;--r:${r}deg;--i:${i}">♥</i>`).join('')}</div>`;
 
 // Decorative chat bubbles in the slide's tone, for slides with room to spare. The same two
 // shapes in a few placements, so slides feel related without repeating exactly.
@@ -80,7 +87,7 @@ export const SLIDES = [
 
   // The first message as a real chat: a date chip, the bubble with its time and ticks, and
   // up to two replies from the next hour.
-  { id: 'first', pal: 'lemon', render: (S) => {
+  { id: 'first', pal: 'lemon', typing: true, render: (S) => {
     const lead = S.first.who;
     const text = (m, i) => (S.hide?.first ? hidden(m.text) : esc(m.text.slice(0, i ? 70 : 140)));
     const bubble = (m, i) => `<div class="cb ${m.who === lead ? 'l' : 'r'}${i ? '' : ' lead'}" style="--i:${i}">${text(m, i)}<small>${clock(m.when)}${i ? '' : ' ✓✓'}</small></div>`;
@@ -103,7 +110,7 @@ export const SLIDES = [
       t('rolesKey'));
   } },
 
-  { id: 'bubble', pal: 'lemon', render: (S) => {
+  { id: 'bubble', pal: 'lemon', typing: true, render: (S) => {
     const { avg, feature: f } = S.bubbles;
     const w = avg[S.A] >= avg[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     const x = Math.round(avg[w] * 10) / 10;
@@ -152,7 +159,7 @@ export const SLIDES = [
 
   { id: 'love', pal: 'tang', giant: true, skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => frame(t('loveKicker'),
     `<div class="big">${count(S.love[S.A] + S.love[S.B])}</div><div class="line">${t('loveLine', esc(S.A), S.love[S.A], esc(S.B), S.love[S.B])}</div>`,
-    t('loveFoot'), decor('b')) },
+    t('loveFoot'), hearts) },
 
   { id: 'reply', pal: 'pink', render: (S) => {
     const r = S.reply, A = r[S.A], B = r[S.B];
@@ -175,7 +182,7 @@ export const SLIDES = [
   { id: 'sorry', pal: 'plum', render: (S) => {
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B;
     return frame(t('apologies'),
-      `<div class="mid">${t('saidSorry', esc(w), S.sorry[w])}</div><div class="line">${!S.sorryFirst[w] ? t('noSorry') : S.hide?.sorry ? t('firstSorryHidden') : t('firstSorry', esc(S.sorryFirst[w].text.slice(0, 70)))}</div>`,
+      `<div class="mid">${t('saidSorry', esc(w), S.sorry[w])}</div><div class="line nudge">${!S.sorryFirst[w] ? t('noSorry') : S.hide?.sorry ? t('firstSorryHidden') : t('firstSorry', esc(S.sorryFirst[w].text.slice(0, 70)))}</div>`,
       `${esc(S.A)} ${S.sorry[S.A]} · ${esc(S.B)} ${S.sorry[S.B]}`, decor('a'));
   } },
 
@@ -183,7 +190,7 @@ export const SLIDES = [
     const w = S.ft[S.A] >= S.ft[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return frame(t('firstThought'),
       `<div class="big">${count(S.ft[w])}</div><div class="line">${t('mornings', esc(w), esc(l), S.ft[l])}</div>`,
-      t('morningFoot'), decor('a'));
+      t('morningFoot'), sun);
   } },
 
   { id: 'night', pal: 'cobalt', skip: (S) => !S.late, render: (S) => {
@@ -200,7 +207,7 @@ export const SLIDES = [
 
   // A night that never closed: the last message of the night, the night passing, and the
   // morning reply. Real times, no text: the bubbles hold typing dots.
-  { id: 'carried', pal: 'plum', skip: (S) => !S.carried, render: (S) => {
+  { id: 'carried', pal: 'plum', typing: true, skip: (S) => !S.carried, render: (S) => {
     const ex = S.carriedEx, dots = '<span class="dots3"><i></i><i></i><i></i></span>';
     const scene = ex ? `<div class="overnight" aria-hidden="true">
         <div class="on-b l" style="--i:0">${dots}<small>${esc(ex.nightWho)} · ${clock(ex.night)}</small></div>
