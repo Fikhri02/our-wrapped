@@ -1,23 +1,59 @@
 // Each slide: a palette, a render(stats) → HTML string, and optionally skip(stats) for
 // when it has nothing to show. All copy comes from i18n.js.
-import { compact, esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
+import { clock, compact, esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
 import { t } from './i18n.js';
 
+// [background, ink, tone]: the tone is a neighbour's colour, for the bubble shapes.
 export const PALETTES = {
-  pink: ['#ff4f9a', '#1a0612'],
-  lemon: ['#ffe14d', '#241a00'],
-  cobalt: ['#2f4bff', '#ffffff'],
-  mint: ['#3ee6b0', '#05231a'],
-  plum: ['#2a1233', '#ffd6ec'],
-  tang: ['#ff7a3d', '#200800'],
+  pink: ['#ff4f9a', '#1a0612', '#ffe14d'],
+  lemon: ['#ffe14d', '#241a00', '#ff4f9a'],
+  cobalt: ['#2f4bff', '#ffffff', '#ffe14d'],
+  mint: ['#3ee6b0', '#05231a', '#2f4bff'],
+  plum: ['#2a1233', '#ffd6ec', '#ff4f9a'],
+  tang: ['#ff7a3d', '#200800', '#2a1233'],
 };
+
+// Paints a card in a slide's palette. The tone colours the decorative bubbles.
+export function paint(card, pal) {
+  const [bg, fg, tone] = PALETTES[pal];
+  card.style.background = bg;
+  card.style.color = fg;
+  card.style.setProperty('--tone', tone);
+  card.style.setProperty('--bg', bg);
+  card.style.setProperty('--fg', fg);
+}
 
 // A number the player counts up from 0 on entrance.
 const count = (n, suffix = '', dec = 0) =>
   `<span data-count="${n}" data-suffix="${suffix}" data-dec="${dec}">${dec ? n.toFixed(dec) : nf(n)}${suffix}</span>`;
 
-const frame = (kicker, body, foot) =>
-  `<div class="k">${kicker}</div><div>${body}</div><div class="foot">${foot}</div>`;
+// Every slide: an optional decoration layer behind, then kicker, body and footer.
+const frame = (kicker, body, foot, deco = '') =>
+  `${deco}<div class="k">${kicker}</div><div class="body">${body}</div><div class="foot">${foot}</div>`;
+
+// Counting strips the emoji presentation selector, so a lone ❤ would draw as a black text
+// heart. Put it back for display on single-symbol emoji.
+const asEmoji = (e) => ([...e].length === 1 ? `${e}\uFE0F` : e);
+
+// Decorative chat bubbles in the slide's tone, for slides with room to spare. The same two
+// shapes in a few placements, so slides feel related without repeating exactly.
+const decor = (v) => `<div class="decor decor-${v}" aria-hidden="true"><i></i><i></i></div>`;
+
+// The streak as a calendar: Monday-first weeks around it, its days filled, its ends ringed,
+// other days you talked shown faintly. Long streaks (over ten weeks) skip the calendar.
+function streakCal(S) {
+  const day = 864e5, start = S.streakStart, end = S.streakEnd;
+  if ((end - start) / day > 70) return '';
+  const from = new Date(start); from.setDate(from.getDate() - 3); from.setDate(from.getDate() - ((from.getDay() + 6) % 7));
+  const to = new Date(end); to.setDate(to.getDate() + 3); to.setDate(to.getDate() + (6 - ((to.getDay() + 6) % 7)));
+  const talked = new Set(S.dayKeys || []), key = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let cells = '', n = 0;
+  for (const d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+    const inRun = d >= start && d <= end, edge = +d === +start || +d === +end;
+    cells += `<i class="${inRun ? 'on' : talked.has(key(d)) ? 'seen' : ''}${edge ? ' edge' : ''}" style="--i:${inRun ? n++ : 0}"></i>`;
+  }
+  return `<div class="cal-wd">${t('weekdays').split(' ').map((w) => `<span>${w}</span>`).join('')}</div><div class="cal">${cells}</div>`;
+}
 
 // Under the total: how much you talk on a day you talk, how often you talk, and what that
 // says about you two. A new chat (under a month, whole chat only) gets its own line.
@@ -33,12 +69,18 @@ function paceBlock(S) {
 
 export const SLIDES = [
   { id: 'intro', pal: 'plum', render: (S) => frame('Our Wrapped',
-    `<div class="big">${count(S.total)}</div><div class="line">${t('introLine', esc(S.A), esc(S.B), S.days)}</div>${paceBlock(S)}`,
-    S.range ? t('rangeFrom', esc(S.range), fmtDate(S.firstDate)) : t('since', fmtDate(S.firstDate))) },
+    `<div class="big hero">${count(S.total)}</div><div class="line">${t('introLine', esc(S.A), esc(S.B), S.days)}</div>${paceBlock(S)}`,
+    S.range ? t('rangeFrom', esc(S.range), fmtDate(S.firstDate)) : t('since', fmtDate(S.firstDate)), decor('hero')) },
 
-  { id: 'first', pal: 'lemon', render: (S) => frame(S.range ? t('rangeFirst', esc(S.range)) : t('whereStarted'),
-    `<div class="quote">“${esc(S.first.text.slice(0, 140))}”</div><div class="line">${esc(S.first.who)}, ${fmtDate(S.first.when)}, ${hourLabel(S.first.when.getHours())}</div>`,
-    t('messageOf', nf(S.total))) },
+  // The first message as a real chat: a date chip, the bubble with its time and ticks, and
+  // up to two replies from the next hour.
+  { id: 'first', pal: 'lemon', render: (S) => {
+    const lead = S.first.who;
+    const bubble = (m, i) => `<div class="cb ${m.who === lead ? 'l' : 'r'}${i ? '' : ' lead'}" style="--i:${i}">${esc(m.text.slice(0, i ? 70 : 140))}<small>${clock(m.when)}${i ? '' : ' ✓✓'}</small></div>`;
+    return frame(S.range ? t('rangeFirst', esc(S.range)) : t('whereStarted'),
+      `<div class="scene"><div class="date-chip">${fmtDate(S.first.when)}</div><div class="cb-who">${esc(lead)}</div>${[S.first, ...(S.firstReplies || [])].map(bubble).join('')}</div>`,
+      t('messageOf', nf(S.total)));
+  } },
 
   { id: 'share', pal: 'pink', render: (S) => {
     const a = S.count[S.A], b = S.count[S.B] || 0, pa = Math.round((a / (a + b)) * 100);
@@ -78,7 +120,7 @@ export const SLIDES = [
     const w = S.ft[S.A] >= S.ft[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return frame(t('firstThought'),
       `<div class="big">${count(S.ft[w])}</div><div class="line">${t('mornings', esc(w), esc(l), S.ft[l])}</div>`,
-      t('morningFoot'));
+      t('morningFoot'), decor('a'));
   } },
 
   { id: 'starts', pal: 'mint', render: (S) => {
@@ -89,7 +131,7 @@ export const SLIDES = [
     const foot = g[bye] < 3 ? t('startsFoot') : g[S.A] === g[S.B] ? t('goodnightTie') : t('signOffFoot', esc(bye), g[bye]);
     return frame(t('startsKicker'),
       `<div class="big">${count(c.starts[w])}</div><div class="line">${t('startsLine', esc(w), esc(l), c.starts[l])}</div>`,
-      foot);
+      foot, decor('b'));
   } },
 
   { id: 'night', pal: 'cobalt', skip: (S) => !S.late, render: (S) => {
@@ -106,18 +148,23 @@ export const SLIDES = [
 
   { id: 'carried', pal: 'plum', skip: (S) => !S.carried, render: (S) => frame(t('carriedKicker'),
     `<div class="big">${count(S.carried)}</div><div class="line">${t('carriedLine')}</div>`,
-    t('carriedFoot', Math.max(1, Math.round((S.carried / S.days) * 100)))) },
+    t('carriedFoot', Math.max(1, Math.round((S.carried / S.days) * 100))), decor('c')) },
 
   { id: 'streak', pal: 'mint', render: (S) => frame(t('streak'),
     `<div class="big">${count(S.streak)}</div><div class="line">${t('streakLine')}</div>
-     <div class="mid streak-range">${S.streakNow ? t('streakToday', fmtDate(S.streakStart)) : fmtRange(S.streakStart, S.streakEnd)}</div>`,
+     <div class="mid streak-range">${S.streakNow ? t('streakToday', fmtDate(S.streakStart)) : fmtRange(S.streakStart, S.streakEnd)}</div>
+     ${streakCal(S)}`,
     t('streakVibe', S.streak, S.streakNow)) },
 
   { id: 'emoji', pal: 'lemon', skip: (S) => !S.emo[S.A].length && !S.emo[S.B].length, render: (S) => frame(t('emojiKicker'),
     `<div class="mid">${t('tenFaces')}</div>
      <div class="line">${t('emojiDiff', { ...S.emoVs, hi: esc(S.emoVs.hi), lo: esc(S.emoVs.lo) }, !!S.pace?.past)}</div>
-     <div class="emo">${[S.A, S.B].map((p) => `<div>${esc(p)}<div class="e">${
-      S.emo[p].map((e, i) => `<span class="ec"><i>${e}</i><b>${compact(S.emoN[p][i])}</b></span>`).join('') || '—'}</div></div>`).join('')}</div>`,
+     <div class="emo">${(() => {
+      // Stickers: sized by count against the biggest of both, tilted a little each.
+      const max = Math.max(1, ...S.emoN[S.A], ...S.emoN[S.B]), tilt = [-10, 8, -5, 12, -8];
+      return [S.A, S.B].map((p, side) => `<div>${esc(p)}<div class="e">${
+        S.emo[p].map((e, i) => `<span class="ec" style="--s:${Math.round(22 + 20 * (S.emoN[p][i] / max))}px;--r:${side ? -tilt[i] : tilt[i]}deg;--i:${i * 2 + side}"><i>${asEmoji(e)}</i><b>${compact(S.emoN[p][i])}</b></span>`).join('') || '—'}</div></div>`).join('');
+    })()}</div>`,
     '') },
 
   { id: 'reply', pal: 'pink', render: (S) => {
@@ -128,7 +175,8 @@ export const SLIDES = [
     const slow = fast === S.A ? S.B : S.A;
     return frame(t('replyKicker'),
       `<div class="mid">${t('repliesFaster', esc(fast))}</div>
-       <div class="vs"><div><span>${esc(S.A)}</span><span>${A.within1}%</span></div><div><span>${esc(S.B)}</span><span>${B.within1}%</span></div></div>
+       <div class="lanes">${[fast, slow].map((p) => `<div class="lane"><div class="lane-who"><span>${esc(p)}</span><b>${r[p].within1}%</b></div><div class="dots">${
+         Array.from({ length: 100 }, (_, i) => `<i${i < r[p].within1 ? ` class="on" style="--i:${i}"` : ''}></i>`).join('')}</div></div>`).join('')}</div>
        <div class="line">${t('replyLine', esc(fast), r[fast].within1, formatReply(r[fast].mean, r.precise), esc(slow), r[slow].slow)}</div>`,
       t('replyFoot'));
   } },
@@ -137,22 +185,22 @@ export const SLIDES = [
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B;
     return frame(t('apologies'),
       `<div class="mid">${t('saidSorry', esc(w), S.sorry[w])}</div><div class="line">${S.sorryFirst[w] ? t('firstSorry', esc(S.sorryFirst[w].text.slice(0, 70))) : t('noSorry')}</div>`,
-      `${esc(S.A)} ${S.sorry[S.A]} · ${esc(S.B)} ${S.sorry[S.B]}`);
+      `${esc(S.A)} ${S.sorry[S.A]} · ${esc(S.B)} ${S.sorry[S.B]}`, decor('a'));
   } },
 
   { id: 'love', pal: 'tang', skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => frame(t('loveKicker'),
     `<div class="big">${count(S.love[S.A] + S.love[S.B])}</div><div class="line">${t('loveLine', esc(S.A), S.love[S.A], esc(S.B), S.love[S.B])}</div>`,
-    t('loveFoot')) },
+    t('loveFoot'), decor('b')) },
 
   { id: 'words', pal: 'mint', skip: (S) => !S.words[S.A].length && !S.words[S.B].length, render: (S) => frame(t('vocab'),
     `<div class="mid">${t('yourWords')}</div>
-     <div class="wcols">${[S.A, S.B].map((p) => `<div><div class="wname">${esc(p)}</div><div class="words">${S.words[p].map((w) => `<span>${esc(w)}</span>`).join('') || '—'}</div></div>`).join('')}</div>`,
+     <div class="wcols">${[S.A, S.B].map((p, side) => `<div><div class="wname">${esc(p)}</div><div class="words ${side ? 'wb' : 'wa'}">${S.words[p].map((w, i) => `<span style="--i:${i * 2 + side}">${esc(w)}</span>`).join('') || '—'}</div></div>`).join('')}</div>`,
     t('wordsFoot')) },
 
   { id: 'busy', pal: 'cobalt', render: (S) => frame(t('loudest'),
     `<div class="mid">${fmtDay(S.busy)}</div><div class="big" style="margin-top:10px">${count(S.busyN)}</div><div class="line">${t('loudLine')}</div>
      <button type="button" class="slide-act" data-act="chat">${t('chatButton')}</button>`,
-    t('stillWriting', nf(S.total))) },
+    t(S.pace?.past ? 'allWritten' : 'stillWriting', nf(S.total)), decor('c')) },
 ];
 
 export const slidesFor = (S) => SLIDES.filter((s) => !s.skip?.(S));

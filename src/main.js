@@ -11,7 +11,7 @@ import './style.css';
 import { parse } from './parser.js';
 import { stats } from './stats.js';
 import { createPlayer } from './player.js';
-import { closingSlide, PALETTES, slidesFor } from './slides.js';
+import { closingSlide, paint, slidesFor } from './slides.js';
 import { makeSample } from './sample.js';
 import { esc, fmtDay, nf } from './format.js';
 import { dayMessages, guessMe, renderChat } from './chat.js';
@@ -57,12 +57,12 @@ const summaryLine = (s) => t('loaded', nf(s.total), esc(s.A), esc(s.B), s.days) 
 function renderGallery() {
   const list = slideList();
   gallery.innerHTML = list.map((slide, i) => {
-    const [bg, fg] = PALETTES[slide.pal];
     let html;
     try { html = slide.render(current); } catch { html = `<div class="k">${t('oops')}</div><div class="mid">${t('noData')}</div><div></div>`; }
-    return `<figure class="tile"><div class="tile-frame"><div class="card" style="background:${bg};color:${fg}">${html}</div></div>`
+    return `<figure class="tile"><div class="tile-frame"><div class="card" data-pal="${slide.pal}">${html}</div></div>`
       + `<button class="btn" type="button" data-save="${i}">${esc(t('saveSlide'))}</button></figure>`;
   }).join('');
+  gallery.querySelectorAll('.card[data-pal]').forEach((c) => paint(c, c.dataset.pal));
 }
 
 // Stats for a range, into the story player and the gallery. False when the range is too thin.

@@ -1,7 +1,7 @@
 // Story player: progress bars, tap or swipe left/right, hold to pause, arrow keys,
 // space to pause, auto-advance, and an entrance animation per slide. With onEnd, moving past the
 // last slide calls it instead of looping back to the first.
-import { PALETTES } from './slides.js';
+import { paint } from './slides.js';
 import { nf } from './format.js';
 import { t } from './i18n.js';
 
@@ -19,13 +19,16 @@ export function createPlayer({ screen, card, bars, pauseButton, onEnd = null }) 
   const syncPause = () => { pauseButton.textContent = paused ? t('play') : t('pause'); };
   syncPause();
 
+  // Before each slide's content, a short "typing…" beat, borrowed from the chat itself.
+  const TYPING_MS = 550;
+
   function countUp() {
     if (reduceMotion) return;
     for (const el of card.querySelectorAll('[data-count]')) {
       const target = +el.dataset.count, suffix = el.dataset.suffix || '', dec = +(el.dataset.dec || 0);
-      const start = performance.now();
+      const start = performance.now() + TYPING_MS;
       const step = (now) => {
-        const p = Math.min(1, (now - start) / COUNT_MS);
+        const p = Math.max(0, Math.min(1, (now - start) / COUNT_MS));
         const eased = 1 - Math.pow(1 - p, 3);
         el.textContent = (dec ? (target * eased).toFixed(dec) : nf(Math.round(target * eased))) + suffix;
         if (p < 1 && el.isConnected) requestAnimationFrame(step);
@@ -39,16 +42,15 @@ export function createPlayer({ screen, card, bars, pauseButton, onEnd = null }) 
     elapsed = 0;
     t0 = performance.now();
     const slide = slides[idx];
-    const [bg, fg] = PALETTES[slide.pal];
-    card.style.background = bg;
-    card.style.color = fg;
-    screen.style.color = fg; // controls laid over the slide take its colour
+    paint(card, slide.pal);
+    screen.style.color = card.style.color; // controls laid over the slide take its colour
     try {
       card.innerHTML = slide.render(stats);
     } catch (err) {
       console.error(`[our-wrapped] slide "${slide.id}" failed`, err);
       card.innerHTML = `<div class="k">${t('oops')}</div><div class="mid">${t('noData')}</div><div></div>`;
     }
+    if (!reduceMotion) card.insertAdjacentHTML('beforeend', '<div class="typing-in" aria-hidden="true"><span class="typing"><i></i><i></i><i></i></span></div>');
     card.classList.remove('enter');
     void card.offsetWidth; // restart the CSS entrance
     card.classList.add('enter');

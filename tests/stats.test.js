@@ -337,7 +337,12 @@ describe('emoji counts', () => {
 
   it('puts the count under each emoji on the slide', () => {
     const S = stats(parse(['1/1/26, 10:00 - A: 😭😭😭', ...Array(10).fill('1/1/26, 10:02 - B: ok')].join('\n')));
-    expect(SLIDES.find((x) => x.id === 'emoji').render(S)).toMatch(/<i>😭<\/i><b>3<\/b>/);
+    expect(SLIDES.find((x) => x.id === 'emoji').render(S)).toMatch(/<i>😭\uFE0F?<\/i><b>3<\/b>/);
+  });
+
+  it('draws a lone heart as a colour emoji, not a black text heart', () => {
+    const S = stats(parse(['1/1/26, 10:00 - A: ❤️❤️', ...Array(10).fill('1/1/26, 10:02 - B: ok')].join('\n')));
+    expect(SLIDES.find((x) => x.id === 'emoji').render(S)).toContain('<i>❤\uFE0F</i>');
   });
 
   it('compares how often each uses emoji, per message sent', () => {
@@ -368,6 +373,23 @@ describe('emoji counts', () => {
 
   it('shortens big counts so five emoji still fit a column', () => {
     expect([compact(845), compact(1000), compact(1234), compact(12345)]).toEqual(['845', '1k', '1.2k', '12k']);
+  });
+});
+
+describe('visual refresh data', () => {
+  it('keeps the next couple of messages after the first one, for the chat scene', () => {
+    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '1/1/26, 21:19 - B: hey', '1/1/26, 21:20 - B: <Media omitted>', '1/1/26, 21:22 - B: who is this', '1/1/26, 23:59 - A: me', ...Array(8).fill('2/1/26, 10:00 - A: ok')].join('\n')));
+    expect(S.firstReplies.map((m) => m.text)).toEqual(['hey', 'who is this']);
+  });
+
+  it('only keeps replies that came within the hour', () => {
+    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '1/1/26, 23:00 - B: late', ...Array(8).fill('2/1/26, 10:00 - A: ok')].join('\n')));
+    expect(S.firstReplies).toEqual([]);
+  });
+
+  it('exposes the days you talked, for the streak calendar', () => {
+    const S = stats(parse(['1/1/26, 10:00 - A: hi', '3/1/26, 10:00 - B: hi', ...Array(8).fill('3/1/26, 11:00 - A: ok')].join('\n')));
+    expect(S.dayKeys).toEqual(['2026-01-01', '2026-01-03']);
   });
 });
 
