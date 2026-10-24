@@ -154,6 +154,22 @@ export function firstTexter(msgs, people, quiet = quietHours(msgs, people)) {
   return tally;
 }
 
+// Each person's words: ones they use at least 1.5x as often as the other (as a share of
+// everything each writes, so the chattier person doesn't win every word), at least 3 times.
+// Ranked by count weighted by how much the word is theirs.
+export function signatureWords(counts, people, n = 5) {
+  const total = Object.fromEntries(people.map((p) => [p, Object.values(counts[p] || {}).reduce((a, b) => a + b, 0) || 1]));
+  return Object.fromEntries(people.map((p) => {
+    const o = people.find((x) => x !== p);
+    const scored = Object.entries(counts[p] || {}).filter(([, c]) => c >= 3).map(([w, c]) => {
+      const mine = c / total[p], theirs = o ? ((counts[o] || {})[w] || 0) / total[o] : 0;
+      const share = mine / (mine + theirs);
+      return [w, c * share, share];
+    }).filter(([, , share]) => share >= 0.6);
+    return [p, scored.sort((a, b) => b[1] - a[1]).slice(0, n).map(([w]) => w)];
+  }));
+}
+
 export function longestStreak(dayKeys) {
   const nums = dayKeys.map((k) => {
     const [y, m, d] = k.split('-').map(Number);
@@ -263,7 +279,10 @@ export function stats(all) {
   for (const m of msgs) hours[m.when.getHours()]++;
   const quiet = quietHours(msgs, pair);
 
-  const emo = { [A]: {}, [B]: {} }, words = {}, sorry = { [A]: 0, [B]: 0 }, love = { [A]: 0, [B]: 0 };
+  // Word counts live in prototype-free objects: a chat that says "constructor" must not
+  // find Object's own property there.
+  const bag = () => Object.create(null);
+  const emo = { [A]: {}, [B]: {} }, words = { [A]: bag(), [B]: bag() }, spelling = bag(), sorry = { [A]: 0, [B]: 0 }, love = { [A]: 0, [B]: 0 };
   const names = new Set(pair.join(' ').toLowerCase().split(/\s+/));
   const sorryFirst = {};
   for (const m of msgs) {
@@ -274,9 +293,16 @@ export function stats(all) {
     if (SORRY.test(m.text)) { sorry[m.who]++; sorryFirst[m.who] ??= m; }
     if (LOVE.test(m.text)) love[m.who]++;
     for (const w of m.text.toLowerCase().match(/[\p{L}']{3,}/gu) || []) {
-      if (!STOP.has(w) && !names.has(w) && !LAUGH.test(w)) words[w] = (words[w] || 0) + 1;
+      // Stretched spellings count as one word: "ohhh" and "ohhhh", "okiee" and "okie". A
+      // stretched filler ("tapiii") is still a filler, but a stretched two-letter "oh" is voice.
+      const k = w.replace(/(.)\1+/gu, '$1');
+      if (STOP.has(w) || (k.length > 2 && STOP.has(k)) || names.has(w) || LAUGH.test(w) || !words[m.who]) continue;
+      words[m.who][k] = (words[m.who][k] || 0) + 1;
+      const sp = (spelling[k] ??= bag());
+      sp[w] = (sp[w] || 0) + 1;
     }
   }
+  const spelled = (k) => Object.keys(spelling[k]).sort((a, b) => spelling[k][b] - spelling[k][a])[0];
 
   const busy = dk.reduce((b, k) => (days[k] > days[b] ? k : b), dk[0]);
   const streak = longestStreak(dk);
@@ -289,7 +315,7 @@ export function stats(all) {
     hours, peak: hours.indexOf(Math.max(...hours)),
     late: msgs.filter((m) => m.when.getHours() < 4).length,
     emo: { [A]: top(emo[A], 5), [B]: top(emo[B], 5) },
-    words: top(words, 6), sorry, love, sorryFirst,
+    words: Object.fromEntries(pair.map((p) => [p, (signatureWords(words, pair)[p] || []).map(spelled)])), sorry, love, sorryFirst,
     reply: replySpeed(msgs, pair, quiet),
     convo: convoStats(conversations(msgs, quiet), pair),
     goodnight: goodnightFirst(msgs, pair),

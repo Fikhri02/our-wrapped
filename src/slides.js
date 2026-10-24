@@ -122,12 +122,14 @@ export const SLIDES = [
     `<div class="big">${count(S.love[S.A] + S.love[S.B])}</div><div class="line">${t('loveLine', esc(S.A), S.love[S.A], esc(S.B), S.love[S.B])}</div>`,
     t('loveFoot')) },
 
-  { id: 'words', pal: 'mint', render: (S) => frame(t('vocab'),
-    `<div class="mid">${t('yourWords')}</div><div class="words">${S.words.map((w) => `<span>${esc(w)}</span>`).join('')}</div>`,
+  { id: 'words', pal: 'mint', skip: (S) => !S.words[S.A].length && !S.words[S.B].length, render: (S) => frame(t('vocab'),
+    `<div class="mid">${t('yourWords')}</div>
+     <div class="wcols">${[S.A, S.B].map((p) => `<div><div class="wname">${esc(p)}</div><div class="words">${S.words[p].map((w) => `<span>${esc(w)}</span>`).join('') || '—'}</div></div>`).join('')}</div>`,
     t('wordsFoot')) },
 
   { id: 'busy', pal: 'cobalt', render: (S) => frame(t('loudest'),
-    `<div class="mid">${fmtDay(S.busy)}</div><div class="big" style="margin-top:10px">${count(S.busyN)}</div><div class="line">${t('loudLine')}</div>`,
+    `<div class="mid">${fmtDay(S.busy)}</div><div class="big" style="margin-top:10px">${count(S.busyN)}</div><div class="line">${t('loudLine')}</div>
+     <button type="button" class="slide-act" data-act="chat">${t('chatButton')}</button>`,
     t('stillWriting', nf(S.total))) },
 ];
 

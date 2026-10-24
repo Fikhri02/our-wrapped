@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
-import { bubbles, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signOff, stats, talker } from '../src/stats.js';
+import { bubbles, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker } from '../src/stats.js';
 import { slidesFor } from '../src/slides.js';
 import { formatReply } from '../src/format.js';
 import { makeSample } from '../src/sample.js';
@@ -241,8 +241,28 @@ describe('slide content', () => {
   });
 
   it('keeps everyday Malay and English fillers out of the vocabulary', () => {
-    const S = stats(parse(Array.from({ length: 20 }, (_, i) => `1/1/26, 10:${String(i).padStart(2, '0')} - ${i % 2 ? 'A' : 'B'}: tapi kalau macam orang sebab like think said hahahahaha hehehe badminton`).join('\n')));
-    expect(S.words).toEqual(['badminton']);
+    const S = stats(parse(Array.from({ length: 20 }, (_, i) => `1/1/26, 10:${String(i).padStart(2, '0')} - ${i % 2 ? 'A: tapi kalau macam orang sebab like think said hahahahaha hehehe badminton' : 'B: tapi kalau macam orang sebab boba'}`).join('\n')));
+    expect(S.words).toEqual({ A: ['badminton'], B: ['boba'] });
+  });
+
+  it('survives words that are also built-in object names', () => {
+    const lines = Array.from({ length: 20 }, (_, i) => `1/1/26, 10:${String(i).padStart(2, '0')} - ${i % 2 ? 'A: badminton' : 'B: boba'}`);
+    lines.push('1/1/26, 11:00 - A: the constructor came today');
+    expect(stats(parse(lines.join('\n'))).words).toEqual({ A: ['badminton'], B: ['boba'] });
+  });
+
+  it('merges stretched spellings and shows the most common one', () => {
+    const said = ['ohhh', 'ohhhh', 'ohhh', 'okiee', 'okie', 'okiee', 'tapiii'];
+    const lines = Array.from({ length: 21 }, (_, i) => `1/1/26, 10:${String(i).padStart(2, '0')} - ${i % 3 ? 'A: ' + said[i % 7] : 'B: boba'}`);
+    expect(stats(parse(lines.join('\n'))).words.A).toEqual(['ohhh', 'okiee']);
+  });
+
+  it('gives each person the words they use more than the other', () => {
+    const counts = {
+      A: { badminton: 6, makan: 5, kerja: 4, nasi: 2 },
+      B: { makan: 5, boba: 4, kerja: 1, sedap: 7 }, // same 17 words in total, so makan is even
+    };
+    expect(signatureWords(counts, ['A', 'B'])).toEqual({ A: ['badminton', 'kerja'], B: ['sedap', 'boba'] });
   });
 
   it('hides slides with nothing to show', () => {

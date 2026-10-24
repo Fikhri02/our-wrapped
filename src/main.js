@@ -13,7 +13,8 @@ import { stats } from './stats.js';
 import { createPlayer } from './player.js';
 import { closingSlide, PALETTES, slidesFor } from './slides.js';
 import { makeSample } from './sample.js';
-import { esc, nf } from './format.js';
+import { esc, fmtDay, nf } from './format.js';
+import { dayMessages, guessMe, renderChat } from './chat.js';
 import { renderSlidePng, saveOrShare, shareFileName } from './share.js';
 import { filterRange, rangeOptions } from './range.js';
 import { getLang, LANGS, setLang, t } from './i18n.js';
@@ -34,7 +35,7 @@ const story = createPlayer({
   onEnd: () => leaveStory(),
 });
 
-let current = null, allMsgs = [], source = '', ranges = [], shownRange = 'all', screen = 'landing', storyFrom = 'landing';
+let current = null, currentMsgs = [], allMsgs = [], source = '', ranges = [], shownRange = 'all', screen = 'landing', storyFrom = 'landing';
 
 // The note is a draft on this device only; it never goes anywhere else.
 const DRAFT = 'our-wrapped-note';
@@ -72,6 +73,7 @@ function build(range) {
     return false;
   }
   current = { ...stats(msgs), range: range.id === 'all' ? null : range.label };
+  currentMsgs = msgs;
   rangeStatus.className = 'status';
   rangeStatus.textContent = '';
   $('pair').textContent = `${current.A} & ${current.B}`;
@@ -153,10 +155,64 @@ addEventListener('hashchange', render);
 $('sClose').addEventListener('click', leaveStory);
 $('playStory').addEventListener('click', () => go('story'));
 addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && screen === 'story') leaveStory();
+  if (e.key !== 'Escape') return;
+  if (!chat.hidden) closeChat();
+  else if (screen === 'story') leaveStory();
 });
 // Buttons on the story sit inside its tap zone: keep their taps from turning the slide.
 for (const type of ['pointerdown', 'pointerup']) $('sBar').addEventListener(type, (e) => e.stopPropagation());
+for (const type of ['pointerdown', 'pointerup', 'keydown']) {
+  $('sCard').addEventListener(type, (e) => { if (e.target.closest('[data-act]')) e.stopPropagation(); });
+}
+
+// Read that day: the loudest day as bubbles, over the story or results. It gets its own
+// history entry (same URL), so the phone's Back closes it instead of leaving the story.
+// My bubbles go on the right: a swap the user made on this device, else whoever the export
+// shows as its owner, else the bigger sender.
+const chat = $('chat'), ME_KEY = 'our-wrapped-me';
+let chatReturn = null, chatDay = [], chatMe = null;
+function pickMe(people) {
+  let saved = null;
+  try { saved = localStorage.getItem(ME_KEY); } catch { /* storage blocked */ }
+  return people.includes(saved) ? saved : guessMe(currentMsgs, people) ?? people[0];
+}
+function openChat(from) {
+  if (!current || !chat.hidden) return;
+  const people = [current.A, current.B];
+  chatDay = dayMessages(currentMsgs, current.busy, people);
+  chatMe = pickMe(people);
+  $('chatDay').textContent = fmtDay(current.busy);
+  $('chatCount').textContent = t('chatCount', nf(chatDay.length));
+  $('chatLog').innerHTML = renderChat(chatDay, chatMe);
+  chatReturn = from;
+  chat.hidden = false;
+  document.body.classList.add('locked');
+  story.setHeld(true);
+  history.pushState({ chat: true }, '', location.href);
+  $('chatLog').scrollTop = 0;
+  $('chatClose').focus();
+}
+function hideChat() {
+  if (chat.hidden) return;
+  chat.hidden = true;
+  document.body.classList.toggle('locked', screen === 'story');
+  story.setHeld(false);
+  chatReturn?.focus({ preventScroll: true });
+}
+const closeChat = () => (history.state?.chat ? history.back() : hideChat());
+addEventListener('popstate', () => { if (!history.state?.chat) hideChat(); });
+$('chatClose').addEventListener('click', closeChat);
+$('chatSwap').addEventListener('click', () => {
+  chatMe = chatMe === current.A ? current.B : current.A;
+  try { localStorage.setItem(ME_KEY, chatMe); } catch { /* ignore */ }
+  const log = $('chatLog'), top = log.scrollTop;
+  log.innerHTML = renderChat(chatDay, chatMe);
+  log.scrollTop = top;
+});
+$('sCard').addEventListener('click', (e) => {
+  const a = e.target.closest('[data-act="chat"]');
+  if (a) openChat(a);
+});
 
 let saveTimer = 0;
 for (const el of [note, signed]) {
@@ -206,6 +262,8 @@ $('sSave').addEventListener('click', (e) => {
   saveSlide(slide, s, e.currentTarget, story.setHeld);
 });
 gallery.addEventListener('click', (e) => {
+  const a = e.target.closest('[data-act="chat"]');
+  if (a) return openChat(a);
   const b = e.target.closest('[data-save]');
   if (b) saveSlide(slideList()[+b.dataset.save], current, b);
 });
