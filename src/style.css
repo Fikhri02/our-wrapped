@@ -241,7 +241,8 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card .burst { margin-top: 8px; font-size: 15px; line-height: 1.35; }
 .burst + .slide-act { margin-top: 9px; }
 .chat-mark { align-self: center; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; background: #ff4f9a; color: #1a0612; border-radius: 999px; padding: 3px 10px; margin: 16px 0 2px; }
-.chat-b.hl { box-shadow: 0 0 0 2.5px #ff4f9a; }
+/* a thin ring, and a little room around each highlighted bubble so the rings don't touch */
+.chat-b.hl { box-shadow: 0 0 0 1.5px #ff4f9a; margin-block: 3px; }
 
 /* night owls: the busiest hour's bar carries its label, above the chart */
 .hours { margin-top: 30px; }
@@ -311,10 +312,10 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card.enter .cb.r { transform-origin: right bottom; }
 
 /* streak: the calendar */
-.cal-wd, .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; max-width: 290px; }
-.cal-wd { margin-top: 16px; font-family: var(--mono); font-size: 9px; text-align: center; opacity: .6; }
-.cal { margin-top: 5px; }
-.cal i { aspect-ratio: 1; border-radius: 6px; background: color-mix(in srgb, currentColor 12%, transparent); }
+/* laid on its side: a column per week, Monday at the top, the weekday letters down the left */
+.cal { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, auto); grid-template-columns: auto repeat(var(--weeks), minmax(0, 1fr)); gap: 3px; max-width: calc(var(--weeks) * 22px + 16px); margin-inline: auto; }
+.cal span { font-family: var(--mono); font-size: 8.5px; line-height: 1; opacity: .6; align-self: center; padding-right: 3px; }
+.cal i { aspect-ratio: 1; border-radius: 4px; background: color-mix(in srgb, currentColor 12%, transparent); }
 .cal i.seen { background: color-mix(in srgb, currentColor 32%, transparent); }
 .cal i.on { background: currentColor; }
 .cal i.edge { box-shadow: 0 0 0 2px var(--tone); }
@@ -406,7 +407,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
     radial-gradient(1.5px 1.5px at 52% 9%, #fff 98%, transparent), radial-gradient(1px 1px at 66% 26%, #fff 98%, transparent),
     radial-gradient(1px 1px at 10% 34%, #fff 98%, transparent), radial-gradient(1.5px 1.5px at 44% 38%, #ffffffcc 98%, transparent),
     radial-gradient(1px 1px at 88% 40%, #fff 98%, transparent), radial-gradient(1px 1px at 26% 46%, #ffffffaa 98%, transparent),
-    linear-gradient(to bottom, #0d1872 0%, #2f4bff00 62%); }
+    linear-gradient(to bottom, #02041a 0%, #070b2e 45%, #0b104000 80%); }
 .sky::after { content: ""; position: absolute; right: 13%; top: 11%; width: 46px; height: 46px; border-radius: 50%; box-shadow: inset 13px -5px 0 0 #ffe14d; transform: rotate(-12deg); }
 
 /* no goodbyes: night turning to dawn, with the overnight scene */
@@ -456,3 +457,84 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 /* two rhythms: ping-pong turns sit closer together; a burst turn's bubbles are a touch slimmer */
 .rhythm.pingpong { gap: 8px; }
 .rhythm.burst .turn i { height: 19px; }
+
+/* ---------- one layout for every slide (after the loudest-day mockup) ----------
+   header: what this is · the brand; then the illustration, the date line, one big number,
+   a two-line statement, a remark, and a callout card at the bottom with one more fact */
+.card .ow-head { display: flex; justify-content: space-between; gap: 12px; font-family: var(--body); font-weight: 600; font-size: 11px; letter-spacing: .08em; opacity: .9; }
+.ow-brand { flex: none; opacity: .75; }
+.ow-head ~ .body { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 14px; }
+.ow-art { position: relative; flex: none; margin-bottom: 14px; }
+.ow-ctx { font-weight: 700; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; color: var(--hi); }
+.ow-hero { font-family: var(--display); font-weight: 800; font-size: min(108px, calc(400px / var(--len))); line-height: .86; letter-spacing: -.05em; margin: 2px 0 8px -3px; font-variant-numeric: tabular-nums; }
+.ow-stmt { font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1.06; letter-spacing: -.02em; text-wrap: balance; overflow-wrap: anywhere; }
+.ow-remark { font-size: 15px; line-height: 1.4; font-weight: 500; margin-top: 10px; text-wrap: pretty; }
+.ow-text .slide-act { margin-top: 10px; align-self: flex-start; }
+.ow-text { display: flex; flex-direction: column; }
+.ow-head ~ .foot { font-family: var(--body); font-size: inherit; opacity: 1; margin-top: 12px; }
+.ow-head ~ .foot:empty { display: none; }
+.ow-call { background: var(--panel); border-radius: 16px; padding: 13px 16px 14px; font-size: 14px; line-height: 1.4; font-weight: 500; text-wrap: pretty; }
+.ow-call > b { font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1; letter-spacing: -.02em; color: var(--hi); margin-right: 4px; }
+.ow-fin .fstats { margin: 0 0 10px; padding: 0 0 10px; border-top: 0; border-bottom: 1.5px solid currentColor; }
+.ow-stmt .note { font-size: inherit; }
+/* the brand is in the header now; the saved image's corner label would say it twice */
+.export-frame:has(.ow-head) .export-mark { display: none; }
+
+/* the two speech bubbles: a translucent one in the ink colour, a solid one in the tone */
+.ow-bubs { position: relative; aspect-ratio: 2.3 / 1; }
+.ow-bubs i { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 9%; padding: 0 9%; border-radius: 22px; }
+.ow-bubs i::after { content: ""; position: absolute; bottom: -15%; border-style: solid; border-color: transparent; }
+.ow-bubs s { display: block; height: 7px; border-radius: 9px; text-decoration: none; }
+.ow-bubs s:nth-child(2) { width: 78%; } .ow-bubs s:nth-child(3) { width: 88%; }
+.ow-bubs i:first-child { left: 5%; top: 3%; width: 56%; height: 62%; transform: rotate(-9deg); background: color-mix(in srgb, var(--fg) 26%, transparent); }
+.ow-bubs i:first-child::after { left: 22%; border-width: 16px 14px 0 4px; border-top-color: color-mix(in srgb, var(--fg) 26%, transparent); }
+.ow-bubs i:first-child s { background: color-mix(in srgb, var(--fg) 32%, transparent); }
+.ow-bubs i:last-child { right: 3%; top: 26%; width: 50%; height: 62%; transform: rotate(7deg); background: var(--tone); }
+.ow-bubs i:last-child::after { right: 18%; border-width: 18px 4px 0 16px; border-top-color: var(--tone); }
+.ow-bubs i:last-child s { background: var(--bg); }
+.ow-bubs em { font-style: normal; font-size: 44px; line-height: 1; text-align: center; color: var(--bg); }
+.ow-bubs-hero { aspect-ratio: 1.95 / 1; }
+.ow-bubs-hero i:first-child { width: 62%; height: 66%; }
+.ow-bubs-loud i:first-child { width: 60%; height: 58%; top: 6%; }
+.ow-bubs-loud i:last-child { width: 54%; height: 58%; top: 34%; }
+.ow-bubs-b i:first-child { left: auto; right: 5%; transform: rotate(8deg); }
+.ow-bubs-b i:first-child::after { left: auto; right: 22%; border-width: 16px 4px 0 14px; }
+.ow-bubs-b i:last-child { right: auto; left: 3%; transform: rotate(-6deg); }
+.ow-bubs-b i:last-child::after { right: auto; left: 18%; border-width: 18px 16px 0 4px; }
+.ow-bubs-a, .ow-bubs-love { aspect-ratio: 2.6 / 1; }
+.card.enter .ow-bubs i { animation: popIn .6s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .1s); transform-origin: left bottom; }
+.card.enter .ow-bubs i:last-child { animation-delay: calc(var(--wait) + .3s); transform-origin: right bottom; }
+
+/* the art each slide brings, fitted to the illustration zone */
+.ow-art > .stacks, .ow-art > .zipper, .ow-art > .rhythm, .ow-art > .lanes, .ow-art > .emo, .ow-art > .wcols, .ow-art > .overnight, .ow-art > .hours { margin-top: 0; }
+.ow-art .stack .pile { height: 150px; }
+.ow-art .stack b { font-size: 24px; }
+.ow-art .lanes { gap: 10px; }
+.ow-art .lane-who b { font-size: 20px; }
+.ow-art .hours { height: 110px; margin-top: 18px; }
+.ow-art .duo { height: 132px; margin: 0; }
+.ow-art .rhythm { gap: 7px; }
+.ow-art .rhythm.pingpong { gap: 5px; }
+.ow-art .turn i { height: 15px; }
+.ow-art .rhythm.burst .turn i { height: 12px; }
+.ow-art .scene { gap: 5px; }
+.ow-art .cb.lead { font-size: 18px; padding: 10px 13px 7px; }
+.ow-art .cb { font-size: 13.5px; padding: 7px 11px 5px; }
+.ow-sunbox { position: relative; aspect-ratio: 2.3 / 1; }
+.ow-sunbox .sun { right: 4%; top: 0; width: 44%; }
+.ow-stmt .fnames { margin: 0; }
+
+@container (max-width: 320px) {
+  .card .ow-head { font-size: 10px; }
+  .ow-head ~ .body { margin-top: 10px; }
+  .ow-art { margin-bottom: 10px; }
+  .ow-hero { font-size: min(88px, calc(330px / var(--len))); }
+  .ow-stmt { font-size: 21px; }
+  .ow-remark { font-size: 13px; margin-top: 6px; }
+  .ow-call { font-size: 12.5px; padding: 10px 13px 11px; border-radius: 13px; }
+  .ow-call > b { font-size: 22px; }
+  .ow-bubs s { height: 5px; }
+  .ow-art .stack .pile { height: 118px; }
+  .ow-art .hours { height: 84px; }
+  .ow-art .duo { height: 108px; }
+}

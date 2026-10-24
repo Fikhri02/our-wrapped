@@ -19,13 +19,27 @@ describe('the story', () => {
     ]);
   });
 
-  it('never puts more than one giant number in any three slides in a row', () => {
-    const g = SLIDES.map((s) => (s.giant ? 1 : 0));
-    for (let i = 0; i + 2 < g.length; i++) expect(g[i] + g[i + 1] + g[i + 2], SLIDES[i].id).toBeLessThanOrEqual(1);
+  it('gives every slide the same layout: a header with the brand, then the body and a callout', () => {
+    for (const s of SLIDES) {
+      const html = s.render(S);
+      expect(html, s.id).toMatch(/class="k ow-head"><span>[^<]+<\/span><span class="ow-brand">Our Wrapped<\/span>/);
+      expect(html, s.id).toMatch(/class="ow-text"/);
+    }
   });
 });
 
-describe('the last four, redesigned', () => {
+describe('the loudest day, built to the mockup', () => {
+  it('shows the date, the count, and that day\'s share of the whole chat', () => {
+    const html = render('busy');
+    expect(html).toMatch(/class="ow-ctx">\d{1,2} \w{3} \d{4}</);
+    expect(html).toMatch(/messages\.<br>In one day\./);
+    const pct = (S.busyN / S.total) * 100;
+    expect(html).toContain(`<b>${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%</b> <span>of your entire chat happened on this single day.`);
+    expect(html).toMatch(/class="ow-bubs ow-bubs-loud"/);
+  });
+});
+
+describe('the redesigned art', () => {
   it('talker: who had more to say, as two stacks of bubbles instead of a giant percentage', () => {
     const html = render('share');
     expect(html).toMatch(/had more to say/);
@@ -33,11 +47,10 @@ describe('the last four, redesigned', () => {
     expect(html).not.toMatch(/class="big"|class="tally"/);
   });
 
-  it('bubble count: two rhythms as a little chat, no giant number', () => {
+  it('bubble count: two rhythms as a little chat', () => {
     const html = render('bubble');
-    expect(html).toMatch(/Two rhythms/);
+    expect(html).toMatch(/bubbles per turn<br>from /);
     expect(html).toMatch(/class="rhythm[ "]/); // any variant
-    expect(html).not.toMatch(/class="big"/);
   });
 
   it('night owls: a night sky behind the hours', () => {
@@ -46,16 +59,15 @@ describe('the last four, redesigned', () => {
 
   it('no goodbyes: a night-to-morning scene with real times and no message text', () => {
     const html = render('carried');
-    expect(html).toMatch(/Some conversations never really ended/);
+    expect(html).toMatch(/mornings that carried<br>on from last night/);
     expect(html).toMatch(/\d{1,2}:\d{2}(am|pm)/);
-    expect(html).toMatch(/mornings picked up where last night left off/);
-    expect(html).not.toMatch(/class="big"/);
   });
 
-  it('streak: the number becomes a headline and the calendar is the picture', () => {
+  it('streak: the number with its dates above it and the calendar as the picture', () => {
     const html = render('streak');
     expect(html).toMatch(/days in a row/);
-    expect(html).not.toMatch(/class="big"/);
+    expect(html).toMatch(/class="ow-ctx"/);
+    expect(html).toMatch(/class="cal" style="--weeks:\d+"/);
   });
 
   it('reply speed: calls it even when the two are close', () => {
@@ -78,7 +90,7 @@ describe('a reveal per slide', () => {
   });
 
   it('marks the apology quote for its nudge', () => {
-    expect(render('sorry')).toMatch(/class="line nudge"/);
+    expect(render('sorry')).toMatch(/class="ow-call nudge"/);
   });
 });
 
