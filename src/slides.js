@@ -273,9 +273,9 @@ export const SLIDES = [
       kicker: t('arcKicker'),
       art: `<div class="arc">${bars}</div><div class="arc-x"><span>${t('arcStart')} · ${fmtDate(a.start)}</span><span>${t('arcNowLabel')}</span></div>`,
       ctx: `${t('arcPeak')} · ${fmtDate(a.peak.week)}`, hero: big(a.peak.perWeek), stmt: t('arcStmt'),
-      // The temperature picture sits right above the line it illustrates.
-      remark: `<img class="arc-temp" src="./temp/${a.now.temp}.webp" alt="${t(`tempAlt_${a.now.temp}`)}">`
-        + `<b>${t(`temp_${a.now.temp}`)}</b> ${t(`arc_${a.now.phase}`, { ...a.now, perWeek: nf(a.now.perWeek), peak: nf(a.peak.perWeek) })}`,
+      // The temperature picture sits beside the line it illustrates.
+      remark: `<span class="arc-now"><img class="arc-temp" src="./temp/${a.now.temp}.webp" alt="${t(`tempAlt_${a.now.temp}`)}">`
+        + `<span><b>${t(`temp_${a.now.temp}`)}</b> ${t(`arc_${a.now.phase}`, { ...a.now, perWeek: nf(a.now.perWeek), peak: nf(a.peak.perWeek) })}</span></span>`,
       callout: callout('', a.drop ? t('arcDrop', fmtRange(a.drop.from, a.drop.to), a.drop.weeks) : t('arcEven')),
     });
   } },

@@ -512,6 +512,8 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .card.enter .tp-stack { transform-origin: bottom; animation: grow .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.25s + var(--i) * 35ms); }
 
 /* the timeline's temperature picture: a cut-out on a transparent ground */
-/* the art sits in the middle of a square with wide empty margins: crop the top and bottom of them */
-.arc-temp { display: block; width: 132px; height: 92px; object-fit: cover; margin: 0 0 6px -14px; }
+/* the temperature picture beside its line; the art sits in the middle of a square with wide
+   empty margins, so the box crops them */
+.arc-now { display: flex; align-items: center; gap: 10px; }
+.arc-temp { flex: none; width: 96px; height: 84px; object-fit: cover; margin-left: -10px; }
 .card.enter .arc-temp { animation: popIn .5s cubic-bezier(.3, 1.4, .5, 1) .6s both; }

@@ -173,13 +173,14 @@ describe('the timeline', () => {
     expect(now({ temp: 'room', phase: 'cooling', dropPct: 60, weeksSincePeak: 12 })).toMatch(/Room temperature\..*60%.*12 weeks/);
   });
 
-  it('shows the matching temperature picture right above the now line', () => {
+  it('shows the matching temperature picture beside the now line', () => {
     const word = { cold: 'Ice cold', room: 'Room temperature', hot: 'On heat' };
     for (const temp of ['cold', 'room', 'hot']) {
       const html = render('arc', { ...S, arc: { ...S.arc, now: { ...S.arc.now, temp } } });
       expect(html).toMatch(new RegExp(`<img class="arc-temp" src="\\./temp/${temp}\\.webp" alt="[^"]+"`));
       expect(html.indexOf('arc-temp')).toBeGreaterThan(html.indexOf('ow-stmt'));
       expect(html.indexOf('arc-temp')).toBeLessThan(html.indexOf(word[temp]));
+      expect(html).toMatch(/class="arc-now"><img class="arc-temp"[^>]*><span>/); // side by side: picture, then the line
     }
   });
 
