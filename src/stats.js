@@ -170,6 +170,23 @@ export function signatureWords(counts, people, n = 5) {
   }));
 }
 
+// How you talk, on two axes: back-and-forths on a day you talk (a change of sender, so one
+// thought split into five bubbles still counts once) and the share of days you talk at all.
+// A chat under a month old is "new": how often doesn't mean much yet. A chat whose latest
+// message is over a week old is "past", and gets talked about in the past tense.
+export function pace(msgs, dayKeys, now = new Date()) {
+  let turns = msgs.length ? 1 : 0;
+  for (let j = 1; j < msgs.length; j++) if (msgs[j].who !== msgs[j - 1].who) turns++;
+  const num = (k) => { const [y, m, d] = k.split('-').map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
+  const span = dayKeys.length ? num(dayKeys[dayKeys.length - 1]) - num(dayKeys[0]) + 1 : 0;
+  const perDay = dayKeys.length ? Math.round(turns / dayKeys.length) : 0;
+  const share = span ? Math.round((dayKeys.length / span) * 100) : 0;
+  const often = share >= 50, alot = perDay >= 30;
+  const kind = often ? (alot ? 'inseparable' : 'steady') : (alot ? 'bursts' : 'occasional');
+  const past = msgs.length > 0 && now - msgs[msgs.length - 1].when > 7 * 864e5;
+  return { turns: perDay, share, span, kind, isNew: span < 30, past };
+}
+
 export function longestStreak(dayKeys) {
   const nums = dayKeys.map((k) => {
     const [y, m, d] = k.split('-').map(Number);
@@ -233,37 +250,64 @@ export function talker(msgs, people) {
   return { words, doubles, avg };
 }
 
+// Who plays which part. The talker sends more messages (a split wider than 53/47), the
+// storyteller writes longer ones, the chaser double texts more per message sent, so the busier
+// sender doesn't win it on volume alone. Within 10% of each other, the role is shared (null).
+export function talkRoles(count, talk, people) {
+  const [A, B] = people;
+  const lead = (x, y) => (x === y ? null : x >= y * 1.1 ? A : y >= x * 1.1 ? B : null);
+  const ca = count[A] || 0, cb = count[B] || 0, pa = ca / (ca + cb || 1);
+  return {
+    talker: Math.abs(pa - 0.5) < 0.03 ? null : pa > 0.5 ? A : B,
+    storyteller: lead(talk.avg[A] || 0, talk.avg[B] || 0),
+    chaser: lead(ca ? (talk.doubles[A] || 0) / ca : 0, cb ? (talk.doubles[B] || 0) / cb : 0),
+  };
+}
+
 // Bubbles per turn: a turn is a run of messages from one person with no reply in between,
 // broken by a 10+ minute gap (that counts as a double text, not the same burst). Media
 // is left out, so a photo dump doesn't read as a long burst.
+// The featured burst: a rant (8+ messages and 60+ words: a story, venting, thinking out loud)
+// if there is one, the wordiest; else the longest, a spree at 8+ (excited short reactions) or
+// normal below that. 99% of real turns are 10 messages or fewer; a typical one is 2.
+const RANT_MSGS = 8, RANT_WORDS = 60;
 export function bubbles(msgs, people) {
   const turns = Object.fromEntries(people.map((p) => [p, []]));
-  let longest = { who: null, n: 0, when: null };
+  let longest = { who: null, n: 0, when: null }, rant = null, top = null;
   let run = null;
   const close = () => {
     if (!run || !turns[run.who]) return;
     turns[run.who].push(run.n);
-    if (run.n > longest.n) longest = { who: run.who, n: run.n, when: run.start };
+    if (run.n > longest.n) { longest = { who: run.who, n: run.n, when: run.start }; top = run; }
+    if (run.n >= RANT_MSGS && run.words >= RANT_WORDS && (!rant || run.words > rant.words)) rant = run;
   };
   for (const m of msgs) {
     if (m.media) continue;
+    const words = (m.text.match(/\S+/g) || []).length;
     if (run && run.who === m.who && (m.when - run.last) / 6e4 < 10) {
       run.n++;
+      run.words += words;
       run.last = m.when;
+      run.lastMsg = m;
     } else {
       close();
-      run = { who: m.who, n: 1, start: m.when, last: m.when };
+      run = { who: m.who, n: 1, words, start: m.when, last: m.when, firstMsg: m, lastMsg: m };
     }
   }
   close();
+  const pick = rant || top;
+  const feature = pick && {
+    kind: rant ? 'rant' : pick.n >= RANT_MSGS ? 'spree' : 'normal',
+    who: pick.who, n: pick.n, words: pick.words, start: pick.start, end: pick.last, first: pick.firstMsg, last: pick.lastMsg,
+  };
   const avg = Object.fromEntries(people.map((p) => {
     const t = turns[p];
     return [p, t.length ? t.reduce((a, b) => a + b, 0) / t.length : 0];
   }));
-  return { avg, longest };
+  return { avg, longest, feature };
 }
 
-export function stats(all) {
+export function stats(all, now = new Date()) {
   const count = {};
   for (const m of all) count[m.who] = (count[m.who] || 0) + 1;
   const people = top(count, 2);
@@ -309,6 +353,7 @@ export function stats(all) {
 
   return {
     A, B, group: Object.keys(count).length > 2, total: msgs.length, count,
+    pace: pace(msgs, dk, now),
     days: dk.length, first: msgs.find((m) => !m.media && !m.deleted && m.text.trim()) || msgs[0], firstDate: msgs[0].when,
     streak: streak.days, streakEnd: streak.end,
     ft: firstTexter(msgs, pair, quiet),
@@ -320,7 +365,7 @@ export function stats(all) {
     convo: convoStats(conversations(msgs, quiet), pair),
     goodnight: goodnightFirst(msgs, pair),
     carried: carriedNights(msgs, quiet),
-    talk: talker(msgs, pair),
+    talk: (() => { const tk = talker(msgs, pair); return { ...tk, roles: talkRoles(count, tk, pair) }; })(),
     bubbles: bubbles(msgs, pair),
     busy, busyN: days[busy],
     media: msgs.filter((m) => m.media).length,
