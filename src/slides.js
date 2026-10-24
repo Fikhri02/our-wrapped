@@ -273,8 +273,8 @@ export const SLIDES = [
       kicker: t('arcKicker'),
       art: `<div class="arc">${bars}</div><div class="arc-x"><span>${t('arcStart')} · ${fmtDate(a.start)}</span><span>${t('arcNowLabel')}</span></div>`,
       ctx: `${t('arcPeak')} · ${fmtDate(a.peak.week)}`, hero: big(a.peak.perWeek), stmt: t('arcStmt'),
-      remark: t(`arc_${a.now.phase}`, nf(a.now.perWeek)),
-      callout: callout('', a.drop ? t('arcDrop', fmtRange(a.drop.from, a.drop.to)) : t('arcEven')),
+      remark: `<b>${t(`temp_${a.now.temp}`)}</b> ${t(`arc_${a.now.phase}`, { ...a.now, perWeek: nf(a.now.perWeek), peak: nf(a.peak.perWeek) })}`,
+      callout: callout('', a.drop ? t('arcDrop', fmtRange(a.drop.from, a.drop.to), a.drop.weeks) : t('arcEven')),
     });
   } },
 

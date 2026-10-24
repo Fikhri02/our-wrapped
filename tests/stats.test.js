@@ -606,6 +606,23 @@ describe('arc: how the chat rose and settled', () => {
     expect(a.drop.from).toEqual(start);
   });
 
+  it('takes the temperature: on heat, room temperature, ice cold', () => {
+    expect(arc(chat([20, 30, 40, 60, 80, 90, 100, 100, 100, 100, 100, 100]), after(12)).now.temp).toBe('hot');
+    expect(arc(chat([100, 100, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50]), after(12)).now.temp).toBe('hot');
+    expect(arc(chat([100, 100, 100, 100, 100, 100, 100, 100, 50, 30, 20, 20]), after(12)).now.temp).toBe('room');
+    expect(arc(chat([300, 100, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30]), after(12)).now.temp).toBe('cold');
+    expect(arc(chat([300, 250, 120, 60, 20, 10, 5, 2, 1, 1]), after(40)).now.temp).toBe('cold'); // gone quiet
+  });
+
+  it('says how long it has been cooling, and by how much', () => {
+    const a = arc(chat([100, 100, 100, 100, 100, 100, 100, 100, 50, 30, 20, 20]), after(12));
+    expect(a.now.dropPct).toBe(70); // 30 a week now against a peak of 100
+    expect(a.now.weeksSincePeak).toBe(4); // the four-week average last peaked in week 7
+    const q = arc(chat([300, 250, 120, 60, 20, 10, 5, 2, 1, 1]), after(40));
+    expect(q.now.silentDays).toBeGreaterThanOrEqual(30 * 7 - 70);
+    expect(q.drop.weeks).toBeGreaterThan(0);
+  });
+
   it('has no cool-down when the pace never fell by a quarter of the peak', () => {
     expect(arc(chat([100, 100, 90, 95, 100, 85, 90, 100, 95, 100, 90, 100]), after(12)).drop).toBe(null);
   });

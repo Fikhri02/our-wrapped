@@ -166,6 +166,17 @@ describe('the timeline', () => {
     expect(render('arc', { ...S, arc: { ...S.arc, drop: null } })).toMatch(/kept a steady pace/);
   });
 
+  it('leads the now line with the temperature and a line with teeth', () => {
+    const now = (o) => render('arc', { ...S, arc: { ...S.arc, now: { ...S.arc.now, ...o } } });
+    expect(now({ temp: 'cold', phase: 'quiet', silentDays: 119 })).toMatch(/Ice cold\..*119 days ago.*museum/);
+    expect(now({ temp: 'hot', phase: 'peak', perWeek: 412 })).toMatch(/On heat\..*412 a week/);
+    expect(now({ temp: 'room', phase: 'cooling', dropPct: 60, weeksSincePeak: 12 })).toMatch(/Room temperature\..*60%.*12 weeks/);
+  });
+
+  it('says how long the biggest cool-down lasted', () => {
+    expect(render('arc', { ...S, arc: { ...S.arc, drop: { from: new Date(2025, 10, 10), to: new Date(2026, 1, 23), weeks: 15 } } })).toMatch(/15 weeks/);
+  });
+
   it('skips a chat too short to have an arc', () => {
     expect(slidesFor({ ...S, arc: { ...S.arc, eligible: false } }).map((x) => x.id)).not.toContain('arc');
   });
