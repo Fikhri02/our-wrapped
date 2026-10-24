@@ -15,6 +15,13 @@ export const MONTHS_SHORT = {
   ms: ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogo', 'Sep', 'Okt', 'Nov', 'Dis'],
 };
 
+// Emoji per 100 messages across the whole chat, both people together.
+const emojiRate = (v) => {
+  const ppl = Object.keys(v.total);
+  const msgs = ppl.reduce((a, x) => a + (v.count?.[x] || 0), 0);
+  return msgs ? (ppl.reduce((a, x) => a + v.total[x], 0) / msgs) * 100 : 0;
+};
+
 export const STRINGS = {
   en: {
     // page
@@ -118,7 +125,21 @@ export const STRINGS = {
     streakToday: (d) => `${d} – today`,
     emojiKicker: 'Your emoji, side by side',
     tenFaces: 'Two people, ten faces.',
-    emojiFoot: 'Ranked by count, left to right',
+    // How differently the two use emoji (per message sent), in plain words, plus a shared
+    // favourite. When it's close, the chat as a whole decides: 10+ emoji per 100 messages,
+    // counting both of you, is emoji-happy.
+    emojiDiff: (v, p) => {
+      const times = ['', '', 'twice', 'three times', 'four times'][Math.floor(v.ratio + 0.25)];
+      const big = () => emojiRate(v) >= 10;
+      const line = v.total[v.lo] === 0 ? `${v.lo} ${p ? 'never sent' : 'has never sent'} a single emoji. Not one.`
+        : v.ratio >= 4.75 ? `${v.hi} basically ${p ? 'talked' : 'talks'} in emoji, about ${Math.round(v.ratio)} times as often as ${v.lo}.`
+        : v.ratio >= 2 ? `${v.hi} ${p ? 'dropped' : 'drops'} emoji ${times} as often as ${v.lo}. ${v.lo} ${p ? 'preferred' : 'prefers'} words.`
+        : v.ratio >= 1.5 ? `${v.hi} ${p ? 'was' : 'is'} the emoji fan here. ${v.lo} ${p ? 'was' : 'is'} a bit more stingy.`
+        : v.ratio >= 1.25 ? `${v.hi} ${p ? 'snuck' : 'sneaks'} in a few more emoji than ${v.lo}.`
+        : big() ? `You two ${p ? 'were' : 'are'} equally emoji-happy.`
+        : `Neither of you ${p ? 'was' : 'is'} big on emoji.`;
+      return v.fav ? `${line} You both ${p ? 'couldn\'t' : 'can\'t'} stop using ${v.fav}.` : line;
+    },
     replyKicker: 'Reply speed',
     repliesFaster: (f) => `${f} replies faster.`,
     replyLine: (f, p, avg, s, n) => `${f} replies within a minute ${p}% of the time, ${avg} on average. ${s} took an hour or more ${n} times.`,
@@ -251,7 +272,18 @@ export const STRINGS = {
     streakToday: (d) => `${d} – hari ini`,
     emojiKicker: 'Emoji korang, sebelah-menyebelah',
     tenFaces: 'Dua orang, sepuluh muka.',
-    emojiFoot: 'Disusun ikut kekerapan, kiri ke kanan',
+    emojiDiff: (v) => {
+      const kali = ['', '', 'dua', 'tiga', 'empat'][Math.floor(v.ratio + 0.25)];
+      const big = () => emojiRate(v) >= 10;
+      const line = v.total[v.lo] === 0 ? `${v.lo} tak pernah hantar emoji langsung. Satu pun takde.`
+        : v.ratio >= 4.75 ? `${v.hi} macam bercakap guna emoji je, lebih kurang ${Math.round(v.ratio)} kali lebih kerap dari ${v.lo}.`
+        : v.ratio >= 2 ? `${v.hi} guna emoji ${kali} kali lebih kerap dari ${v.lo}. ${v.lo} lebih suka guna perkataan.`
+        : v.ratio >= 1.5 ? `${v.hi} memang kaki emoji. ${v.lo} kedekut sikit.`
+        : v.ratio >= 1.25 ? `${v.hi} selit emoji lebih sikit dari ${v.lo}.`
+        : big() ? 'Korang dua-dua sama gila emoji.'
+        : 'Dua-dua tak minat sangat emoji.';
+      return v.fav ? `${line} Dua-dua tak boleh hidup tanpa ${v.fav}.` : line;
+    },
     replyKicker: 'Laju balas',
     repliesFaster: (f) => `${f} balas lebih laju.`,
     replyLine: (f, p, avg, s, n) => `${f} balas dalam seminit, ${p}% daripada masa, purata ${avg}. ${s} ambil sejam atau lebih sebanyak ${n} kali.`,

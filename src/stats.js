@@ -265,6 +265,18 @@ export function talkRoles(count, talk, people) {
   };
 }
 
+// Who uses emoji more, per message each sends (so the chattier one doesn't win on volume),
+// how many times more, and a favourite the two share.
+export function emojiVs(emo, count, people) {
+  const [A, B] = people;
+  const total = Object.fromEntries(people.map((p) => [p, Object.values(emo[p] || {}).reduce((a, b) => a + b, 0)]));
+  const rate = (p) => total[p] / (count[p] || 1);
+  const hi = rate(A) >= rate(B) ? A : B, lo = hi === A ? B : A;
+  const ratio = rate(lo) ? rate(hi) / rate(lo) : Infinity;
+  const fav = (p) => Object.keys(emo[p] || {}).sort((a, b) => emo[p][b] - emo[p][a])[0];
+  return { hi, lo, ratio, total, count: { [A]: count[A] || 0, [B]: count[B] || 0 }, fav: fav(A) && fav(A) === fav(B) ? fav(A) : null };
+}
+
 // Bubbles per turn: a turn is a run of messages from one person with no reply in between,
 // broken by a 10+ minute gap (that counts as a double text, not the same burst). Media,
 // deleted and blank messages are left out, so a photo dump doesn't read as a long burst.
@@ -367,6 +379,8 @@ export function stats(all, now = new Date()) {
     hours, peak: hours.indexOf(Math.max(...hours)),
     late: msgs.filter((m) => m.when.getHours() < 4).length,
     emo: { [A]: top(emo[A], 5), [B]: top(emo[B], 5) },
+    emoN: { [A]: top(emo[A], 5).map((e) => emo[A][e]), [B]: top(emo[B], 5).map((e) => emo[B][e]) },
+    emoVs: emojiVs(emo, count, pair),
     words: Object.fromEntries(pair.map((p) => [p, (signatureWords(words, pair)[p] || []).map(spelled)])), sorry, love, sorryFirst,
     reply: replySpeed(msgs, pair, quiet),
     convo: convoStats(conversations(msgs, quiet), pair),

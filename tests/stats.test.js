@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
 import { bubbles, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker, talkRoles } from '../src/stats.js';
 import { setLang, t } from '../src/i18n.js';
-import { slidesFor } from '../src/slides.js';
-import { fmtRange, formatReply } from '../src/format.js';
+import { SLIDES, slidesFor } from '../src/slides.js';
+import { compact, fmtRange, formatReply } from '../src/format.js';
 import { makeSample } from '../src/sample.js';
 
 describe('stats helpers', () => {
@@ -324,6 +324,50 @@ describe('talker roles', () => {
     expect(t('rolesLine', { talker: 'A', storyteller: 'A', chaser: 'A' }, 'A', 'B', false)).toBe('A is the talker, the storyteller and the chaser. B gets a word in.');
     expect(t('rolesLine', { talker: null, storyteller: null, chaser: null }, 'A', 'B', false)).toBe('Evenly matched on every count.');
     expect(t('rolesLine', { talker: 'B', storyteller: 'A', chaser: null }, 'A', 'B', true)).toBe('B was the talker. A was the storyteller. You both texted again about as often.');
+  });
+});
+
+describe('emoji counts', () => {
+  it('counts each top emoji, in the same order as the list', () => {
+    const S = stats(parse(['1/1/26, 10:00 - A: 😭😭😭 🥰', '1/1/26, 10:01 - B: 😂', ...Array(10).fill('1/1/26, 10:02 - B: ok')].join('\n')));
+    expect(S.emo.A).toEqual(['😭', '🥰']);
+    expect(S.emoN.A).toEqual([3, 1]);
+    expect(S.emoN.B).toEqual([1]);
+  });
+
+  it('puts the count under each emoji on the slide', () => {
+    const S = stats(parse(['1/1/26, 10:00 - A: 😭😭😭', ...Array(10).fill('1/1/26, 10:02 - B: ok')].join('\n')));
+    expect(SLIDES.find((x) => x.id === 'emoji').render(S)).toMatch(/<i>😭<\/i><b>3<\/b>/);
+  });
+
+  it('compares how often each uses emoji, per message sent', () => {
+    const lines = [...Array(10).fill('1/1/26, 10:00 - A: hi 😭😭'), ...Array(10).fill('1/1/26, 10:01 - B: hi'), ...Array(5).fill('1/1/26, 10:02 - B: 😭')];
+    const S = stats(parse(lines.join('\n')), new Date(2026, 0, 2));
+    expect(S.emoVs).toMatchObject({ hi: 'A', lo: 'B', fav: '😭' });
+    expect(S.emoVs.ratio).toBeCloseTo((20 / 10) / (5 / 15));
+    setLang('en');
+    expect(t('emojiDiff', S.emoVs, false)).toBe('A basically talks in emoji, about 6 times as often as B. You both can\'t stop using 😭.');
+  });
+
+  it('describes the difference in plain, fun words', () => {
+    setLang('en');
+    // A sends 30 emoji in 100 messages; B's rate is set by the ratio.
+    const vs = (ratio, totLo = 5, fav = null, count = 100) => ({ hi: 'A', lo: 'B', ratio, total: { A: 30, B: totLo }, count: { A: count, B: count }, fav });
+    expect(t('emojiDiff', vs(2.5), false)).toBe('A drops emoji twice as often as B. B prefers words.');
+    expect(t('emojiDiff', vs(2.9), true)).toBe('A dropped emoji three times as often as B. B preferred words.');
+    expect(t('emojiDiff', vs(1.7), false)).toBe('A is the emoji fan here. B is a bit more stingy.');
+    expect(t('emojiDiff', vs(1.3), true)).toBe('A snuck in a few more emoji than B.');
+    expect(t('emojiDiff', vs(1.1, 28), false)).toBe('You two are equally emoji-happy.');
+    expect(t('emojiDiff', vs(1.1, 5, null, 1000), false)).toBe('Neither of you is big on emoji.');
+    // Close, and judged on the whole chat: 22 emoji over 200 messages is 11 per 100.
+    expect(t('emojiDiff', { hi: 'A', lo: 'B', ratio: 1.2, total: { A: 12, B: 10 }, count: { A: 100, B: 100 }, fav: null }, false)).toBe('You two are equally emoji-happy.');
+    expect(t('emojiDiff', { hi: 'A', lo: 'B', ratio: 1.2, total: { A: 12, B: 10 }, count: { A: 150, B: 150 }, fav: null }, false)).toBe('Neither of you is big on emoji.');
+    expect(t('emojiDiff', vs(Infinity, 0), false)).toBe('B has never sent a single emoji. Not one.');
+    expect(t('emojiDiff', vs(1.1, 28, '😭'), true)).toBe('You two were equally emoji-happy. You both couldn\'t stop using 😭.');
+  });
+
+  it('shortens big counts so five emoji still fit a column', () => {
+    expect([compact(845), compact(1000), compact(1234), compact(12345)]).toEqual(['845', '1k', '1.2k', '12k']);
   });
 });
 
