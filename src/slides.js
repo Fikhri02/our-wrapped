@@ -280,22 +280,27 @@ export const SLIDES = [
     });
   } },
 
-  // The comebacks: the chat as a strip of active stretches, a gap for every silence of two
-  // weeks or more, a mark where someone came back, and who did the coming back.
+  // The comebacks: a scoreboard of who brought the chat back, then a bar per silence of two
+  // weeks or more, as tall as it was long, coloured by who broke it. The longest is marked.
   { id: 'comebacks', accent: 'terracotta', skip: (S) => !S.comebacks?.eligible, render: (S) => {
-    const c = S.comebacks, pc = (x) => Math.round(x * 1000) / 10;
-    const strip = `<div class="cb-strip">${c.spans.map((s) => `<i class="cb-span" style="left:${pc(s.from)}%;width:${Math.max(0.6, pc(s.to - s.from))}%"></i>`).join('')}`
-      + `${c.marks.map((k) => `<b class="cb-mark ${k.who === S.A ? 'a' : 'b'}" style="left:${pc(k.at)}%"></b>`).join('')}</div>`
-      + `<div class="cb-x"><span>${fmtDate(S.firstDate)}</span><span>${fmtDate(c.end)}</span></div>`
-      + `<div class="cb-key"><span><b class="cb-dot a"></b>${esc(S.A)}</span><span><b class="cb-dot b"></b>${esc(S.B)}</span></div>`;
+    const c = S.comebacks;
     if (!c.count) {
-      return slide({ kicker: t('cbKicker'), art: strip, stmt: t('cbNever'), remark: t('cbNeverWhy'), callout: callout('', t('cbLongestGap', c.longestGap)) });
+      return slide({ kicker: t('cbKicker'), stmt: t('cbNever'), remark: t('cbNeverWhy'), callout: callout('', t('cbLongestGap', c.longestGap)) });
     }
+    // The scoreboard: the one who brought it back more gets the big circle and the solid colour.
+    const lead = c.by[S.B] > c.by[S.A] ? [S.B, S.A] : [S.A, S.B];
+    const side = (p) => (p === lead[0] ? 'a' : 'b'), first = (p) => esc(p.trim().split(/\s+/)[0]);
+    const most = Math.max(c.by[S.A], c.by[S.B], 1);
+    const who = (p) => `<div class="cmb-who ${side(p)}" style="--s:${Math.round(56 + 40 * Math.sqrt(c.by[p] / most))}px"><b>${nf(c.by[p])}</b><span>${first(p)}</span></div>`;
+    const tall = Math.max(...c.silences.map((x) => x.days)), top = c.silences.findIndex((x) => x.days === tall);
+    const bars = c.silences.map((x, i) => `<div class="cmb-col" style="--i:${i}"><em>${x.days}<small>${t('cbDays')}</small></em>`
+      + `<i class="cmb-bar ${side(x.who)}${i === top ? ' top' : ''}" style="height:${Math.max(14, Math.round((x.days / tall) * 100))}%"></i><span>${first(x.who)}</span></div>`).join('');
     // A habit is one person making 60% or more of the comebacks, at least twice.
-    const w = c.by[S.A] >= c.by[S.B] ? S.A : S.B, habit = c.count >= 2 && c.by[w] / c.count >= 0.6;
+    const w = lead[0], habit = c.count >= 2 && c.by[w] / c.count >= 0.6;
     return slide({
-      kicker: t('cbKicker'), art: strip,
-      hero: big(c.count), stmt: t('cbStmt', c.count),
+      kicker: t('cbKicker'),
+      art: `<div class="cmb-score">${who(lead[0])}${who(lead[1])}<small>${t('cbBrought')}</small></div><div class="cmb-bars">${bars}</div>`,
+      stmt: t('cbStmt', c.count),
       remark: c.count === 1 ? t('cbOne', esc(c.longest.who)) : habit ? t('cbRevived', esc(w), c.by[w] === c.count ? null : c.by[w], c.count >= 3) : t('cbTurns'),
       callout: callout('', t('cbLongest', c.longest.days, fmtDate(c.longest.from), esc(c.longest.who))),
     });

@@ -674,13 +674,22 @@ describe('comebacks: the silences and who broke them', () => {
     expect(c.longest.from).toEqual(new Date(+t0 + 10 * DAY));
   });
 
-  it('lays the chat out as active stretches and the comebacks between them', () => {
-    const msgs = days([...daily(0, 10), [30, 'B'], ...daily(31, 70)]);
-    const c = comebacks(msgs, ['A', 'B']);
-    expect(c.spans).toHaveLength(2);
-    expect(c.spans[0].from).toBe(0);
-    expect(c.spans.at(-1).to).toBe(1);
-    expect(c.marks).toEqual([{ at: c.spans[1].from, who: 'B' }]);
+  it('lists every silence in order: how long, who broke it, when it started', () => {
+    const msgs = days([...daily(0, 10), [30, 'B'], ...daily(31, 40), [55, 'A'], ...daily(56, 70)]);
+    expect(comebacks(msgs, ['A', 'B']).silences).toEqual([
+      { days: 20, who: 'B', from: new Date(+t0 + 10 * DAY) },
+      { days: 15, who: 'A', from: new Date(+t0 + 40 * DAY) },
+    ]);
+  });
+
+  it('keeps at most twelve silences, the longest ones, still in order', () => {
+    // 16 short bursts of talk with 15 silences between them, 14 to 28 days long.
+    const list = [];
+    for (let k = 0, d = 0; k < 16; k++) { list.push(...daily(d, d + 5, k % 2 ? 'A' : 'B')); d += 5 + 14 + k; }
+    const s = comebacks(days(list), ['A', 'B']).silences;
+    expect(s).toHaveLength(12);
+    expect(Math.min(...s.map((x) => x.days))).toBe(17);
+    expect(s.map((x) => +x.from)).toEqual(s.map((x) => +x.from).sort((a, b) => a - b));
   });
 
   it('says how long the longest gap was even when it never went dark', () => {

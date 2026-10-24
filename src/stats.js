@@ -403,28 +403,25 @@ export function arc(msgs, now = new Date()) {
   };
 }
 
-// The comebacks: every silence of two weeks or more, who broke it, the longest one, and the
-// chat laid out as active stretches (fractions of first-to-last message) with a mark at each
-// return. Needs eight weeks of chat, like the arc.
+// The comebacks: every silence of two weeks or more, who broke it, and the longest one. The
+// list keeps the twelve longest silences, in chat order, for the slide's bars. Needs eight
+// weeks of chat, like the arc.
 export function comebacks(msgs, pair) {
   const m = msgs.filter((x) => pair.includes(x.who));
   const first = m[0]?.when, last = m.at(-1)?.when;
   if (!first || last - first < 8 * WEEK) return { eligible: false };
-  const span = last - first, frac = (d) => (d - first) / span;
-  const by = Object.fromEntries(pair.map((p) => [p, 0])), spans = [], marks = [];
-  let start = first, longest = null, longestGap = 0;
+  const by = Object.fromEntries(pair.map((p) => [p, 0])), all = [];
+  let longest = null, longestGap = 0;
   for (let i = 1; i < m.length; i++) {
     const gap = m[i].when - m[i - 1].when, days = Math.round(gap / 864e5);
     longestGap = Math.max(longestGap, days);
     if (gap < 14 * 864e5) continue;
     by[m[i].who]++;
-    spans.push({ from: frac(start), to: frac(m[i - 1].when) });
-    start = m[i].when;
-    marks.push({ at: frac(start), who: m[i].who });
+    all.push({ days, who: m[i].who, from: m[i - 1].when });
     if (!longest || days > longest.days) longest = { days, from: m[i - 1].when, to: m[i].when, who: m[i].who };
   }
-  spans.push({ from: frac(start), to: 1 });
-  return { eligible: true, count: marks.length, by, longest, longestGap, spans, marks, end: last };
+  const keep = new Set(all.slice().sort((a, b) => b.days - a.days).slice(0, 12));
+  return { eligible: true, count: all.length, by, longest, longestGap, silences: all.filter((x) => keep.has(x)) };
 }
 
 export function stats(all, now = new Date()) {

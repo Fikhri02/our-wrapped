@@ -239,11 +239,18 @@ describe('the comebacks', () => {
     expect(html).toMatch(/9 days/);
   });
 
-  it('draws the strip with a mark at each comeback', () => {
-    const html = render('comebacks', at({ spans: [{ from: 0, to: 0.4 }, { from: 0.6, to: 1 }], marks: [{ at: 0.6, who: S.B }] }));
-    expect(html).toMatch(/class="cb-strip"/);
-    expect(html.match(/class="cb-span"/g)).toHaveLength(2);
-    expect(html.match(/class="cb-mark b"/g)).toHaveLength(1);
+  it('draws a scoreboard and a bar per silence, the longest one marked', () => {
+    const silences = [{ days: 18, who: S.A, from: new Date(2025, 5, 26) }, { days: 46, who: S.A, from: new Date(2026, 3, 29) }, { days: 23, who: S.B, from: new Date(2025, 6, 24) }];
+    const html = render('comebacks', at({ count: 3, by: { [S.A]: 2, [S.B]: 1 }, longest, silences }));
+    expect(html).toMatch(/class="cmb-score"/);
+    expect(html.match(/class="cmb-who /g)).toHaveLength(2);
+    expect(html.match(/class="cmb-bar /g)).toHaveLength(3);
+    expect(html.match(/class="cmb-bar [ab] top"/g)).toHaveLength(1);
+    expect(html).toMatch(/46<small>/);
+    expect(html).not.toMatch(/cb-strip|cb-span|cb-mark/);
+    // whoever brought it back more gets the solid colour, whichever side of the chat they're on
+    const flipped = render('comebacks', at({ count: 3, by: { [S.A]: 1, [S.B]: 2 }, longest, silences }));
+    expect(flipped).toMatch(new RegExp(`class="cmb-who a"[^>]*><b>2</b><span>${S.B.split(' ')[0]}`));
   });
 
   it('skips a chat too short for comebacks', () => {
