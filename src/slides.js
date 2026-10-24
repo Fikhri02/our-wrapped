@@ -100,8 +100,8 @@ export const SLIDES = [
     });
   } },
 
-  // The first message as a real chat: a date chip, the bubble with its time and ticks, and
-  // up to two replies from the next hour.
+  // The first message as a real chat: a date chip, the bubble with its time and ticks, up to
+  // four more messages from the opening conversation, and how long the first reply took.
   { id: 'first', accent: 'denim', typing: true, render: (S) => {
     const lead = S.first.who;
     const text = (m, i) => (S.hide?.first ? hidden(m.text) : esc(m.text.slice(0, i ? 70 : 140)));
