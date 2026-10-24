@@ -297,6 +297,12 @@ export function emojiVs(emo, count, people) {
 // normal below that. 99% of real turns are 10 messages or fewer; a typical one is 2. A burst
 // where photos and videos outnumber the typed messages is sharing, not ranting.
 const RANT_MSGS = 8, RANT_WORDS = 60;
+// What kind of texter someone is, from the shape of their turns. Thresholds set against
+// real chats: a ranter bursts 6+ bubbles on 8% of turns or usually sends 3 or more; a
+// one-liner sends a single bubble on 45%+ of turns and almost never bursts.
+export const texterType = ({ usual, single, burst }) =>
+  burst >= 8 || usual >= 3 ? 'ranter' : single >= 45 && burst <= 3 ? 'oneliner' : 'normal';
+
 export function bubbles(msgs, people) {
   const turns = Object.fromEntries(people.map((p) => [p, []]));
   let longest = { who: null, n: 0, when: null }, rant = null, top = null;
@@ -333,8 +339,95 @@ export function bubbles(msgs, people) {
     const t = turns[p];
     return [p, t.length ? t.reduce((a, b) => a + b, 0) / t.length : 0];
   }));
-  return { avg, longest, feature };
+  // How each person's turns spread: the usual turn (the middle one, the lower of two), how
+  // often it's a single bubble, how often 6 or more, and the share in each of 1, 2, 3, 4-5, 6+.
+  const bucket = (n) => (n >= 6 ? 4 : n >= 4 ? 3 : n - 1);
+  const shape = Object.fromEntries(people.map((p) => {
+    const t = turns[p].slice().sort((a, b) => a - b), n = t.length;
+    if (!n) return [p, { usual: 0, single: 0, burst: 0, dist: [0, 0, 0, 0, 0], type: 'normal' }];
+    const d = [0, 0, 0, 0, 0];
+    for (const x of t) d[bucket(x)]++;
+    const pc = (c) => Math.round((c / n) * 100);
+    const sh = { usual: t[Math.floor((n - 1) / 2)], single: pc(d[0]), burst: pc(d[4]), dist: d.map(pc) };
+    return [p, { ...sh, type: texterType(sh) }];
+  }));
+  // Twenty of each person's real turns, in proportion to how they text: each length band
+  // (1, 2, 3, 4-5, 6+) gets its share of the twenty (largest remainder), picked evenly from
+  // that band's turns, then put back in chat order. Fewer than twenty: all of them.
+  const typical = (t, k = 20) => {
+    if (t.length <= k) return t.slice();
+    const bands = [[], [], [], [], []];
+    t.forEach((n, i) => bands[bucket(n)].push(i));
+    const exact = bands.map((b) => (b.length * k) / t.length), quota = exact.map(Math.floor);
+    let left = k - quota.reduce((a, b) => a + b, 0);
+    for (const [, b] of exact.map((x, b) => [x - quota[b], b]).sort((a, c) => c[0] - a[0])) if (left > 0) { quota[b]++; left--; }
+    const from = (b, q) => Array.from({ length: q }, (_, i) => b[q === 1 ? Math.floor((b.length - 1) / 2) : Math.round((i * (b.length - 1)) / (q - 1))]);
+    return bands.flatMap((b, j) => from(b, quota[j])).sort((a, b) => a - b).map((i) => t[i]);
+  };
+  const tape = Object.fromEntries(people.map((p) => [p, typical(turns[p])]));
+  return { avg, shape, tape, longest, feature };
 }
+
+// The chat's arc: messages per week (a four-week rolling average) from the first message
+// to now, its peak, its biggest cool-down, and where it is now. Timestamps only.
+const WEEK = 7 * 864e5;
+export function arc(msgs, now = new Date()) {
+  const first = msgs[0]?.when, last = msgs.at(-1)?.when;
+  if (!first || last - first < 8 * WEEK) return { eligible: false };
+  const weeks = new Array(Math.max(1, Math.ceil((now - first) / WEEK))).fill(0);
+  for (const m of msgs) { const i = Math.floor((m.when - first) / WEEK); if (i >= 0 && i < weeks.length) weeks[i]++; }
+  const roll = weeks.map((_, i) => { const w = weeks.slice(Math.max(0, i - 3), i + 1); return w.reduce((a, b) => a + b, 0) / w.length; });
+  const at = (i) => new Date(+first + i * WEEK);
+  // The peak is the last week the pace was at its highest, so a long plateau counts from its end.
+  const pk = roll.lastIndexOf(Math.max(...roll)), peak = roll[pk];
+  let hi = 0, drop = { d: -1, hi: 0, lo: 0 };
+  // The cool-down is measured up to the last message: the silence after it is "gone quiet", not more fall.
+  const lastWeek = Math.floor((last - first) / WEEK);
+  roll.slice(0, lastWeek + 1).forEach((v, i) => { if (v > roll[hi]) hi = i; if (roll[hi] - v > drop.d) drop = { d: roll[hi] - v, hi, lo: i }; });
+  const cur = roll.at(-1), prev = roll[Math.max(0, roll.length - 5)], share = cur / peak, trend = prev ? cur / prev : 1;
+  const phase = now - last > 30 * 864e5 ? 'quiet' : share > 0.8 ? 'peak' : trend > 1.3 ? 'warming' : trend < 0.7 ? 'cooling' : share > 0.4 ? 'steady' : 'simmer';
+  // The temperature: on heat at half the peak pace or more, room temperature down to 15%,
+  // ice cold below that or after a month of silence.
+  const silentDays = Math.round((now - last) / 864e5);
+  const temp = phase === 'quiet' || share < 0.15 ? 'cold' : share >= 0.5 ? 'hot' : 'room';
+  // Any length fits the same strip: at most 52 bars, each the average of its weeks, scaled to the tallest.
+  const n = Math.min(52, roll.length), size = roll.length / n;
+  const raw = Array.from({ length: n }, (_, b) => { const w = roll.slice(Math.floor(b * size), Math.floor((b + 1) * size)); return w.reduce((a, c) => a + c, 0) / (w.length || 1); });
+  const top = Math.max(...raw) || 1;
+  return {
+    eligible: true, start: first, bars: raw.map((v) => v / top), peakBar: Math.min(n - 1, Math.floor(pk / size)),
+    peak: { week: at(pk), perWeek: Math.round(peak) },
+    // A dip of under a quarter of the peak isn't a cool-down, just a week off.
+    drop: drop.d >= peak / 4 ? { from: at(drop.hi), to: at(drop.lo), weeks: drop.lo - drop.hi } : null,
+    now: { phase, temp, perWeek: Math.round(cur), dropPct: Math.round((1 - cur / peak) * 100), weeksSincePeak: roll.length - 1 - pk, silentDays },
+  };
+}
+
+// The comebacks: every silence of two weeks or more, who broke it, and the longest one. The
+// list keeps the twelve longest silences, in chat order, for the slide's bars. Needs eight
+// weeks of chat, like the arc.
+export function comebacks(msgs, pair) {
+  const m = msgs.filter((x) => pair.includes(x.who));
+  const first = m[0]?.when, last = m.at(-1)?.when;
+  if (!first || last - first < 8 * WEEK) return { eligible: false };
+  const by = Object.fromEntries(pair.map((p) => [p, 0])), all = [];
+  let longest = null, longestGap = 0;
+  for (let i = 1; i < m.length; i++) {
+    const gap = m[i].when - m[i - 1].when, days = Math.round(gap / 864e5);
+    longestGap = Math.max(longestGap, days);
+    if (gap < 14 * 864e5) continue;
+    by[m[i].who]++;
+    all.push({ days, who: m[i].who, from: m[i - 1].when });
+    if (!longest || days > longest.days) longest = { days, from: m[i - 1].when, to: m[i].when, who: m[i].who };
+  }
+  const keep = new Set(all.slice().sort((a, b) => b.days - a.days).slice(0, 12));
+  return { eligible: true, count: all.length, by, longest, longestGap, silences: all.filter((x) => keep.has(x)) };
+}
+
+// Lovers or friends, for the illustrations: a couple says it all the time (the example chat
+// runs ~127 per 1,000 messages), friends hardly ever (six real friendships: 0 to 1.4). Five
+// per 1,000 and at least ten in all is well clear of both.
+export const vibeOf = (love, total) => (love >= 10 && (love / total) * 1000 >= 5 ? 'lovers' : 'friends');
 
 export function stats(all, now = new Date()) {
   const count = {};
@@ -351,6 +444,7 @@ export function stats(all, now = new Date()) {
   const hours = new Array(24).fill(0);
   for (const m of msgs) hours[m.when.getHours()]++;
   const quiet = quietHours(msgs, pair);
+  const convs = conversations(msgs, quiet);
 
   // Word counts live in prototype-free objects: a chat that says "constructor" must not
   // find Object's own property there.
@@ -377,19 +471,23 @@ export function stats(all, now = new Date()) {
   }
   const spelled = (k) => Object.keys(spelling[k]).sort((a, b) => spelling[k][b] - spelling[k][a])[0];
 
-  // The first real message, and up to two text replies within the hour, for the chat scene.
+  // The first real message, and up to four more text messages from the opening conversation,
+  // for the chat scene.
   const first = msgs.find((m) => !m.media && !m.deleted && m.text.trim()) || msgs[0];
-  const firstReplies = msgs.slice(msgs.indexOf(first) + 1)
-    .filter((m) => !m.media && !m.deleted && m.text.trim() && m.when - first.when <= 60 * 6e4)
-    .slice(0, 2);
+  const opening = convs.find((c) => c.includes(first)) || [first];
+  const firstReplies = opening.slice(opening.indexOf(first) + 1).filter((m) => !m.media && !m.deleted && m.text.trim()).slice(0, 4);
+  // The very first reply: the other person's first message after it, and how long it took.
+  const reply = msgs.slice(msgs.indexOf(first) + 1).find((m) => m.who !== first.who);
+  const firstWait = reply ? { who: reply.who, mins: Math.round((reply.when - first.when) / 6e4) } : null;
 
   const busy = dk.reduce((b, k) => (days[k] > days[b] ? k : b), dk[0]);
   const streak = longestStreak(dk);
 
   return {
+    vibe: vibeOf(love[A] + love[B], msgs.length),
     A, B, group: Object.keys(count).length > 2, total: msgs.length, count,
     pace: pace(msgs, dk, now),
-    days: dk.length, dayKeys: dk, first, firstReplies, firstDate: msgs[0].when,
+    days: dk.length, dayKeys: dk, first, firstReplies, firstWait, firstDate: msgs[0].when,
     // A streak that reaches today or yesterday is still going.
     streak: streak.days, streakStart: keyDate(streak.startKey), streakEnd: keyDate(streak.endKey),
     streakNow: [dayKey(now), dayKey(new Date(now - 864e5))].includes(streak.endKey),
@@ -401,7 +499,7 @@ export function stats(all, now = new Date()) {
     emoVs: emojiVs(emo, count, pair),
     words: Object.fromEntries(pair.map((p) => [p, (signatureWords(words, pair)[p] || []).map(spelled)])), sorry, love, sorryFirst,
     reply: replySpeed(msgs, pair, quiet),
-    convo: convoStats(conversations(msgs, quiet), pair),
+    convo: convoStats(convs, pair),
     goodnight: goodnightFirst(msgs, pair),
     carried: carriedNights(msgs, quiet),
     carriedEx: carriedExample(msgs, quiet),
@@ -409,5 +507,7 @@ export function stats(all, now = new Date()) {
     bubbles: bubbles(msgs, pair),
     busy, busyN: days[busy],
     media: msgs.filter((m) => m.media).length,
+    arc: arc(msgs, now),
+    comebacks: comebacks(msgs, pair),
   };
 }

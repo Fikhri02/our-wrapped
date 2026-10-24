@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
-import { bubbles, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker, talkRoles } from '../src/stats.js';
+import { bubbles, vibeOf, texterType, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker, talkRoles } from '../src/stats.js';
 import { setLang, t } from '../src/i18n.js';
 import { SLIDES, slidesFor } from '../src/slides.js';
 import { compact, fmtRange, formatReply } from '../src/format.js';
@@ -86,6 +86,24 @@ describe('stats helpers', () => {
       for (let h = 0; h < 24; h++) if (h < 4 || h >= 10) lines.push(`${d}/1/26, ${String(h).padStart(2, '0')}:00 - A: hi`);
     }
     expect(quietHours(parse(lines.join('\n')), ['A'])).toEqual({ A: { start: 4, end: 10 } });
+  });
+});
+
+describe('vibe: lovers or friends', () => {
+  it('a chat that keeps saying it is lovers; one that rarely does is friends', () => {
+    expect(vibeOf(318, 2510)).toBe('lovers'); // the example couple: ~127 per 1,000 messages
+    expect(vibeOf(80, 56258)).toBe('friends'); // a long real friendship: 1.4 per 1,000
+    expect(vibeOf(0, 850)).toBe('friends');
+  });
+
+  it('needs both the rate and a handful of mentions', () => {
+    expect(vibeOf(5, 1000)).toBe('friends'); // the rate, but only five times
+    expect(vibeOf(10, 2000)).toBe('lovers');
+    expect(vibeOf(10, 2100)).toBe('friends');
+  });
+
+  it('is part of the stats', () => {
+    expect(stats(parse(makeSample())).vibe).toBe('lovers');
   });
 });
 
@@ -377,13 +395,19 @@ describe('emoji counts', () => {
 });
 
 describe('visual refresh data', () => {
-  it('keeps the next couple of messages after the first one, for the chat scene', () => {
-    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '1/1/26, 21:19 - B: hey', '1/1/26, 21:20 - B: <Media omitted>', '1/1/26, 21:22 - B: who is this', '1/1/26, 23:59 - A: me', ...Array(8).fill('2/1/26, 10:00 - A: ok')].join('\n')));
-    expect(S.firstReplies.map((m) => m.text)).toEqual(['hey', 'who is this']);
+  it('keeps up to four more messages from the opening conversation, for the chat scene', () => {
+    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '1/1/26, 21:19 - B: hey', '1/1/26, 21:20 - B: <Media omitted>', '1/1/26, 21:22 - B: who is this',
+      '1/1/26, 21:30 - A: me', '1/1/26, 21:31 - A: from the cafe', '1/1/26, 21:35 - B: oh!', ...Array(8).fill('5/1/26, 10:00 - A: ok')].join('\n')));
+    expect(S.firstReplies.map((m) => m.text)).toEqual(['hey', 'who is this', 'me', 'from the cafe']);
   });
 
-  it('only keeps replies that came within the hour', () => {
-    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '1/1/26, 23:00 - B: late', ...Array(8).fill('2/1/26, 10:00 - A: ok')].join('\n')));
+  it('times the very first reply: who answered the first message, and how long it took', () => {
+    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '1/1/26, 21:16 - A: you there?', '1/1/26, 21:20 - B: hey', ...Array(8).fill('2/1/26, 10:00 - A: ok')].join('\n')));
+    expect(S.firstWait).toEqual({ who: 'B', mins: 6 });
+  });
+
+  it('stops at the end of the opening conversation', () => {
+    const S = stats(parse(['1/1/26, 21:14 - A: hi there', '3/1/26, 23:00 - B: late', ...Array(8).fill('5/1/26, 10:00 - A: ok')].join('\n')));
     expect(S.firstReplies).toEqual([]);
   });
 
@@ -479,6 +503,70 @@ describe('bubbles', () => {
     expect(b.longest).toMatchObject({ who: 'A', n: 4 });
   });
 
+  it('describes each person\'s turns by their usual length and spread, not an average', () => {
+    // A's turns: 1, 1, 2, 3, 7 bubbles. B answers once in between.
+    const sizes = [1, 1, 2, 3, 7], lines = [];
+    sizes.forEach((n, i) => {
+      for (let k = 0; k < n; k++) lines.push(`1/1/26, ${10 + i}:0${k} - A: msg ${k}`);
+      lines.push(`1/1/26, ${10 + i}:30 - B: ok`);
+    });
+    const s = bubbles(parse(lines.join('\n')), ['A', 'B']).shape;
+    expect(s.A).toEqual({ usual: 2, single: 40, burst: 20, dist: [40, 20, 20, 0, 20], type: 'ranter' });
+    expect(s.B).toEqual({ usual: 1, single: 100, burst: 0, dist: [100, 0, 0, 0, 0], type: 'oneliner' });
+  });
+
+  it('keeps a tape of real turns: up to 20, evenly across the chat, in order', () => {
+    // A's turns are 1, 2, 3, ... 40 bubbles (one per hour), B answers once between each.
+    const lines = [];
+    for (let i = 1; i <= 40; i++) {
+      const day = String(1 + Math.floor(i / 20)).padStart(2, '0'), h = String(i % 20).padStart(2, '0');
+      for (let k = 0; k < i; k++) lines.push(`${day}/01/26, ${h}:00 - A: m`);
+      lines.push(`${day}/01/26, ${h}:30 - B: ok`);
+    }
+    const tape = bubbles(parse(lines.join('\n')), ['A', 'B']).tape;
+    expect(tape.A).toHaveLength(20);
+    expect(tape.A[0]).toBe(1);
+    expect(tape.A).toEqual([...tape.A].sort((a, b) => a - b)); // still in chat order
+    expect(tape.A.at(-1)).toBeGreaterThanOrEqual(38);
+    expect(tape.B.every((n) => n === 1)).toBe(true);
+  });
+
+  it('picks the tape in proportion to how the person texts', () => {
+    // A: 40 turns, a quarter of them 8 bubbles long, sitting on every other turn early on,
+    // right where evenly spaced picks would land, so even spacing would show twice as many.
+    const lines = [];
+    const turn = (d, n) => {
+      const day = String(1 + Math.floor(d / 20)).padStart(2, '0'), h = String(d % 20).padStart(2, '0');
+      for (let k = 0; k < n; k++) lines.push(`${day}/01/26, ${h}:00 - A: m`);
+      lines.push(`${day}/01/26, ${h}:30 - B: ok`);
+    };
+    for (let i = 0; i < 40; i++) turn(i, i < 20 && i % 2 === 0 ? 8 : 1);
+    const tape = bubbles(parse(lines.join('\n')), ['A', 'B']).tape.A;
+    expect(tape.filter((n) => n === 8)).toHaveLength(5); // 25% of 20
+    expect(tape.filter((n) => n === 1)).toHaveLength(15);
+    expect(tape.indexOf(8)).toBe(0); // still in chat order: the long ones come first
+    expect(tape.slice(-10).every((n) => n === 1)).toBe(true); // the late, single-bubble stretch comes last
+  });
+
+  it('keeps every turn on the tape when there are fewer than 20', () => {
+    const lines = ['1/1/26, 10:00 - A: a', '1/1/26, 10:00 - A: b', '1/1/26, 10:30 - B: ok', '1/1/26, 11:00 - A: c'];
+    expect(bubbles(parse(lines.join('\n')), ['A', 'B']).tape).toEqual({ A: [2, 1], B: [1] });
+  });
+
+  it('types each texter: ranter, one-liner, or normal', () => {
+    expect(texterType({ usual: 3, single: 25, burst: 4 })).toBe('ranter'); // usually 3
+    expect(texterType({ usual: 2, single: 31, burst: 9 })).toBe('ranter'); // bursts on 9% of turns
+    expect(texterType({ usual: 2, single: 49, burst: 3 })).toBe('oneliner');
+    expect(texterType({ usual: 2, single: 39, burst: 3 })).toBe('normal');
+    expect(texterType({ usual: 2, single: 46, burst: 6 })).toBe('normal'); // many one-liners, but bursts too
+  });
+
+  it('uses the lower middle turn as usual when the count is even', () => {
+    const lines = ['1/1/26, 10:00 - A: a', '1/1/26, 10:00 - A: b', '1/1/26, 10:00 - A: c', '1/1/26, 10:00 - A: d', '1/1/26, 10:30 - B: ok',
+      '1/1/26, 11:00 - A: a', '1/1/26, 11:00 - A: b', '1/1/26, 11:30 - B: ok'];
+    expect(bubbles(parse(lines.join('\n')), ['A', 'B']).shape.A.usual).toBe(2); // turns of 4 and 2
+  });
+
   it('leaves media out of a burst, so a photo dump is not a long burst', () => {
     const lines = ['1/1/26, 10:00 - A: look'];
     for (let i = 0; i < 20; i++) lines.push('1/1/26, 10:01 - A: <Media omitted>');
@@ -521,5 +609,121 @@ describe('bubbles', () => {
   it('starts a new turn after a 10+ minute gap', () => {
     const msgs = parse('1/1/26, 10:00 - A: hi\n1/1/26, 10:20 - A: hello?\n1/1/26, 10:21 - B: sorry');
     expect(bubbles(msgs, ['A', 'B']).avg.A).toBe(1);
+  });
+});
+
+import { arc } from '../src/stats.js';
+
+describe('arc: how the chat rose and settled', () => {
+  const DAY = 864e5, start = new Date(2026, 0, 5, 12);
+  // perWeek[i] messages spread across week i, alternating sender.
+  const chat = (perWeek) => perWeek.flatMap((n, w) => Array.from({ length: n }, (_, i) => ({
+    who: i % 2 ? 'B' : 'A', text: 'hi', media: false, deleted: false, when: new Date(+start + w * 7 * DAY + (i % 7) * DAY),
+  })));
+  const after = (weeks) => new Date(+start + weeks * 7 * DAY);
+
+  it('finds the peak week and calls a long silence gone quiet', () => {
+    const a = arc(chat([300, 250, 120, 60, 20, 10, 5, 2, 1, 1]), after(40));
+    expect(a.eligible).toBe(true);
+    expect(a.peak.week).toEqual(start);
+    expect(a.now.phase).toBe('quiet');
+    expect(a.drop.from).toEqual(start);
+  });
+
+  it('takes the temperature: on heat, room temperature, ice cold', () => {
+    expect(arc(chat([20, 30, 40, 60, 80, 90, 100, 100, 100, 100, 100, 100]), after(12)).now.temp).toBe('hot');
+    expect(arc(chat([100, 100, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50]), after(12)).now.temp).toBe('hot');
+    expect(arc(chat([100, 100, 100, 100, 100, 100, 100, 100, 50, 30, 20, 20]), after(12)).now.temp).toBe('room');
+    expect(arc(chat([300, 100, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30]), after(12)).now.temp).toBe('cold');
+    expect(arc(chat([300, 250, 120, 60, 20, 10, 5, 2, 1, 1]), after(40)).now.temp).toBe('cold'); // gone quiet
+  });
+
+  it('says how long it has been cooling, and by how much', () => {
+    const a = arc(chat([100, 100, 100, 100, 100, 100, 100, 100, 50, 30, 20, 20]), after(12));
+    expect(a.now.dropPct).toBe(70); // 30 a week now against a peak of 100
+    expect(a.now.weeksSincePeak).toBe(4); // the four-week average last peaked in week 7
+    const q = arc(chat([300, 250, 120, 60, 20, 10, 5, 2, 1, 1]), after(40));
+    expect(q.now.silentDays).toBeGreaterThanOrEqual(30 * 7 - 70);
+    expect(q.drop.weeks).toBeGreaterThan(0);
+  });
+
+  it('has no cool-down when the pace never fell by a quarter of the peak', () => {
+    expect(arc(chat([100, 100, 90, 95, 100, 85, 90, 100, 95, 100, 90, 100]), after(12)).drop).toBe(null);
+  });
+
+  it('ends the biggest cool-down by the last message, not in the silence after it', () => {
+    const msgs = chat([300, 250, 120, 60, 20, 10, 5, 2, 1, 1]);
+    const a = arc(msgs, after(40));
+    expect(+a.drop.to).toBeLessThanOrEqual(+msgs.at(-1).when);
+  });
+
+  it('reads a chat still near its best as at the peak', () => {
+    const a = arc(chat([20, 30, 40, 60, 80, 90, 100, 100, 100, 100, 100, 100]), after(12));
+    expect(a.now.phase).toBe('peak');
+  });
+
+  it('reads a recent fall as cooling down, and a recent rise as warming up', () => {
+    expect(arc(chat([100, 100, 100, 100, 100, 100, 100, 100, 50, 30, 20, 20]), after(12)).now.phase).toBe('cooling');
+    expect(arc(chat([100, 100, 100, 60, 20, 10, 10, 10, 10, 20, 30, 40]), after(12)).now.phase).toBe('warming');
+  });
+
+  it('reads an even pace well below the peak as steady or a simmer', () => {
+    expect(arc(chat([100, 100, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50]), after(12)).now.phase).toBe('steady');
+    expect(arc(chat([300, 100, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30]), after(12)).now.phase).toBe('simmer');
+  });
+
+  it('is not eligible under eight weeks, and fits any length into the same bars', () => {
+    expect(arc(chat([200, 100, 50]), after(3)).eligible).toBe(false);
+    const long = arc(chat(Array(150).fill(40)), after(150));
+    expect(long.bars.length).toBeLessThanOrEqual(52);
+    expect(Math.max(...long.bars)).toBe(1);
+  });
+});
+
+import { comebacks } from '../src/stats.js';
+
+describe('comebacks: the silences and who broke them', () => {
+  const DAY = 864e5, t0 = new Date(2026, 0, 1, 12);
+  // One message a day on each listed day, alternating sender unless one is given.
+  const days = (list) => list.map(([d, who]) => ({ who, text: 'hi', media: false, deleted: false, when: new Date(+t0 + d * DAY) }));
+  const daily = (from, to, who) => Array.from({ length: to - from + 1 }, (_, i) => [from + i, who ?? (i % 2 ? 'B' : 'A')]);
+
+  it('counts silences of two weeks or more and who came back', () => {
+    const msgs = days([...daily(0, 10), [30, 'B'], ...daily(31, 40), [55, 'A'], ...daily(56, 70)]);
+    const c = comebacks(msgs, ['A', 'B']);
+    expect(c.eligible).toBe(true);
+    expect(c.count).toBe(2);
+    expect(c.by).toEqual({ A: 1, B: 1 });
+    expect(c.longest).toMatchObject({ days: 20, who: 'B' });
+    expect(c.longest.from).toEqual(new Date(+t0 + 10 * DAY));
+  });
+
+  it('lists every silence in order: how long, who broke it, when it started', () => {
+    const msgs = days([...daily(0, 10), [30, 'B'], ...daily(31, 40), [55, 'A'], ...daily(56, 70)]);
+    expect(comebacks(msgs, ['A', 'B']).silences).toEqual([
+      { days: 20, who: 'B', from: new Date(+t0 + 10 * DAY) },
+      { days: 15, who: 'A', from: new Date(+t0 + 40 * DAY) },
+    ]);
+  });
+
+  it('keeps at most twelve silences, the longest ones, still in order', () => {
+    // 16 short bursts of talk with 15 silences between them, 14 to 28 days long.
+    const list = [];
+    for (let k = 0, d = 0; k < 16; k++) { list.push(...daily(d, d + 5, k % 2 ? 'A' : 'B')); d += 5 + 14 + k; }
+    const s = comebacks(days(list), ['A', 'B']).silences;
+    expect(s).toHaveLength(12);
+    expect(Math.min(...s.map((x) => x.days))).toBe(17);
+    expect(s.map((x) => +x.from)).toEqual(s.map((x) => +x.from).sort((a, b) => a - b));
+  });
+
+  it('says how long the longest gap was even when it never went dark', () => {
+    const c = comebacks(days([...daily(0, 30), ...daily(40, 70)]), ['A', 'B']);
+    expect(c.count).toBe(0);
+    expect(c.longest).toBe(null);
+    expect(c.longestGap).toBe(10);
+  });
+
+  it('is not eligible under eight weeks', () => {
+    expect(comebacks(days(daily(0, 40)), ['A', 'B']).eligible).toBe(false);
   });
 });

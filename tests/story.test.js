@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
 import { stats } from '../src/stats.js';
-import { SLIDES } from '../src/slides.js';
+import { SLIDES, slidesFor, closingSlide } from '../src/slides.js';
+import { existsSync } from 'node:fs';
+import { texterType } from '../src/stats.js';
 import { setLang } from '../src/i18n.js';
 import { makeSample } from '../src/sample.js';
 
@@ -12,10 +14,12 @@ const render = (id, s = S) => SLIDES.find((x) => x.id === id).render(s);
 describe('the story', () => {
   it('runs in three acts and ends on the finale', () => {
     expect(SLIDES.map((s) => s.id)).toEqual([
-      'intro', 'first', 'share', // how it began
-      'bubble', 'starts', 'emoji', 'words', 'love', 'reply', 'sorry', // what you're like together
-      'morning', 'night', 'carried', 'streak', 'busy', // the moments you made
-      'finale',
+      'intro', // the prologue: everything you wrote
+      'ch1', 'first', 'starts', 'morning', // how it began
+      'ch2', 'share', 'bubble', 'reply', 'emoji', 'words', // how you talk
+      'ch3', 'love', 'sorry', // what you say
+      'ch4', 'night', 'carried', 'streak', 'busy', // your time
+      'ch5', 'arc', 'comebacks', 'finale', // where it went
     ]);
   });
 
@@ -35,11 +39,18 @@ describe('the loudest day, built to the mockup', () => {
     expect(html).toMatch(/messages\.<br>In one day\./);
     const pct = (S.busyN / S.total) * 100;
     expect(html).toContain(`<b>${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%</b> <span>of your entire chat happened on this single day.`);
-    expect(html).toMatch(/class="ow-bubs ow-bubs-loud"/);
+    expect(html).toMatch(/<img class="ow-pic" src="\.\/art\/busy\.webp"/);
   });
 });
 
 describe('the redesigned art', () => {
+  it('after dark: a peak at either end of the day keeps its hour label inside the card', () => {
+    const at = (peak) => render('night', { ...S, late: S.late || 1, peak });
+    expect(at(23)).toMatch(/<i class="peak end"[^>]*><b>11pm<\/b>/);
+    expect(at(0)).toMatch(/<i class="peak start"[^>]*><b>12am<\/b>/);
+    expect(at(14)).toMatch(/<i class="peak"[^>]*><b>/);
+  });
+
   it('talker: who had more to say, as two stacks of bubbles instead of a giant percentage', () => {
     const html = render('share');
     expect(html).toMatch(/had more to say/);
@@ -47,14 +58,16 @@ describe('the redesigned art', () => {
     expect(html).not.toMatch(/class="big"|class="tally"/);
   });
 
-  it('bubble count: two rhythms as a little chat', () => {
+  it('bubble count: each person\'s real turns as a tape of bubble stacks, no averages', () => {
     const html = render('bubble');
-    expect(html).toMatch(/bubbles per turn<br>from /);
-    expect(html).toMatch(/class="rhythm[ "]/); // any variant
+    expect(html).toMatch(/class="tape"/);
+    expect(html).not.toMatch(/class="spread"/);
+    expect(html).toMatch(/Usually/);
+    expect(html).not.toMatch(/\d\.\d/); // no decimals: nothing here is an average
   });
 
-  it('night owls: a night sky behind the hours', () => {
-    expect(render('night')).toMatch(/class="sky"/);
+  it('keeps the ground flat: no background layers behind any slide', () => {
+    for (const x of SLIDES) expect(x.render(S), x.id).not.toMatch(/class="(sky|dawn|hearts|decor)\b/);
   });
 
   it('no goodbyes: a night-to-morning scene with real times and no message text', () => {
@@ -78,15 +91,59 @@ describe('the redesigned art', () => {
   });
 });
 
+describe('headlines count in the singular too', () => {
+  const one = (a, b) => ({ [S.A]: a, [S.B]: b });
+  it('says time, morning and conversation when the number is 1', () => {
+    expect(render('love', { ...S, love: one(1, 0) })).toMatch(/>time love made it<br>into the chat\./);
+    expect(render('sorry', { ...S, sorry: one(1, 0) })).toMatch(new RegExp(`>time ${S.A}<br>said sorry\\.`));
+    expect(render('morning', { ...S, ft: one(1, 0) })).toMatch(new RegExp(`>morning ${S.A}<br>texted first\\.`));
+    expect(render('starts', { ...S, convo: { ...S.convo, starts: one(1, 0) } })).toMatch(new RegExp(`>conversation<br>started by ${S.A}\\.`));
+  });
+
+  it('keeps the plural for anything else', () => {
+    expect(render('love', { ...S, love: one(2, 0) })).toMatch(/>times love made it/);
+    expect(render('sorry', { ...S, sorry: one(3, 1) })).toMatch(new RegExp(`>times ${S.A}<br>said sorry`));
+  });
+});
+
+describe('character art', () => {
+  const ART = ['intro', 'starts', 'morning', 'love', 'sorry', 'busy'];
+
+  it('gives each headline slide its own illustration instead of a flat shape', () => {
+    for (const id of ART) expect(render(id), id).toMatch(new RegExp(`<img class="ow-pic" src="\\./art/${id}\\.webp" alt="" aria-hidden="true"`));
+    expect(closingSlide('hi').render()).toMatch(/<img class="ow-pic" src="\.\/art\/closing\.webp"/);
+  });
+
+  it('draws no flat bubbles or sun anywhere', () => {
+    for (const x of SLIDES) expect(x.render(S), x.id).not.toMatch(/ow-bubs|class="sun"/);
+    expect(closingSlide('hi').render()).not.toMatch(/ow-bubs/);
+  });
+
+  it('ships every illustration it points at', () => {
+    for (const id of [...ART, 'closing']) expect(existsSync(new URL(`../public/art/${id}.webp`, import.meta.url)), id).toBe(true);
+  });
+
+  it('friends get their own set: no hearts and blushes for a chat that never says it', () => {
+    const F = { ...S, vibe: 'friends' };
+    for (const id of ART) expect(render(id, F), id).toMatch(new RegExp(`src="\\./art/friends/${id}\\.webp"`));
+    expect(closingSlide('hi', '', 'friends').render()).toMatch(/src="\.\/art\/friends\/closing\.webp"/);
+    for (const n of [1, 2, 3, 4, 5]) {
+      const html = SLIDES.find((x) => x.id === `ch${n}`).render(F);
+      expect(html, `ch${n}`).toMatch(new RegExp(`<img class="ch-art" src="\\./chapters/friends/${n}\\.webp" alt="[^"]+"`));
+      expect(html).not.toContain(`alt="${SLIDES.find((x) => x.id === `ch${n}`).render(S).match(/alt="([^"]+)"/)[1]}"`);
+    }
+    for (const id of [...ART, 'closing']) expect(existsSync(new URL(`../public/art/friends/${id}.webp`, import.meta.url)), id).toBe(true);
+    for (const n of [1, 2, 3, 4, 5]) expect(existsSync(new URL(`../public/chapters/friends/${n}.webp`, import.meta.url)), `ch${n}`).toBe(true);
+  });
+});
+
 describe('a reveal per slide', () => {
   it('keeps the typing beat only for the chat scenes', () => {
     expect(SLIDES.filter((s) => s.typing).map((s) => s.id)).toEqual(['first', 'bubble', 'carried']);
   });
 
-  it('gives mornings a sun and love floating hearts, both resting in place when still', () => {
-    expect(render('morning')).toMatch(/class="sun"/);
-    expect(render('love')).toMatch(/class="hearts"/);
-    expect(render('love').match(/<i[^>]*>♥<\/i>/g).length).toBeGreaterThanOrEqual(5);
+  it('gives mornings the alarm-clock character', () => {
+    expect(render('morning')).toMatch(/<img class="ow-pic" src="\.\/art\/morning\.webp"/);
   });
 
   it('marks the apology quote for its nudge', () => {
@@ -96,22 +153,259 @@ describe('a reveal per slide', () => {
 
 describe('layouts that follow how you text', () => {
   const withTalk = (counts, roles) => ({ ...S, count: { ...S.count, [S.A]: counts[0], [S.B]: counts[1] }, talk: { ...S.talk, roles: { ...S.talk.roles, ...roles } } });
-  const withAvg = (a, b, f = S.bubbles.feature) => ({ ...S, bubbles: { ...S.bubbles, avg: { [S.A]: a, [S.B]: b }, feature: f } });
+  const shape = (usual, single, burst, dist) => ({ usual, single, burst, dist });
+  const withShape = (a, b) => ({ ...S, bubbles: { ...S.bubbles, shape: { [S.A]: a, [S.B]: b } } });
+  const withTape = (a, b) => ({ ...S, bubbles: { ...S.bubbles, tape: { [S.A]: a, [S.B]: b } } });
+
+  it('bubble count: a stack per turn, a pill per bubble, capped at six with a 6+ mark', () => {
+    const html = render('bubble', withTape([1, 3, 9], [2]));
+    const rowA = html.split('class="tp-row"')[1];
+    expect(rowA.match(/class="tp-stack/g)).toHaveLength(3);
+    expect(rowA.match(/<i /g)).toHaveLength(1 + 3 + 6);
+    expect(rowA).toMatch(/class="tp-stack big"/);
+  });
 
   it('talker: an even split zips the two together instead of stacking them', () => {
     expect(render('share', withTalk([510, 490], { talker: null }))).toMatch(/class="zipper"/);
     expect(render('share', withTalk([700, 300], { talker: S.A }))).toMatch(/class="stacks"/);
   });
 
-  it('two rhythms: ping-pong when both send single bubbles, a tall burst when one clearly bursts', () => {
-    expect(render('bubble', withAvg(1.2, 1.1))).toMatch(/class="rhythm pingpong"/);
-    expect(render('bubble', withAvg(3.4, 1.2))).toMatch(/class="rhythm burst"/);
-    expect(render('bubble', withAvg(2.1, 1.9))).toMatch(/class="rhythm"/);
+  const R = shape(3, 25, 14, [25, 22, 18, 21, 14]), O = shape(2, 49, 3, [49, 27, 13, 8, 3]), N = shape(2, 39, 3, [39, 28, 19, 11, 3]);
+  const verdict = (a, b) => render('bubble', withShape({ ...a, type: texterType(a) }, { ...b, type: texterType(b) }));
+
+  it('bubble count: names the pair, never hedges', () => {
+    expect(verdict(R, O)).toMatch(/The essay and the ‘ok’/);
+    expect(verdict(O, R)).toMatch(/The essay and the ‘ok’/);
+    expect(verdict(R, R)).toMatch(/Two ranters/);
+    expect(verdict(R, N)).toMatch(new RegExp(`${S.A} rants`));
+    expect(verdict(O, O)).toMatch(/Two telegrams/);
+    expect(verdict(N, O)).toMatch(new RegExp(`${S.B} doesn’t do paragraphs`));
+    expect(verdict(N, N)).toMatch(/Suspiciously normal/);
   });
 
-  it('a burst turn shows up to six bubbles, never more', () => {
-    const html = render('bubble', withAvg(9, 1));
-    const turnA = html.split('class="turn a"')[1].split('class="turn b"')[0];
-    expect(turnA.match(/<i /g)).toHaveLength(6);
+  it('bubble count: puts the real numbers in the roast', () => {
+    const html = verdict(R, O);
+    expect(html).toMatch(/14%/);
+    expect(html).toMatch(/49%/);
+  });
+
+  it('bubble count: labels each bar with the person\'s type', () => {
+    const html = verdict(R, O);
+    expect(html).toMatch(/The Ranter/);
+    expect(html).toMatch(/The One-Liner/);
+    expect(html).not.toMatch(/class="ow-hero"/); // the verdict is the headline, not a number
+  });
+});
+
+describe('one deck for any pair', () => {
+  const ids = (s) => slidesFor(s).map((x) => x.id);
+  const none = { [S.A]: 0, [S.B]: 0 };
+
+  it('shows "I love you" and apologies only when the chat has them', () => {
+    expect(ids(S)).toContain('love');
+    expect(ids(S)).toContain('sorry');
+    expect(ids({ ...S, love: none })).not.toContain('love');
+    expect(ids({ ...S, sorry: none, sorryFirst: {} })).not.toContain('sorry');
+  });
+});
+
+describe('the timeline', () => {
+  it('marks the start, the peak and where you are now', () => {
+    const html = render('arc');
+    expect(html).toMatch(/class="arc"/);
+    expect(html).toMatch(/Peak/);
+    expect(html).toMatch(/Now/);
+  });
+
+  it('says the pace held when there was no real cool-down', () => {
+    expect(render('arc', { ...S, arc: { ...S.arc, drop: null } })).toMatch(/kept a steady pace/);
+  });
+
+  it('leads the now line with the temperature and a line with teeth', () => {
+    const now = (o) => render('arc', { ...S, arc: { ...S.arc, now: { ...S.arc.now, ...o } } });
+    expect(now({ temp: 'cold', phase: 'quiet', silentDays: 119 })).toMatch(/Ice cold\..*119 days ago.*museum/);
+    expect(now({ temp: 'hot', phase: 'peak', perWeek: 412 })).toMatch(/On heat\..*412 a week/);
+    expect(now({ temp: 'room', phase: 'cooling', dropPct: 60, weeksSincePeak: 12 })).toMatch(/Room temperature\..*60%.*12 weeks/);
+  });
+
+  it('shows the matching temperature picture beside the now line', () => {
+    const word = { cold: 'Ice cold', room: 'Room temperature', hot: 'On heat' };
+    for (const temp of ['cold', 'room', 'hot']) {
+      const html = render('arc', { ...S, arc: { ...S.arc, now: { ...S.arc.now, temp } } });
+      expect(html).toMatch(new RegExp(`<img class="arc-temp" src="\\./temp/${temp}\\.webp" alt="[^"]+"`));
+      expect(html.indexOf('arc-temp')).toBeGreaterThan(html.indexOf('ow-stmt'));
+      expect(html.indexOf('arc-temp')).toBeLessThan(html.indexOf(word[temp]));
+      expect(html).toMatch(/class="arc-now"><img class="arc-temp"[^>]*><span>/); // side by side: picture, then the line
+    }
+  });
+
+  it('says how long the biggest cool-down lasted', () => {
+    expect(render('arc', { ...S, arc: { ...S.arc, drop: { from: new Date(2025, 10, 10), to: new Date(2026, 1, 23), weeks: 15 } } })).toMatch(/15 weeks/);
+  });
+
+  it('skips a chat too short to have an arc', () => {
+    expect(slidesFor({ ...S, arc: { ...S.arc, eligible: false } }).map((x) => x.id)).not.toContain('arc');
+  });
+});
+
+describe('night owls on a light ground', () => {
+  it('draws daytime hours in the ink, not the pale tint', () => {
+    const html = render('night', { ...S, late: S.late || 1 });
+    expect(html).not.toMatch(/background:var\(--tint\)/);
+  });
+});
+
+describe('the comebacks', () => {
+  it('teases without belittling: no crawling, no cockroaches, in either language', async () => {
+    const { STRINGS } = await import('../src/i18n.js');
+    const all = JSON.stringify(Object.values(STRINGS).map((l) => Object.values(l).map((v) => (typeof v === 'function' ? v.toString() : v))));
+    expect(all).not.toMatch(/crawl|cockroach|merangkak|lipas/i);
+  });
+
+  const at = (c) => ({ ...S, comebacks: { ...S.comebacks, ...c } });
+  const longest = { days: 46, from: new Date(2026, 3, 29), to: new Date(2026, 5, 14), who: S.A };
+
+  it('names who kept coming back, with teeth when it is a habit', () => {
+    const html = render('comebacks', at({ count: 7, by: { [S.A]: 5, [S.B]: 2 }, longest }));
+    expect(html).toMatch(/went dark/);
+    expect(html).toMatch(new RegExp(`${S.A} brought it back 5 of those times`));
+    expect(html).toMatch(/defibrillator/);
+    expect(html).toMatch(/46 days/);
+  });
+
+  it('says time, not times, for a single silence, and doesn\'t repeat itself', () => {
+    const html = render('comebacks', at({ count: 1, by: { [S.A]: 0, [S.B]: 1 }, longest: { ...longest, days: 15, who: S.B } }));
+    expect(html).toMatch(/time this chat went dark/);
+    expect(html).not.toMatch(/times this chat|Once\./);
+    expect(html).toMatch(new RegExp(`${S.B} broke the silence`));
+  });
+
+  it('says every time when one person made all the comebacks', () => {
+    expect(render('comebacks', at({ count: 2, by: { [S.A]: 2, [S.B]: 0 }, longest }))).toMatch(new RegExp(`${S.A} brought it back every time`));
+  });
+
+  it('calls it fair when they took turns', () => {
+    expect(render('comebacks', at({ count: 4, by: { [S.A]: 2, [S.B]: 2 }, longest }))).toMatch(/took turns/);
+  });
+
+  it('has its own line for a chat that never went dark', () => {
+    const html = render('comebacks', at({ count: 0, by: { [S.A]: 0, [S.B]: 0 }, longest: null, longestGap: 9 }));
+    expect(html).toMatch(/Never once went dark/);
+    expect(html).toMatch(/9 days/);
+  });
+
+  it('draws a scoreboard and a bar per silence, the longest one marked', () => {
+    const silences = [{ days: 18, who: S.A, from: new Date(2025, 5, 26) }, { days: 46, who: S.A, from: new Date(2026, 3, 29) }, { days: 23, who: S.B, from: new Date(2025, 6, 24) }];
+    const html = render('comebacks', at({ count: 3, by: { [S.A]: 2, [S.B]: 1 }, longest, silences }));
+    expect(html).toMatch(/class="cmb-score"/);
+    expect(html.match(/class="cmb-who /g)).toHaveLength(2);
+    expect(html.match(/class="cmb-bar /g)).toHaveLength(3);
+    expect(html.match(/class="cmb-bar [ab] top"/g)).toHaveLength(1);
+    expect(html).toMatch(/46<small>/);
+    expect(html).not.toMatch(/cb-strip|cb-span|cb-mark/);
+    // bars scale in the room the day count and the name leave, so the tallest never squeezes its name
+    expect(html).toMatch(/class="cmb-bar a top" style="--h:1"/);
+    expect(html).toMatch(/class="cmb-bar a" style="--h:0\.39"/);
+    // whoever brought it back more gets the solid colour, whichever side of the chat they're on
+    const flipped = render('comebacks', at({ count: 3, by: { [S.A]: 1, [S.B]: 2 }, longest, silences }));
+    expect(flipped).toMatch(new RegExp(`class="cmb-who a"[^>]*><b>2</b><span>${S.B.split(' ')[0]}`));
+  });
+
+  it('skips a chat too short for comebacks', () => {
+    expect(slidesFor({ ...S, comebacks: { eligible: false } }).map((x) => x.id)).not.toContain('comebacks');
+  });
+});
+
+describe('the whole story: what you wrote to each other', () => {
+  const words = (a, b) => ({ ...S, talk: { ...S.talk, words: { [S.A]: a, [S.B]: b } } });
+
+  it('counts the words and turns them into books and reading time', () => {
+    const html = render('intro', words(120000, 118174));
+    expect(html).toMatch(/<b>238,174<\/b>/);
+    expect(html).toMatch(/2\.6 novels/);
+    expect(html).toMatch(/17 hours of reading/);
+    expect(html).toMatch(/publisher/);
+    expect(html).not.toMatch(/of days, you two talked/);
+  });
+
+  it('scales the book down for smaller chats, with minutes under an hour', () => {
+    expect(render('intro', words(20000, 19939))).toMatch(/a novella/);
+    expect(render('intro', words(1500, 1205))).toMatch(/a short story.*12 minutes of reading/);
+  });
+});
+
+describe('where it started', () => {
+  it('shows the first message and the four after it', () => {
+    const m = (who, text, min) => ({ who, text, when: new Date(2026, 0, 1, 21, min), media: false, deleted: false });
+    const html = render('first', { ...S, first: m(S.A, 'hi there', 14), firstReplies: [m(S.B, 'hey', 19), m(S.B, 'who is this', 22), m(S.A, 'me', 30), m(S.A, 'from the cafe', 31)] });
+    expect(html.match(/class="cb [lr]/g)).toHaveLength(5);
+  });
+
+  it('says how long the first reply took, not which number the first message was', () => {
+    const wait = (mins) => render('first', { ...S, firstWait: { who: S.B, mins } });
+    expect(wait(4)).toMatch(new RegExp(`${S.B} replied 4 minutes later`));
+    expect(wait(180)).toMatch(/3 hours later/);
+    expect(wait(2 * 1440)).toMatch(/2 days later/);
+    expect(wait(4)).not.toMatch(/#1|Message #1/);
+  });
+});
+
+describe('chapters', () => {
+  const ids = (s) => slidesFor(s).map((x) => x.id);
+  const none = { [S.A]: 0, [S.B]: 0 };
+
+  it('opens each chapter with a cover: number, title and its picture', () => {
+    const html = render('ch4');
+    expect(html).toMatch(/class="ch-num">04</);
+    expect(html).toMatch(/Your time/);
+    expect(html).toMatch(/<img class="ch-art" src="\.\/chapters\/4\.webp" alt="[^"]+"/);
+  });
+
+  it('skips a chapter cover when every slide in it is skipped', () => {
+    expect(ids({ ...S, love: none, sorry: none, sorryFirst: {} })).not.toContain('ch3');
+    expect(ids(S)).toContain('ch3');
+  });
+
+  it('marks covers so the results gallery can leave them out', () => {
+    expect(SLIDES.filter((s) => s.cover).map((s) => s.id)).toEqual(['ch1', 'ch2', 'ch3', 'ch4', 'ch5']);
+  });
+});
+
+describe('the narration that carries the story', () => {
+  const lead = (html) => (html.match(/class="ow-lead">(.*?)<\/div>/) || [])[1] || '';
+  const pair = (a, b) => ({ [S.A]: a, [S.B]: b });
+
+  it('who starts it: a habit when the first texter still starts things, ironic when not', () => {
+    const first = { ...S.first, who: S.A };
+    expect(lead(render('starts', { ...S, first, convo: { ...S.convo, starts: pair(60, 40) } }))).toMatch(new RegExp(`${S.A} sent the first text\\. Turns out it became a habit`));
+    expect(lead(render('starts', { ...S, first, convo: { ...S.convo, starts: pair(30, 70) } }))).toMatch(new RegExp(`Ironic, because these days ${S.B} starts most conversations`));
+  });
+
+  it('mornings: picks up from who starts it', () => {
+    expect(lead(render('morning', { ...S, convo: { ...S.convo, starts: pair(60, 40) }, ft: pair(5, 20) }))).toMatch(new RegExp(`But the mornings\\? That's ${S.B}'s shift`));
+  });
+
+  it('reply speed: the talker against the fastest thumbs', () => {
+    const reply = { ...S.reply, [S.A]: { ...S.reply[S.A], within1: 30, mean: 9 }, [S.B]: { ...S.reply[S.B], within1: 70, mean: 2 } };
+    expect(lead(render('reply', { ...S, count: pair(900, 400), reply }))).toMatch(new RegExp(`${S.A} does most of the talking\\. But the fastest thumbs here are ${S.B}'s`));
+  });
+
+  it('apologies: set against who says I love you, only when that slide played', () => {
+    expect(lead(render('sorry', { ...S, love: pair(10, 3), sorry: pair(2, 9) }))).toMatch(/Make of that what you will/);
+    expect(lead(render('sorry', { ...S, love: pair(0, 0), sorry: pair(2, 9) }))).toBe('');
+  });
+
+  it('the timeline: ties the loudest day to the peak when they were close', () => {
+    const arc = { ...S.arc, peak: { ...S.arc.peak, week: new Date(2025, 10, 10) } };
+    expect(lead(render('arc', { ...S, busy: '2025-11-04', arc }))).toMatch(/6 days later, you hit your peak/);
+    expect(lead(render('arc', { ...S, busy: '2025-01-04', arc }))).toBe('');
+  });
+
+  it('the comebacks: picks up from the timeline', () => {
+    const cooled = { ...S.arc, now: { ...S.arc.now, temp: 'cold' } };
+    expect(lead(render('comebacks', { ...S, arc: cooled, comebacks: { ...S.comebacks, count: 3, by: pair(2, 1), longest: { days: 20, from: new Date(2026, 0, 1), who: S.A }, silences: [] } }))).toMatch(/It cooled down\. But someone kept bringing it back/);
+    const never = render('comebacks', { ...S, comebacks: { ...S.comebacks, count: 0, longest: null, longestGap: 9 } });
+    expect(lead(never)).toMatch(/never gone/);
+    expect(lead(never)).not.toMatch(/went dark/); // the headline below already says it
   });
 });

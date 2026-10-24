@@ -7,11 +7,18 @@ import '@fontsource/instrument-sans/600.css';
 import '@fontsource/instrument-sans/700.css';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/600.css';
+// The story reads in Plus Jakarta Sans, with IBM Plex Mono for dates, labels and counts.
+import '@fontsource/plus-jakarta-sans/500.css';
+import '@fontsource/plus-jakarta-sans/700.css';
+import '@fontsource/plus-jakarta-sans/800.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
 import './style.css';
 import { parse } from './parser.js';
 import { stats } from './stats.js';
 import { createPlayer } from './player.js';
-import { closingSlide, paint, slidesFor } from './slides.js';
+import { closingSlide, slidesFor } from './slides.js';
+import { paint } from './theme.js';
 import { makeSample } from './sample.js';
 import { esc, fmtDay, nf } from './format.js';
 import { dayMessages, guessMe, renderChat } from './chat.js';
@@ -56,23 +63,26 @@ try {
 function slideList() {
   const text = note.value.trim();
   const list = slidesFor(current);
-  return text ? [...list, closingSlide(text, signed.value.trim())] : list;
+  return text ? [...list, closingSlide(text, signed.value.trim(), current.vibe)] : list;
 }
 
 const summaryLine = (s) => t('loaded', nf(s.total), esc(s.A), esc(s.B), s.days) + (s.group ? t('group') : '') + t('private');
 
 // Every slide as a static card: count-ups render at their final value, no entrance.
+// The results gallery holds the slides worth saving: chapter covers stay in the story only.
+const gallerySlides = () => slideList().filter((s) => !s.cover);
+
 function renderGallery() {
-  const list = slideList();
+  const list = gallerySlides();
   gallery.innerHTML = list.map((slide, i) => {
     let html;
     try { html = slide.render(forSaving()); } catch { html = `<div class="k">${t('oops')}</div><div class="mid">${t('noData')}</div><div></div>`; }
     const priv = PRIVATE_SLIDES.includes(slide.id)
       ? `<label class="priv"><input type="checkbox" id="hide-${slide.id}" data-hide="${slide.id}"${hide[slide.id] ? ' checked' : ''}> ${esc(t(`hide_${slide.id}`))}</label>` : '';
-    return `<figure class="tile"><div class="tile-frame"><div class="card" data-pal="${slide.pal}">${html}</div></div>${priv}`
+    return `<figure class="tile"><div class="tile-frame"><div class="card" data-chapter="${slide.chapter}">${html}</div></div>${priv}`
       + `<button class="btn" type="button" data-save="${i}">${esc(t('saveSlide'))}</button></figure>`;
   }).join('');
-  gallery.querySelectorAll('.card[data-pal]').forEach((c) => paint(c, c.dataset.pal));
+  gallery.querySelectorAll('.card[data-chapter]').forEach((c) => paint(c, +c.dataset.chapter));
 }
 
 // Stats for a range, into the story player and the gallery. False when the range is too thin.
@@ -284,7 +294,7 @@ gallery.addEventListener('click', (e) => {
   const a = e.target.closest('[data-act]');
   if (a) return openChat(a, a.dataset.act === 'rant' ? 'rant' : 'busy');
   const b = e.target.closest('[data-save]');
-  if (b) saveSlide(slideList()[+b.dataset.save], forSaving(), b);
+  if (b) saveSlide(gallerySlides()[+b.dataset.save], forSaving(), b);
 });
 gallery.addEventListener('change', (e) => {
   const box = e.target.closest('[data-hide]');

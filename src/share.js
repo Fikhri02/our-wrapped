@@ -1,6 +1,6 @@
 // Share card: renders one slide into an offscreen 9:16 frame and saves it as a 1080×1920 PNG.
 // On phones the share sheet opens (Save Image, Instagram, WhatsApp); elsewhere it downloads.
-import { paint } from './slides.js';
+import { paint } from './theme.js';
 
 export const EXPORT = { width: 360, height: 640, pixelRatio: 3 };
 
@@ -17,7 +17,7 @@ export async function renderSlidePng(slide, stats) {
   frame.style.height = `${EXPORT.height}px`;
   const card = document.createElement('div');
   card.className = 'card';
-  paint(card, slide.pal);
+  paint(card, slide.chapter);
   card.innerHTML = slide.render(stats); // count-ups start at their final value, so no animation to wait for
   card.querySelectorAll('.slide-act').forEach((b) => b.remove()); // buttons belong on screen, not in the image
   const mark = document.createElement('div');

@@ -25,11 +25,11 @@ describe('i18n', () => {
 
   it('renders every slide in Malay with no English copy left', () => {
     setLang('ms');
-    const S = stats(parse(makeSample()));
     const english = /\b(messages|between|days of talking|Where it started|The talker|replies faster|said sorry|Still writing|With love|Ended|Since)\b/;
+    const S = stats(parse(makeSample()));
     for (const s of [...SLIDES, closingSlide('Terima kasih', 'Irfan')]) {
       const html = s.render(S).replace(/<[^>]+>/g, ' ');
-      expect(html, s.id).not.toMatch(/undefined|NaN/);
+      expect(html, s.id).not.toMatch(/undefined|NaN|null/);
       expect(html, s.id).not.toMatch(english);
     }
   });

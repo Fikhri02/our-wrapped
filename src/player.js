@@ -1,7 +1,7 @@
 // Story player: progress bars, tap or swipe left/right, hold to pause, arrow keys,
 // space to pause, auto-advance, and an entrance animation per slide. With onEnd, moving past the
 // last slide calls it instead of looping back to the first.
-import { paint } from './slides.js';
+import { paint } from './theme.js';
 import { nf } from './format.js';
 import { t } from './i18n.js';
 
@@ -56,7 +56,7 @@ export function createPlayer({ screen, card, bars, pauseButton, onEnd = null }) 
     elapsed = 0;
     t0 = performance.now();
     const slide = slides[idx];
-    paint(card, slide.pal);
+    paint(card, slide.chapter);
     screen.style.color = card.style.color; // controls laid over the slide take its colour
     try {
       card.innerHTML = slide.render(stats);
