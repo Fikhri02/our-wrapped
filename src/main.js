@@ -16,6 +16,7 @@ import { makeSample } from './sample.js';
 import { esc, fmtDay, nf } from './format.js';
 import { dayMessages, guessMe, renderChat } from './chat.js';
 import { dayKey } from './stats.js';
+import { DEFAULT_HIDE, PRIVATE_SLIDES, readHide } from './privacy.js';
 import { renderSlidePng, saveOrShare, shareFileName } from './share.js';
 import { filterRange, rangeOptions } from './range.js';
 import { getLang, LANGS, setLang, t } from './i18n.js';
@@ -38,6 +39,13 @@ const story = createPlayer({
 
 let current = null, currentMsgs = [], allMsgs = [], source = '', ranges = [], shownRange = 'all', screen = 'landing', storyFrom = 'landing';
 
+// What saved images hide, remembered on this device. Results cards show the slides as they
+// will be saved, so what you see there is exactly what ends up in the image.
+const HIDE_KEY = 'our-wrapped-hide';
+let hide = { ...DEFAULT_HIDE };
+try { hide = readHide(localStorage.getItem(HIDE_KEY)); } catch { /* storage blocked: defaults */ }
+const forSaving = () => ({ ...current, hide });
+
 // The note is a draft on this device only; it never goes anywhere else.
 const DRAFT = 'our-wrapped-note';
 try {
@@ -58,8 +66,10 @@ function renderGallery() {
   const list = slideList();
   gallery.innerHTML = list.map((slide, i) => {
     let html;
-    try { html = slide.render(current); } catch { html = `<div class="k">${t('oops')}</div><div class="mid">${t('noData')}</div><div></div>`; }
-    return `<figure class="tile"><div class="tile-frame"><div class="card" data-pal="${slide.pal}">${html}</div></div>`
+    try { html = slide.render(forSaving()); } catch { html = `<div class="k">${t('oops')}</div><div class="mid">${t('noData')}</div><div></div>`; }
+    const priv = PRIVATE_SLIDES.includes(slide.id)
+      ? `<label class="priv"><input type="checkbox" id="hide-${slide.id}" data-hide="${slide.id}"${hide[slide.id] ? ' checked' : ''}> ${esc(t(`hide_${slide.id}`))}</label>` : '';
+    return `<figure class="tile"><div class="tile-frame"><div class="card" data-pal="${slide.pal}">${html}</div></div>${priv}`
       + `<button class="btn" type="button" data-save="${i}">${esc(t('saveSlide'))}</button></figure>`;
   }).join('');
   gallery.querySelectorAll('.card[data-pal]').forEach((c) => paint(c, c.dataset.pal));
@@ -266,14 +276,23 @@ async function saveSlide(slide, s, button, hold) {
   }
 }
 $('sSave').addEventListener('click', (e) => {
-  const { slide, stats: s } = story.current();
-  saveSlide(slide, s, e.currentTarget, story.setHeld);
+  // The story shows everything; the saved image still follows the hide-on-save choices.
+  const { slide } = story.current();
+  saveSlide(slide, forSaving(), e.currentTarget, story.setHeld);
 });
 gallery.addEventListener('click', (e) => {
   const a = e.target.closest('[data-act]');
   if (a) return openChat(a, a.dataset.act === 'rant' ? 'rant' : 'busy');
   const b = e.target.closest('[data-save]');
-  if (b) saveSlide(slideList()[+b.dataset.save], current, b);
+  if (b) saveSlide(slideList()[+b.dataset.save], forSaving(), b);
+});
+gallery.addEventListener('change', (e) => {
+  const box = e.target.closest('[data-hide]');
+  if (!box) return;
+  hide = { ...hide, [box.dataset.hide]: box.checked };
+  try { localStorage.setItem(HIDE_KEY, JSON.stringify(hide)); } catch { /* ignore */ }
+  renderGallery();
+  $(box.id)?.focus({ preventScroll: true });
 });
 
 // Language: saved choice, else Malay when the device is set to Malay, else English.
