@@ -74,7 +74,7 @@ function paceBlock(S) {
 }
 
 export const SLIDES = [
-  { id: 'intro', pal: 'plum', render: (S) => frame('Our Wrapped',
+  { id: 'intro', pal: 'plum', giant: true, render: (S) => frame('Our Wrapped',
     `<div class="big hero">${count(S.total)}</div><div class="line">${t('introLine', esc(S.A), esc(S.B), S.days)}</div>${paceBlock(S)}`,
     S.range ? t('rangeFrom', esc(S.range), fmtDate(S.firstDate)) : t('since', fmtDate(S.firstDate)), decor('hero')) },
 
@@ -93,14 +93,13 @@ export const SLIDES = [
     const a = S.count[S.A], b = S.count[S.B] || 0, pa = Math.round((a / (a + b)) * 100);
     const [w, l] = pa >= 50 ? [S.A, S.B] : [S.B, S.A];
     const tk = S.talk, past = !!S.pace?.past;
-    const row = (label, x, y) => `<div class="tr"><span>${label}</span><b>${nf(x)}</b><b>${nf(y)}</b></div>`;
+    // Two stacks of bubbles, one bubble per tenth of the messages each sent.
+    const stack = (p, pct, n, side) => `<div class="stack ${side}"><div class="pile">${Array.from({ length: Math.max(1, Math.round(pct / 10)) }, (_, i) =>
+      `<i style="--i:${i};--w:${[78, 92, 64, 86, 70, 96, 60, 82, 74, 88][i]}%"></i>`).join('')}</div><b>${pct}%</b><span>${esc(p)} · ${nf(n)} ${t('finMessages')}</span></div>`;
     return frame(t('talker'),
-      `<div class="mid">${!tk.roles.talker ? t('matched') : t(past ? 'carriesPast' : 'carries', esc(w))}</div>
-       <div class="big">${count(Math.max(pa, 100 - pa), '%')}</div>
-       <div class="line roles">${t('rolesLine', tk.roles, esc(S.A), esc(S.B), past)}</div>
-       <div class="split"><div style="width:${pa}%;background:#1a0612;color:#ff4f9a">${esc(S.A)}</div><div style="flex:1;background:#ffd0e3;color:#1a0612">${esc(S.B)}</div></div>
-       <div class="tally"><div class="tr th"><span></span><b>${esc(S.A)}</b><b>${esc(S.B)}</b></div>
-         ${row(t('rowMessages'), a, b)}${row(t('rowWords'), tk.words[S.A], tk.words[S.B])}${row(t('rowDoubles'), tk.doubles[S.A], tk.doubles[S.B])}</div>`,
+      `<div class="mid">${!tk.roles.talker ? t('matched') : t('hadMore', esc(w))}</div>
+       <div class="stacks">${stack(S.A, pa, a, 'a')}${stack(S.B, 100 - pa, b, 'b')}</div>
+       <div class="line roles">${t('rolesLine', tk.roles, esc(S.A), esc(S.B), past)}</div>`,
       t('rolesKey'));
   } },
 
@@ -110,27 +109,21 @@ export const SLIDES = [
     const x = Math.round(avg[w] * 10) / 10;
     // Roast only when it's earned: 3+ bubbles a turn, or half again as many as the other.
     const roast = x >= 3 || avg[w] >= avg[l] * 1.5;
-    const stack = Array.from({ length: Math.min(8, Math.max(1, Math.round(x))) }, (_, i) =>
-      `<i style="--i:${i};width:${[62, 84, 48, 76, 56, 90, 44, 70][i]}%"></i>`).join('');
+    // Two rhythms: a little chat where each sends their usual number of bubbles per turn.
+    let k = 0;
+    const turn = (p, side) => `<div class="turn ${side}"><small>${esc(p)} · ${avg[p].toFixed(1)}</small>${Array.from({ length: Math.min(4, Math.max(1, Math.round(avg[p]))) }, () =>
+      `<i style="--i:${k};--w:${[70, 54, 82, 46, 64, 76][k++ % 6]}%"></i>`).join('')}</div>`;
     return frame(t('bubbleKicker'),
-      `<div class="bubbles" aria-hidden="true">${stack}</div>
-       <div class="big">${count(x, '', 1)}</div>
+      `<div class="mid">${t('bubbleHead')}</div>
+       <div class="rhythm" aria-hidden="true">${turn(S.A, 'a')}${turn(S.B, 'b')}</div>
        <div class="line">${x < 1.5 ? t('bubbleBoth') : roast ? t('bubbleRoast', esc(w), x.toFixed(1)) : t('bubbleEven', esc(w), x.toFixed(1), esc(l))}</div>
-       <div class="vs"><div><span>${esc(S.A)}</span><span>${avg[S.A].toFixed(1)}</span></div><div><span>${esc(S.B)}</span><span>${avg[S.B].toFixed(1)}</span></div></div>
        ${f ? `<div class="line burst">${f.kind === 'rant' ? t('burstRant', esc(f.who), f.n, nf(f.words), fmtDate(f.start))
          : f.kind === 'spree' ? t('burstSpree', esc(f.who), f.n, fmtDate(f.start)) : t('burstNormal', esc(f.who), f.n)}</div>` : ''}
        ${f?.kind === 'rant' ? `<button type="button" class="slide-act" data-act="rant">${t('rantButton')}</button>` : ''}`,
       t('bubbleKey'));
   } },
 
-  { id: 'morning', pal: 'tang', render: (S) => {
-    const w = S.ft[S.A] >= S.ft[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
-    return frame(t('firstThought'),
-      `<div class="big">${count(S.ft[w])}</div><div class="line">${t('mornings', esc(w), esc(l), S.ft[l])}</div>`,
-      t('morningFoot'), decor('a'));
-  } },
-
-  { id: 'starts', pal: 'mint', render: (S) => {
+  { id: 'starts', pal: 'mint', giant: true, render: (S) => {
     const c = S.convo;
     const w = c.starts[S.A] >= c.starts[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     const g = S.goodnight, bye = g[S.A] >= g[S.B] ? S.A : S.B;
@@ -140,28 +133,6 @@ export const SLIDES = [
       `<div class="big">${count(c.starts[w])}</div><div class="line">${t('startsLine', esc(w), esc(l), c.starts[l])}</div>`,
       foot, decor('b'));
   } },
-
-  { id: 'night', pal: 'cobalt', skip: (S) => !S.late, render: (S) => {
-    const mx = Math.max(...S.hours) || 1;
-    // The busiest hour is the tallest bar; it gets its hour written above it.
-    const bars = S.hours.map((v, h) => `<i class="${h === S.peak ? 'peak' : ''}" style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? '#ffe14d' : '#ffffff88'}">${h === S.peak ? `<b>${hourLabel(h)}</b>` : ''}</i>`).join('');
-    return frame(t('nightOwls'),
-      `<div class="mid">${t('afterMidnight', nf(S.late))}</div>
-       <div class="line">${t('busiestHour', hourLabel(S.peak))}</div>
-       <div class="hours">${bars}</div>
-       <div class="hours-x"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span></div>`,
-      t('nightFoot'));
-  } },
-
-  { id: 'carried', pal: 'plum', skip: (S) => !S.carried, render: (S) => frame(t('carriedKicker'),
-    `<div class="big">${count(S.carried)}</div><div class="line">${t('carriedLine')}</div>`,
-    t('carriedFoot', Math.max(1, Math.round((S.carried / S.days) * 100))), decor('c')) },
-
-  { id: 'streak', pal: 'mint', render: (S) => frame(t('streak'),
-    `<div class="big">${count(S.streak)}</div><div class="line">${t('streakLine')}</div>
-     <div class="mid streak-range">${S.streakNow ? t('streakToday', fmtDate(S.streakStart)) : fmtRange(S.streakStart, S.streakEnd)}</div>
-     ${streakCal(S)}`,
-    t('streakVibe', S.streak, S.streakNow)) },
 
   { id: 'emoji', pal: 'lemon', skip: (S) => !S.emo[S.A].length && !S.emo[S.B].length, render: (S) => frame(t('emojiKicker'),
     `<div class="mid">${t('tenFaces')}</div>
@@ -174,14 +145,27 @@ export const SLIDES = [
     })()}</div>`,
     '') },
 
+  { id: 'words', pal: 'mint', skip: (S) => !S.words[S.A].length && !S.words[S.B].length, render: (S) => frame(t('vocab'),
+    `<div class="mid">${t('yourWords')}</div>
+     <div class="wcols">${[S.A, S.B].map((p, side) => `<div><div class="wname">${esc(p)}</div><div class="words ${side ? 'wb' : 'wa'}">${S.words[p].map((w, i) => `<span style="--i:${i * 2 + side}">${S.hide?.words ? '•••' : esc(w)}</span>`).join('') || '—'}</div></div>`).join('')}</div>`,
+    t('wordsFoot')) },
+
+  { id: 'love', pal: 'tang', giant: true, skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => frame(t('loveKicker'),
+    `<div class="big">${count(S.love[S.A] + S.love[S.B])}</div><div class="line">${t('loveLine', esc(S.A), S.love[S.A], esc(S.B), S.love[S.B])}</div>`,
+    t('loveFoot'), decor('b')) },
+
   { id: 'reply', pal: 'pink', render: (S) => {
     const r = S.reply, A = r[S.A], B = r[S.B];
     // Minute-precision exports make the median 0 for everyone, so rank by the share
     // of replies inside a minute, then by the average.
     const fast = A.within1 !== B.within1 ? (A.within1 > B.within1 ? S.A : S.B) : ((A.mean ?? Infinity) <= (B.mean ?? Infinity) ? S.A : S.B);
     const slow = fast === S.A ? S.B : S.A;
+    // Too close to call: under 3 points apart on replies within a minute, and averages
+    // within a quarter of each other.
+    const ma = A.mean ?? 0, mb = B.mean ?? 0;
+    const even = Math.abs(A.within1 - B.within1) < 3 && Math.max(ma, mb) <= 1.25 * Math.max(0.01, Math.min(ma, mb));
     return frame(t('replyKicker'),
-      `<div class="mid">${t('repliesFaster', esc(fast))}</div>
+      `<div class="mid">${even ? t('repliesEven') : t('repliesFaster', esc(fast))}</div>
        <div class="lanes">${[fast, slow].map((p) => `<div class="lane"><div class="lane-who"><span>${esc(p)}</span><b>${r[p].within1}%</b></div><div class="dots">${
          Array.from({ length: 100 }, (_, i) => `<i${i < r[p].within1 ? ` class="on" style="--i:${i}"` : ''}></i>`).join('')}</div></div>`).join('')}</div>
        <div class="line">${t('replyLine', esc(fast), r[fast].within1, formatReply(r[fast].mean, r.precise), esc(slow), r[slow].slow)}</div>`,
@@ -195,16 +179,46 @@ export const SLIDES = [
       `${esc(S.A)} ${S.sorry[S.A]} · ${esc(S.B)} ${S.sorry[S.B]}`, decor('a'));
   } },
 
-  { id: 'love', pal: 'tang', skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => frame(t('loveKicker'),
-    `<div class="big">${count(S.love[S.A] + S.love[S.B])}</div><div class="line">${t('loveLine', esc(S.A), S.love[S.A], esc(S.B), S.love[S.B])}</div>`,
-    t('loveFoot'), decor('b')) },
+  { id: 'morning', pal: 'tang', giant: true, render: (S) => {
+    const w = S.ft[S.A] >= S.ft[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
+    return frame(t('firstThought'),
+      `<div class="big">${count(S.ft[w])}</div><div class="line">${t('mornings', esc(w), esc(l), S.ft[l])}</div>`,
+      t('morningFoot'), decor('a'));
+  } },
 
-  { id: 'words', pal: 'mint', skip: (S) => !S.words[S.A].length && !S.words[S.B].length, render: (S) => frame(t('vocab'),
-    `<div class="mid">${t('yourWords')}</div>
-     <div class="wcols">${[S.A, S.B].map((p, side) => `<div><div class="wname">${esc(p)}</div><div class="words ${side ? 'wb' : 'wa'}">${S.words[p].map((w, i) => `<span style="--i:${i * 2 + side}">${S.hide?.words ? '•••' : esc(w)}</span>`).join('') || '—'}</div></div>`).join('')}</div>`,
-    t('wordsFoot')) },
+  { id: 'night', pal: 'cobalt', skip: (S) => !S.late, render: (S) => {
+    const mx = Math.max(...S.hours) || 1;
+    // The busiest hour is the tallest bar; it gets its hour written above it.
+    const bars = S.hours.map((v, h) => `<i class="${h === S.peak ? 'peak' : ''}" style="--i:${h};height:${Math.max(2, (v / mx) * 100)}%;background:${h < 4 || h >= 22 ? '#ffe14d' : '#ffffff88'}">${h === S.peak ? `<b>${hourLabel(h)}</b>` : ''}</i>`).join('');
+    return frame(t('nightOwls'),
+      `<div class="mid">${t('afterMidnight', nf(S.late))}</div>
+       <div class="line">${t('busiestHour', hourLabel(S.peak))}</div>
+       <div class="hours">${bars}</div>
+       <div class="hours-x"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span></div>`,
+      t('nightFoot'), '<div class="sky" aria-hidden="true"></div>');
+  } },
 
-  { id: 'busy', pal: 'cobalt', render: (S) => frame(t('loudest'),
+  // A night that never closed: the last message of the night, the night passing, and the
+  // morning reply. Real times, no text: the bubbles hold typing dots.
+  { id: 'carried', pal: 'plum', skip: (S) => !S.carried, render: (S) => {
+    const ex = S.carriedEx, dots = '<span class="dots3"><i></i><i></i><i></i></span>';
+    const scene = ex ? `<div class="overnight" aria-hidden="true">
+        <div class="on-b l" style="--i:0">${dots}<small>${esc(ex.nightWho)} · ${clock(ex.night)}</small></div>
+        <div class="on-gap" style="--i:1"><span>☾</span><span>·</span><span>·</span><span>·</span><span>☀</span></div>
+        <div class="on-b r" style="--i:2">${dots}<small>${esc(ex.morningWho)} · ${clock(ex.morning)}</small></div></div>` : '';
+    return frame(t('carriedKicker'),
+      `<div class="mid">${t('carriedHead')}</div>${scene}
+       <div class="line">${t('carriedLine', S.carried, Math.max(1, Math.round((S.carried / S.days) * 100)))}</div>`,
+      t('carriedFoot'), '<div class="dawn" aria-hidden="true"></div>');
+  } },
+
+  { id: 'streak', pal: 'mint', render: (S) => frame(t('streak'),
+    `<div class="mid">${t('streakHead', S.streak)}</div>
+     <div class="mid streak-range">${S.streakNow ? t('streakToday', fmtDate(S.streakStart)) : fmtRange(S.streakStart, S.streakEnd)}</div>
+     ${streakCal(S)}`,
+    t('streakVibe', S.streak, S.streakNow)) },
+
+  { id: 'busy', pal: 'cobalt', giant: true, render: (S) => frame(t('loudest'),
     `<div class="mid">${fmtDay(S.busy)}</div><div class="big" style="margin-top:10px">${count(S.busyN)}</div><div class="line">${t('loudLine')}</div>
      <button type="button" class="slide-act" data-act="chat">${t('chatButton')}</button>`,
     t(S.pace?.past ? 'allWritten' : 'stillWriting', nf(S.total)), decor('c')) },

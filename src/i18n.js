@@ -74,9 +74,7 @@ export const STRINGS = {
     messageOf: (n) => `Message #1 of ${n}`,
     talker: 'The talker',
     matched: 'Perfectly matched. Almost.',
-    carries: (w) => `${w} carries this chat.`,
-    rowMessages: 'Messages', rowWords: 'Words', rowDoubles: 'Double texts',
-    carriesPast: (w) => `${w} carried this chat.`,
+    hadMore: (w) => `${w} had more to say.`,
     rolesKey: 'Talker: more messages · Storyteller: longer messages · Chaser: more double texts',
     // Roles from the talker table: whoever holds the talker role first, then the other; a
     // shared role gets its own note.
@@ -106,15 +104,16 @@ export const STRINGS = {
     signOffFoot: (w, n) => `${w} usually says goodnight first: ${n} nights`,
     goodnightTie: 'You take turns saying goodnight first',
     carriedKicker: 'No goodbyes',
-    carriedLine: 'nights the conversation just carried on into the morning.',
-    carriedFoot: (p) => `That's ${p}% of the days you talked`,
+    carriedHead: 'Some conversations never really ended.',
+    carriedLine: (n, p) => `${n} mornings picked up where last night left off. That's ${p}% of the days you talked.`,
+    carriedFoot: 'A reply after sleeping, with no goodnight in between',
     startsFoot: 'A conversation lasts as long as it keeps getting answered',
     nightOwls: 'Night owls',
     afterMidnight: (n) => `${n} messages sent after midnight.`,
     busiestHour: (h) => `Busiest hour: ${h}`,
     nightFoot: 'After midnight means 12am to 4am',
     streak: 'Longest streak',
-    streakLine: 'days in a row.',
+    streakHead: (n) => `${n} days in a row.`,
     // A verdict on the streak by its length; past tense once it has ended.
     streakVibe: (d, now) => d < 4 ? 'Pretty low-key. You two clearly don\'t need daily check-ins.'
       : d < 7 ? 'Pretty normal. A few good days in a row.'
@@ -142,6 +141,7 @@ export const STRINGS = {
     },
     replyKicker: 'Reply speed',
     repliesFaster: (f) => `${f} replies faster.`,
+    repliesEven: 'You two are pretty evenly matched.',
     replyLine: (f, p, avg, s, n) => `${f} replies within a minute ${p}% of the time, ${avg} on average. ${s} took an hour or more ${n} times.`,
     replyFoot: 'Each dot is one reply in a hundred. Filled ones came back within a minute',
     apologies: 'Apologies',
@@ -178,6 +178,7 @@ export const STRINGS = {
     withLove: 'With love',
     withLoveFrom: (s) => `With love, ${s}`,
     bubbleKicker: 'Bubble count',
+    bubbleHead: 'Two rhythms.',
     bubbleRoast: (w, x) => `${w} sends ${x} bubbles per turn. Just send one paragraph, bro.`,
     bubbleBoth: 'You both finish a thought in one message. Rare.',
     bubbleEven: (w, x, l) => `${w} sends ${x} bubbles per turn, about the same as ${l}.`,
@@ -237,9 +238,7 @@ export const STRINGS = {
     messageOf: (n) => `Mesej #1 daripada ${n}`,
     talker: 'Kaki borak',
     matched: 'Sama padan. Hampir.',
-    carries: (w) => `${w} yang hidupkan chat ni.`,
-    rowMessages: 'Mesej', rowWords: 'Perkataan', rowDoubles: 'Double text',
-    carriesPast: (w) => `${w} yang hidupkan chat ni dulu.`,
+    hadMore: (w) => `${w} lebih banyak cakap.`,
     rolesKey: 'Kaki borak: lebih banyak mesej · Tukang karang: mesej lebih panjang · Si tak sabar: lebih banyak double text',
     rolesLine: (r, A, B, past) => {
       const label = { talker: 'kaki borak', storyteller: 'tukang karang', chaser: 'si tak sabar' };
@@ -265,15 +264,16 @@ export const STRINGS = {
     signOffFoot: (w, n) => `${w} selalunya ucap selamat malam dulu: ${n} malam`,
     goodnightTie: 'Korang bergilir ucap selamat malam dulu',
     carriedKicker: 'Tak ucap selamat tinggal',
-    carriedLine: 'malam perbualan korang bersambung terus sampai pagi.',
-    carriedFoot: (p) => `Itu ${p}% daripada hari korang berbual`,
+    carriedHead: 'Ada perbualan yang tak pernah betul-betul habis.',
+    carriedLine: (n, p) => `${n} pagi bersambung dari malam sebelumnya. Itu ${p}% daripada hari korang berbual.`,
+    carriedFoot: 'Balasan lepas tidur, tanpa ucap selamat malam',
     startsFoot: 'Satu perbualan berterusan selagi masih berbalas',
     nightOwls: 'Burung hantu',
     afterMidnight: (n) => `${n} mesej dihantar lepas tengah malam.`,
     busiestHour: (h) => `Jam paling sibuk: ${h}`,
     nightFoot: 'Lepas tengah malam bermaksud 12 pagi hingga 4 pagi',
     streak: 'Streak terpanjang',
-    streakLine: 'hari berturut-turut.',
+    streakHead: (n) => `${n} hari berturut-turut.`,
     streakVibe: (d) => d < 4 ? 'Santai je. Korang tak perlu berbual setiap hari.'
       : d < 7 ? 'Biasa-biasa je. Beberapa hari yang best berturut-turut.'
       : d < 14 ? 'Okay, korang ni boleh tahan jugak.'
@@ -297,6 +297,7 @@ export const STRINGS = {
     },
     replyKicker: 'Laju balas',
     repliesFaster: (f) => `${f} balas lebih laju.`,
+    repliesEven: 'Korang lebih kurang sama laju.',
     replyLine: (f, p, avg, s, n) => `${f} balas dalam seminit, ${p}% daripada masa, purata ${avg}. ${s} ambil sejam atau lebih sebanyak ${n} kali.`,
     replyFoot: 'Setiap titik ialah satu daripada 100 balasan. Yang penuh dibalas dalam seminit',
     apologies: 'Minta maaf',
@@ -333,6 +334,7 @@ export const STRINGS = {
     withLove: 'Dengan cinta',
     withLoveFrom: (s) => `Dengan cinta, ${s}`,
     bubbleKicker: 'Kiraan bubble',
+    bubbleHead: 'Dua rentak.',
     bubbleRoast: (w, x) => `${w} hantar ${x} bubble setiap giliran. Hantar satu perenggan je la, bro.`,
     bubbleBoth: 'Korang berdua habiskan ayat dalam satu mesej. Jarang jumpa.',
     bubbleEven: (w, x, l) => `${w} hantar ${x} bubble setiap giliran, lebih kurang sama macam ${l}.`,
