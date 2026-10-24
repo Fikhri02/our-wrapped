@@ -296,7 +296,7 @@ export const SLIDES = [
     return slide({
       kicker: t('cbKicker'), art: strip,
       hero: big(c.count), stmt: t('cbStmt', c.count),
-      remark: c.count === 1 ? t('cbOne', esc(c.longest.who)) : habit ? t('cbCrawl', esc(w), c.by[w] === c.count ? null : c.by[w], c.count >= 3) : t('cbTurns'),
+      remark: c.count === 1 ? t('cbOne', esc(c.longest.who)) : habit ? t('cbRevived', esc(w), c.by[w] === c.count ? null : c.by[w], c.count >= 3) : t('cbTurns'),
       callout: callout('', t('cbLongest', c.longest.days, fmtDate(c.longest.from), esc(c.longest.who))),
     });
   } },

@@ -201,14 +201,20 @@ describe('night owls on a light ground', () => {
 });
 
 describe('the comebacks', () => {
+  it('teases without belittling: no crawling, no cockroaches, in either language', async () => {
+    const { STRINGS } = await import('../src/i18n.js');
+    const all = JSON.stringify(Object.values(STRINGS).map((l) => Object.values(l).map((v) => (typeof v === 'function' ? v.toString() : v))));
+    expect(all).not.toMatch(/crawl|cockroach|merangkak|lipas/i);
+  });
+
   const at = (c) => ({ ...S, comebacks: { ...S.comebacks, ...c } });
   const longest = { days: 46, from: new Date(2026, 3, 29), to: new Date(2026, 5, 14), who: S.A };
 
   it('names who kept coming back, with teeth when it is a habit', () => {
     const html = render('comebacks', at({ count: 7, by: { [S.A]: 5, [S.B]: 2 }, longest }));
     expect(html).toMatch(/went dark/);
-    expect(html).toMatch(new RegExp(`${S.A} came crawling back 5 of them`));
-    expect(html).toMatch(/Cockroach energy/);
+    expect(html).toMatch(new RegExp(`${S.A} brought it back 5 of those times`));
+    expect(html).toMatch(/defibrillator/);
     expect(html).toMatch(/46 days/);
   });
 
@@ -220,7 +226,7 @@ describe('the comebacks', () => {
   });
 
   it('says every time when one person made all the comebacks', () => {
-    expect(render('comebacks', at({ count: 2, by: { [S.A]: 2, [S.B]: 0 }, longest }))).toMatch(new RegExp(`${S.A} came crawling back every time`));
+    expect(render('comebacks', at({ count: 2, by: { [S.A]: 2, [S.B]: 0 }, longest }))).toMatch(new RegExp(`${S.A} brought it back every time`));
   });
 
   it('calls it fair when they took turns', () => {
