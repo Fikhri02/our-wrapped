@@ -105,9 +105,17 @@ export const STRINGS = {
     nightOwls: 'Night owls',
     afterMidnight: (n) => `${n} messages sent after midnight.`,
     busiestHour: (h) => `Busiest hour: ${h}`,
+    nightFoot: 'After midnight means 12am to 4am',
     streak: 'Longest streak',
-    streakLine: 'days in a row without missing a single day.',
-    ended: (d) => `Ended ${d}`,
+    streakLine: 'days in a row.',
+    // A verdict on the streak by its length; past tense once it has ended.
+    streakVibe: (d, now) => d < 4 ? 'Pretty low-key. You two clearly don\'t need daily check-ins.'
+      : d < 7 ? 'Pretty normal. A few good days in a row.'
+      : d < 14 ? `Okay, you two ${now ? 'are' : 'were'} kinda something.`
+      : d < 30 ? `You two ${now ? 'are' : 'were'} properly hooked.`
+      : d < 90 ? 'Clingy. In the best way.'
+      : now ? 'At this point it\'s not a streak, it\'s a lifestyle.' : 'At that point it wasn\'t a streak, it was a lifestyle.',
+    streakToday: (d) => `${d} – today`,
     emojiKicker: 'Your emoji, side by side',
     tenFaces: 'Two people, ten faces.',
     emojiFoot: 'Ranked by count, left to right',
@@ -231,9 +239,16 @@ export const STRINGS = {
     nightOwls: 'Burung hantu',
     afterMidnight: (n) => `${n} mesej dihantar lepas tengah malam.`,
     busiestHour: (h) => `Jam paling sibuk: ${h}`,
+    nightFoot: 'Lepas tengah malam bermaksud 12 pagi hingga 4 pagi',
     streak: 'Streak terpanjang',
-    streakLine: 'hari berturut-turut tanpa terlepas sehari pun.',
-    ended: (d) => `Berakhir ${d}`,
+    streakLine: 'hari berturut-turut.',
+    streakVibe: (d) => d < 4 ? 'Santai je. Korang tak perlu berbual setiap hari.'
+      : d < 7 ? 'Biasa-biasa je. Beberapa hari yang best berturut-turut.'
+      : d < 14 ? 'Okay, korang ni boleh tahan jugak.'
+      : d < 30 ? 'Korang dah melekat ni.'
+      : d < 90 ? 'Clingy. Tapi yang comel punya.'
+      : 'Ni bukan streak lagi, ni dah jadi cara hidup.',
+    streakToday: (d) => `${d} – hari ini`,
     emojiKicker: 'Emoji korang, sebelah-menyebelah',
     tenFaces: 'Dua orang, sepuluh muka.',
     emojiFoot: 'Disusun ikut kekerapan, kiri ke kanan',

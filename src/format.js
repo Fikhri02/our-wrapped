@@ -2,6 +2,14 @@ import { getLang, MONTHS_SHORT, t } from './i18n.js';
 
 const months = () => MONTHS_SHORT[getLang()];
 export const fmtDate = (d) => `${d.getDate()} ${months()[d.getMonth()]} ${d.getFullYear()}`;
+// A date range as short as it can be: "1 – 22 Jul 2025", "28 Jun – 9 Jul 2025", or both
+// dates in full across years. One day is just that date.
+export function fmtRange(a, b) {
+  if (a.getFullYear() !== b.getFullYear()) return `${fmtDate(a)} – ${fmtDate(b)}`;
+  if (a.getMonth() !== b.getMonth()) return `${a.getDate()} ${months()[a.getMonth()]} – ${fmtDate(b)}`;
+  if (a.getDate() !== b.getDate()) return `${a.getDate()} – ${fmtDate(b)}`;
+  return fmtDate(b);
+}
 export const fmtDay = (k) => { const [y, m, d] = k.split('-'); return `${+d} ${months()[m - 1]} ${y}`; };
 export const nf = (n) => n.toLocaleString('en-MY');
 export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

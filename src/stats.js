@@ -23,6 +23,7 @@ const seg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter(u
 
 const pad = (n) => (n < 10 ? '0' : '') + n;
 export const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const keyDate = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
 const graphemes = (s) => (seg ? Array.from(seg.segment(s), (x) => x.segment) : Array.from(s));
 const top = (obj, n) => Object.keys(obj).sort((a, b) => obj[b] - obj[a]).slice(0, n);
 
@@ -192,14 +193,14 @@ export function longestStreak(dayKeys) {
     const [y, m, d] = k.split('-').map(Number);
     return Date.UTC(y, m - 1, d) / 864e5;
   });
-  let best = 1, cur = 1, end = nums[0];
+  let best = 1, cur = 1, endIdx = 0;
   for (let i = 1; i < nums.length; i++) {
     if (nums[i] - nums[i - 1] === 1) {
       cur++;
-      if (cur > best) { best = cur; end = nums[i]; }
+      if (cur > best) { best = cur; endIdx = i; }
     } else cur = 1;
   }
-  return { days: best, end: new Date(end * 864e5) };
+  return { days: best, startKey: dayKeys[endIdx - best + 1], endKey: dayKeys[endIdx] };
 }
 
 // Reply speed per person: gaps where the sender changes inside one conversation. A
@@ -359,7 +360,9 @@ export function stats(all, now = new Date()) {
     A, B, group: Object.keys(count).length > 2, total: msgs.length, count,
     pace: pace(msgs, dk, now),
     days: dk.length, first: msgs.find((m) => !m.media && !m.deleted && m.text.trim()) || msgs[0], firstDate: msgs[0].when,
-    streak: streak.days, streakEnd: streak.end,
+    // A streak that reaches today or yesterday is still going.
+    streak: streak.days, streakStart: keyDate(streak.startKey), streakEnd: keyDate(streak.endKey),
+    streakNow: [dayKey(now), dayKey(new Date(now - 864e5))].includes(streak.endKey),
     ft: firstTexter(msgs, pair, quiet),
     hours, peak: hours.indexOf(Math.max(...hours)),
     late: msgs.filter((m) => m.when.getHours() < 4).length,
