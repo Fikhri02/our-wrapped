@@ -14,8 +14,8 @@ const render = (id, hide) => SLIDES.find((s) => s.id === id).render({ ...S, hide
 
 describe('hide on save', () => {
   it('covers the slides that can print private text, with safe defaults', () => {
-    expect(PRIVATE_SLIDES).toEqual(['first', 'sorry', 'words']);
-    expect(DEFAULT_HIDE).toEqual({ first: false, sorry: true, words: true });
+    expect(PRIVATE_SLIDES).toEqual(['first', 'sorry', 'words', 'finale']);
+    expect(DEFAULT_HIDE).toEqual({ first: false, sorry: true, words: true, finale: false });
   });
 
   it('keeps the vocabulary bubbles but hides every word', () => {
@@ -39,6 +39,30 @@ describe('hide on save', () => {
   it('falls back to the defaults when storage is empty or broken', () => {
     expect(readHide(null)).toEqual(DEFAULT_HIDE);
     expect(readHide('not json')).toEqual(DEFAULT_HIDE);
-    expect(readHide('{"words":false}')).toEqual({ first: false, sorry: true, words: false });
+    expect(readHide('{"words":false}')).toEqual({ first: false, sorry: true, words: false, finale: false });
+  });
+});
+
+describe('finale', () => {
+  const finale = (hide = {}) => SLIDES.find((s) => s.id === 'finale').render({ ...S, hide });
+
+  it('is the last slide', () => {
+    expect(SLIDES[SLIDES.length - 1].id).toBe('finale');
+  });
+
+  it('brings the two of you, the years and the headline numbers together', () => {
+    const html = finale();
+    expect(html).toMatch(/>A</); // initials in the bubbles
+    expect(html).toContain('A &amp; B');
+    expect(html).toMatch(/2026/);
+    expect(html).toMatch(/data-count="14"/); // total messages
+  });
+
+  it('can be saved without your names', () => {
+    expect(PRIVATE_SLIDES).toContain('finale');
+    expect(DEFAULT_HIDE.finale).toBe(false);
+    const html = finale({ finale: true });
+    expect(html).not.toContain('A &amp; B');
+    expect(html).toContain('You two');
   });
 });

@@ -61,14 +61,16 @@ function streakCal(S) {
 
 // Under the total: how much you talk on a day you talk, how often you talk, and what that
 // says about you two. A new chat (under a month, whole chat only) gets its own line.
+function paceRemark(S) {
+  const p = S.pace, fresh = p.isNew && !S.range;
+  const tense = p.past ? '_past' : ''; // a chat that's gone quiet for over a week
+  return !fresh ? t(`pace_${p.kind}${tense}`) : S.days === p.span ? t(`paceNewEvery${tense}`, p.span) : t(`paceNewSome${tense}`, p.span, S.days);
+}
 function paceBlock(S) {
   const p = S.pace;
   if (!p) return '';
-  const fresh = p.isNew && !S.range;
-  const stat = fresh ? t('paceTurns', p.turns) : t('paceStat', p.turns, p.share);
-  const tense = p.past ? '_past' : ''; // a chat that's gone quiet for over a week
-  const remark = !fresh ? t(`pace_${p.kind}${tense}`) : S.days === p.span ? t(`paceNewEvery${tense}`, p.span) : t(`paceNewSome${tense}`, p.span, S.days);
-  return `<div class="pace"><div class="pace-stat">${stat}</div><div class="pace-remark">${remark}</div></div>`;
+  const stat = p.isNew && !S.range ? t('paceTurns', p.turns) : t('paceStat', p.turns, p.share);
+  return `<div class="pace"><div class="pace-stat">${stat}</div><div class="pace-remark">${paceRemark(S)}</div></div>`;
 }
 
 export const SLIDES = [
@@ -206,6 +208,21 @@ export const SLIDES = [
     `<div class="mid">${fmtDay(S.busy)}</div><div class="big" style="margin-top:10px">${count(S.busyN)}</div><div class="line">${t('loudLine')}</div>
      <button type="button" class="slide-act" data-act="chat">${t('chatButton')}</button>`,
     t(S.pace?.past ? 'allWritten' : 'stillWriting', nf(S.total)), decor('c')) },
+
+  // The keepsake: two bubbles with your initials, both names, the years, three headline
+  // numbers and a line about you two. Saved without names it reads "You two".
+  { id: 'finale', pal: 'plum', render: (S) => {
+    const anon = S.hide?.finale, dots = '<i></i><i></i><i></i>';
+    const initial = (n) => esc([...n.trim()][0]?.toUpperCase() || '?');
+    const y0 = S.firstDate.getFullYear(), y1 = +(S.dayKeys?.[S.dayKeys.length - 1] || String(y0)).slice(0, 4);
+    const stat = (n, label) => `<div><b>${count(n)}</b><small>${label}</small></div>`;
+    return frame(t('finaleKicker', y0 === y1 ? y0 : `${y0} – ${y1}`),
+      `<div class="duo" aria-hidden="true"><span class="db a">${anon ? dots : initial(S.A)}</span><span class="db b">${anon ? dots : initial(S.B)}</span></div>
+       <div class="mid fnames">${anon ? t('youTwo') : `${esc(S.A)} &amp; ${esc(S.B)}`}</div>
+       <div class="fstats">${stat(S.total, t('finMessages'))}${stat(S.days, t('finDays'))}${stat(S.streak, t('finStreak'))}</div>
+       ${S.pace ? `<div class="line">${paceRemark(S)}</div>` : ''}`,
+      t('finaleFoot'));
+  } },
 ];
 
 export const slidesFor = (S) => SLIDES.filter((s) => !s.skip?.(S));
