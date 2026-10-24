@@ -133,17 +133,20 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .story { position: fixed; inset: 0; z-index: 50; background: #0c060e; display: grid; place-items: center; }
 .story-screen { height: min(calc(100dvh - 32px), 900px); width: auto; max-width: 100vw; aspect-ratio: 9 / 16; border-radius: 28px; }
 .story-screen:focus-visible { outline: none; }
-.story-screen .card { padding: 84px 28px calc(28px + env(safe-area-inset-bottom)); }
-.story-bar { position: absolute; top: 30px; left: 14px; right: 14px; z-index: 6; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
-.story-bar button { font-family: var(--mono); font-size: 12px; font-weight: 600; color: inherit; background: transparent; border: 1.5px solid currentColor; border-radius: 999px; padding: 6px 12px; cursor: pointer; transition: transform .1s ease-out; }
-.story-bar button.icon { padding: 5px; display: inline-grid; place-items: center; }
+.story-screen .card { padding: 72px 28px calc(28px + env(safe-area-inset-bottom)); }
+/* progress bars right at the top, then borderless icon buttons (40px tap targets) */
+.story-screen .bars { top: 10px; }
+.story-bar { position: absolute; top: 18px; left: 10px; right: 10px; z-index: 6; display: flex; justify-content: flex-end; align-items: center; gap: 0; }
+.story-bar button { color: inherit; background: transparent; border: 0; border-radius: 999px; padding: 9px; cursor: pointer; transition: transform .1s ease-out; }
+.story-bar button.icon { display: inline-grid; place-items: center; }
+.story-bar button:focus-visible { outline: 2px solid currentColor; outline-offset: -2px; }
 .story-bar button:active, .btn:active { transform: scale(.97); }
 .story-bar button:disabled { opacity: .5; cursor: progress; }
 @media (max-width: 600px) {
   .story-screen { width: 100vw; height: 100dvh; aspect-ratio: auto; border-radius: 0; }
-  .story-screen .bars { top: calc(14px + env(safe-area-inset-top)); }
-  .story-bar { top: calc(30px + env(safe-area-inset-top)); }
-  .story-screen .card { padding-top: calc(84px + env(safe-area-inset-top)); }
+  .story-screen .bars { top: calc(6px + env(safe-area-inset-top)); }
+  .story-bar { top: calc(14px + env(safe-area-inset-top)); }
+  .story-screen .card { padding-top: calc(66px + env(safe-area-inset-top)); }
 }
 
 /* results: every slide at once, plus the controls that shape the story */

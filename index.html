@@ -37,8 +37,10 @@
     <div class="screen story-screen" id="sScreen" tabindex="0" aria-label="Story. Tap right for next, left for previous.">
       <div class="bars" id="sBars"></div>
       <div class="story-bar" id="sBar">
-        <button type="button" id="sPause">Pause</button>
-        <button type="button" id="sSave" data-i18n="saveSlide">Save this slide</button>
+        <button type="button" id="sPause" class="icon" data-icon aria-label="Pause" title="Pause"></button>
+        <button type="button" id="sSave" class="icon" aria-label="Save this slide" title="Save this slide" data-i18n-label="saveSlide">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
         <button type="button" id="sClose" class="icon" aria-label="Close story" title="Close story" data-i18n-label="closeStory">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
         </button>

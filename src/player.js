@@ -16,7 +16,19 @@ export function createPlayer({ screen, card, bars, pauseButton, onEnd = null }) 
   let idx = 0, t0 = 0, elapsed = 0;
   let paused = reduceMotion, held = false, active = true;
 
-  const syncPause = () => { pauseButton.textContent = paused ? t('play') : t('pause'); };
+  // A button marked data-icon shows a pause or play icon (labelled for screen readers);
+  // others show the word.
+  const ICON = {
+    pause: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M8 5v14M16 5v14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>',
+    play: '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  };
+  const syncPause = () => {
+    const label = paused ? t('play') : t('pause');
+    if (!pauseButton.hasAttribute('data-icon')) { pauseButton.textContent = label; return; }
+    pauseButton.innerHTML = paused ? ICON.play : ICON.pause;
+    pauseButton.setAttribute('aria-label', label);
+    pauseButton.title = label;
+  };
   syncPause();
 
   // Chat-scene slides open with a short "typing…" beat, borrowed from the chat itself; the
