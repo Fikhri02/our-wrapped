@@ -351,9 +351,20 @@ export function bubbles(msgs, people) {
     const sh = { usual: t[Math.floor((n - 1) / 2)], single: pc(d[0]), burst: pc(d[4]), dist: d.map(pc) };
     return [p, { ...sh, type: texterType(sh) }];
   }));
-  // Each person's real turns, in chat order: all of them, or 20 picked evenly across the chat.
-  const evenly = (t, k = 20) => (t.length <= k ? t.slice() : Array.from({ length: k }, (_, i) => t[Math.round((i * (t.length - 1)) / (k - 1))]));
-  const tape = Object.fromEntries(people.map((p) => [p, evenly(turns[p])]));
+  // Twenty of each person's real turns, in proportion to how they text: each length band
+  // (1, 2, 3, 4-5, 6+) gets its share of the twenty (largest remainder), picked evenly from
+  // that band's turns, then put back in chat order. Fewer than twenty: all of them.
+  const typical = (t, k = 20) => {
+    if (t.length <= k) return t.slice();
+    const bands = [[], [], [], [], []];
+    t.forEach((n, i) => bands[bucket(n)].push(i));
+    const exact = bands.map((b) => (b.length * k) / t.length), quota = exact.map(Math.floor);
+    let left = k - quota.reduce((a, b) => a + b, 0);
+    for (const [, b] of exact.map((x, b) => [x - quota[b], b]).sort((a, c) => c[0] - a[0])) if (left > 0) { quota[b]++; left--; }
+    const from = (b, q) => Array.from({ length: q }, (_, i) => b[q === 1 ? Math.floor((b.length - 1) / 2) : Math.round((i * (b.length - 1)) / (q - 1))]);
+    return bands.flatMap((b, j) => from(b, quota[j])).sort((a, b) => a - b).map((i) => t[i]);
+  };
+  const tape = Object.fromEntries(people.map((p) => [p, typical(turns[p])]));
   return { avg, shape, tape, longest, feature };
 }
 

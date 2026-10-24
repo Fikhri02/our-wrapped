@@ -507,6 +507,23 @@ describe('bubbles', () => {
     expect(tape.B.every((n) => n === 1)).toBe(true);
   });
 
+  it('picks the tape in proportion to how the person texts', () => {
+    // A: 40 turns, a quarter of them 8 bubbles long, sitting on every other turn early on,
+    // right where evenly spaced picks would land, so even spacing would show twice as many.
+    const lines = [];
+    const turn = (d, n) => {
+      const day = String(1 + Math.floor(d / 20)).padStart(2, '0'), h = String(d % 20).padStart(2, '0');
+      for (let k = 0; k < n; k++) lines.push(`${day}/01/26, ${h}:00 - A: m`);
+      lines.push(`${day}/01/26, ${h}:30 - B: ok`);
+    };
+    for (let i = 0; i < 40; i++) turn(i, i < 20 && i % 2 === 0 ? 8 : 1);
+    const tape = bubbles(parse(lines.join('\n')), ['A', 'B']).tape.A;
+    expect(tape.filter((n) => n === 8)).toHaveLength(5); // 25% of 20
+    expect(tape.filter((n) => n === 1)).toHaveLength(15);
+    expect(tape.indexOf(8)).toBe(0); // still in chat order: the long ones come first
+    expect(tape.slice(-10).every((n) => n === 1)).toBe(true); // the late, single-bubble stretch comes last
+  });
+
   it('keeps every turn on the tape when there are fewer than 20', () => {
     const lines = ['1/1/26, 10:00 - A: a', '1/1/26, 10:00 - A: b', '1/1/26, 10:30 - B: ok', '1/1/26, 11:00 - A: c'];
     expect(bubbles(parse(lines.join('\n')), ['A', 'B']).tape).toEqual({ A: [2, 1], B: [1] });
