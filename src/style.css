@@ -370,3 +370,48 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 /* entrance for the refresh: from small and clear to the element's own look (only a "from"
    keyframe, so each keeps its own opacity and tilt instead of the bubble stack's .85) */
 @keyframes popIn { from { opacity: 0; transform: scale(.4) rotate(var(--r, 0deg)); } }
+
+/* ---------- the last four, redesigned ---------- */
+/* talker: two stacks of bubbles, one per tenth of the messages */
+.stacks { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; align-items: end; }
+.stack { display: grid; gap: 4px; min-width: 0; }
+.stack .pile { display: flex; flex-direction: column-reverse; gap: 4px; height: 196px; justify-content: flex-start; }
+.stack .pile i { display: block; height: 15px; width: var(--w); border-radius: 12px 12px 12px 4px; background: var(--fg); }
+.stack.b .pile { align-items: flex-end; }
+.stack.b .pile i { background: #fff; border-radius: 12px 12px 4px 12px; }
+.stack b { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1; letter-spacing: -.02em; margin-top: 6px; }
+.stack span { font-size: 12px; font-weight: 600; opacity: .85; overflow-wrap: anywhere; }
+.stack.b { text-align: right; }
+.card.enter .stack .pile i { animation: popIn .35s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .2s + var(--i) * 60ms); transform-origin: left bottom; }
+.card.enter .stack.b .pile i { transform-origin: right bottom; }
+
+/* bubble count: two rhythms as a little chat */
+.rhythm { display: grid; gap: 12px; margin-top: 14px; }
+.turn { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.turn small { font-family: var(--mono); font-size: 10.5px; font-weight: 600; opacity: .75; margin: 0 4px 2px; }
+.turn i { display: block; height: 22px; width: var(--w); border-radius: 14px 14px 14px 4px; background: var(--fg); }
+.turn.b { align-items: flex-end; }
+.turn.b i { background: #fff; border-radius: 14px 14px 4px 14px; }
+.card.enter .turn i { animation: popIn .35s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * 140ms); transform-origin: left bottom; }
+.card.enter .turn.b i { transform-origin: right bottom; }
+
+/* night owls: a night sky behind the hours (stars, a crescent moon, darker at the top) */
+.sky { position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(1.5px 1.5px at 18% 14%, #fff 98%, transparent), radial-gradient(1px 1px at 34% 22%, #fff 98%, transparent),
+    radial-gradient(1.5px 1.5px at 52% 9%, #fff 98%, transparent), radial-gradient(1px 1px at 66% 26%, #fff 98%, transparent),
+    radial-gradient(1px 1px at 10% 34%, #fff 98%, transparent), radial-gradient(1.5px 1.5px at 44% 38%, #ffffffcc 98%, transparent),
+    radial-gradient(1px 1px at 88% 40%, #fff 98%, transparent), radial-gradient(1px 1px at 26% 46%, #ffffffaa 98%, transparent),
+    linear-gradient(to bottom, #0d1872 0%, #2f4bff00 62%); }
+.sky::after { content: ""; position: absolute; right: 13%; top: 11%; width: 46px; height: 46px; border-radius: 50%; box-shadow: inset 13px -5px 0 0 #ffe14d; transform: rotate(-12deg); }
+
+/* no goodbyes: night turning to dawn, with the overnight scene */
+.dawn { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(to bottom, #2a123300 38%, #ff7a3d40 78%, #ffe14d55 100%); }
+.overnight { display: grid; gap: 8px; margin-top: 16px; }
+.on-b { display: inline-flex; flex-direction: column; gap: 6px; padding: 12px 14px 8px; border-radius: 18px 18px 18px 5px; background: var(--fg); color: var(--bg); justify-self: start; min-width: 44%; }
+.on-b .dots3 { display: flex; gap: 5px; }
+.on-b i { display: block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .7; }
+.on-b small { font-family: var(--mono); font-size: 10px; font-weight: 600; opacity: .8; }
+.on-b.r { justify-self: end; background: #ffe14d; color: #2a1233; border-radius: 18px 18px 5px 18px; text-align: right; }
+.on-gap { display: flex; justify-content: center; gap: 10px; font-size: 16px; opacity: .8; }
+.card.enter .overnight > * { animation: popIn .5s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--wait) + .25s + var(--i) * .45s); }

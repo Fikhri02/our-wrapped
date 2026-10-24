@@ -140,6 +140,18 @@ export function carriedNights(msgs, quiet) {
   return days.size;
 }
 
+// The most recent night that carried on into the morning: who sent the last message of
+// the night and when, and who picked it up in the morning and when. Times only, no text.
+export function carriedExample(msgs, quiet) {
+  for (let j = msgs.length - 1; j > 0; j--) {
+    const p = msgs[j - 1], q = msgs[j];
+    if (p.who !== q.who && sleptOn(p, q, quiet[q.who]) && sameConversation(p, q, quiet)) {
+      return { nightWho: p.who, night: p.when, morningWho: q.who, morning: q.when };
+    }
+  }
+  return null;
+}
+
 // The first new conversation each morning (5am to noon). A morning reply to last
 // night's message is a continuation, so it doesn't count as texting first.
 export function firstTexter(msgs, people, quiet = quietHours(msgs, people)) {
@@ -392,6 +404,7 @@ export function stats(all, now = new Date()) {
     convo: convoStats(conversations(msgs, quiet), pair),
     goodnight: goodnightFirst(msgs, pair),
     carried: carriedNights(msgs, quiet),
+    carriedEx: carriedExample(msgs, quiet),
     talk: (() => { const tk = talker(msgs, pair); return { ...tk, roles: talkRoles(count, tk, pair) }; })(),
     bubbles: bubbles(msgs, pair),
     busy, busyN: days[busy],
