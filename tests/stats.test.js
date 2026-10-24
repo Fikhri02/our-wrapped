@@ -523,3 +523,54 @@ describe('bubbles', () => {
     expect(bubbles(msgs, ['A', 'B']).avg.A).toBe(1);
   });
 });
+
+import { arc } from '../src/stats.js';
+
+describe('arc: how the chat rose and settled', () => {
+  const DAY = 864e5, start = new Date(2026, 0, 5, 12);
+  // perWeek[i] messages spread across week i, alternating sender.
+  const chat = (perWeek) => perWeek.flatMap((n, w) => Array.from({ length: n }, (_, i) => ({
+    who: i % 2 ? 'B' : 'A', text: 'hi', media: false, deleted: false, when: new Date(+start + w * 7 * DAY + (i % 7) * DAY),
+  })));
+  const after = (weeks) => new Date(+start + weeks * 7 * DAY);
+
+  it('finds the peak week and calls a long silence gone quiet', () => {
+    const a = arc(chat([300, 250, 120, 60, 20, 10, 5, 2, 1, 1]), after(40));
+    expect(a.eligible).toBe(true);
+    expect(a.peak.week).toEqual(start);
+    expect(a.now.phase).toBe('quiet');
+    expect(a.drop.from).toEqual(start);
+  });
+
+  it('has no cool-down when the pace never fell by a quarter of the peak', () => {
+    expect(arc(chat([100, 100, 90, 95, 100, 85, 90, 100, 95, 100, 90, 100]), after(12)).drop).toBe(null);
+  });
+
+  it('ends the biggest cool-down by the last message, not in the silence after it', () => {
+    const msgs = chat([300, 250, 120, 60, 20, 10, 5, 2, 1, 1]);
+    const a = arc(msgs, after(40));
+    expect(+a.drop.to).toBeLessThanOrEqual(+msgs.at(-1).when);
+  });
+
+  it('reads a chat still near its best as at the peak', () => {
+    const a = arc(chat([20, 30, 40, 60, 80, 90, 100, 100, 100, 100, 100, 100]), after(12));
+    expect(a.now.phase).toBe('peak');
+  });
+
+  it('reads a recent fall as cooling down, and a recent rise as warming up', () => {
+    expect(arc(chat([100, 100, 100, 100, 100, 100, 100, 100, 50, 30, 20, 20]), after(12)).now.phase).toBe('cooling');
+    expect(arc(chat([100, 100, 100, 60, 20, 10, 10, 10, 10, 20, 30, 40]), after(12)).now.phase).toBe('warming');
+  });
+
+  it('reads an even pace well below the peak as steady or a simmer', () => {
+    expect(arc(chat([100, 100, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50]), after(12)).now.phase).toBe('steady');
+    expect(arc(chat([300, 100, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30]), after(12)).now.phase).toBe('simmer');
+  });
+
+  it('is not eligible under eight weeks, and fits any length into the same bars', () => {
+    expect(arc(chat([200, 100, 50]), after(3)).eligible).toBe(false);
+    const long = arc(chat(Array(150).fill(40)), after(150));
+    expect(long.bars.length).toBeLessThanOrEqual(52);
+    expect(Math.max(...long.bars)).toBe(1);
+  });
+});

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
 import { stats } from '../src/stats.js';
-import { otherMode, SLIDES, slidesFor } from '../src/slides.js';
+import { SLIDES, slidesFor } from '../src/slides.js';
 import { setLang } from '../src/i18n.js';
 import { makeSample } from '../src/sample.js';
 
@@ -15,6 +15,7 @@ describe('the story', () => {
       'intro', 'first', 'share', // how it began
       'bubble', 'starts', 'emoji', 'words', 'love', 'reply', 'sorry', // what you're like together
       'morning', 'night', 'carried', 'streak', 'busy', // the moments you made
+      'arc', // how it rose and settled
       'finale',
     ]);
   });
@@ -114,29 +115,38 @@ describe('layouts that follow how you text', () => {
   });
 });
 
-describe('two modes', () => {
-  const lovers = { ...S, mode: 'lovers' }, casual = { ...S, mode: 'casual' };
+describe('one deck for any pair', () => {
   const ids = (s) => slidesFor(s).map((x) => x.id);
+  const none = { [S.A]: 0, [S.B]: 0 };
 
-  it('keeps apologies and "I love you" for lovers only', () => {
-    expect(ids(casual)).not.toContain('sorry');
-    expect(ids(casual)).not.toContain('love');
-    expect(ids(lovers)).toContain('sorry');
-    expect(ids(lovers)).toContain('love');
+  it('shows "I love you" and apologies only when the chat has them', () => {
+    expect(ids(S)).toContain('love');
+    expect(ids(S)).toContain('sorry');
+    expect(ids({ ...S, love: none })).not.toContain('love');
+    expect(ids({ ...S, sorry: none, sorryFirst: {} })).not.toContain('sorry');
+  });
+});
+
+describe('the timeline', () => {
+  it('marks the start, the peak and where you are now', () => {
+    const html = render('arc');
+    expect(html).toMatch(/class="arc"/);
+    expect(html).toMatch(/Peak/);
+    expect(html).toMatch(/Now/);
   });
 
+  it('says the pace held when there was no real cool-down', () => {
+    expect(render('arc', { ...S, arc: { ...S.arc, drop: null } })).toMatch(/kept a steady pace/);
+  });
 
-
-
-  it('swaps lovers and friends', () => {
-    expect(otherMode('lovers')).toBe('casual');
-    expect(otherMode('casual')).toBe('lovers');
+  it('skips a chat too short to have an arc', () => {
+    expect(slidesFor({ ...S, arc: { ...S.arc, eligible: false } }).map((x) => x.id)).not.toContain('arc');
   });
 });
 
 describe('night owls on a light ground', () => {
   it('draws daytime hours in the ink, not the pale tint', () => {
-    const html = render('night', { ...S, mode: 'casual', late: S.late || 1 });
+    const html = render('night', { ...S, late: S.late || 1 });
     expect(html).not.toMatch(/background:var\(--tint\)/);
   });
 });

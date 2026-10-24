@@ -2,12 +2,7 @@
 // when it has nothing to show and typing (a chat scene, so the story opens it with a
 // "typing…" beat). All copy comes from i18n.js.
 import { clock, compact, esc, fmtDate, fmtDay, fmtRange, formatReply, hourLabel, nf } from './format.js';
-import { t, tm } from './i18n.js';
-
-// LOVERS or CASUAL: the stats object carries the mode (S.mode), and a slide marked
-// only: 'lovers' plays in that mode alone.
-export const MODES = ['lovers', 'casual'];
-export const otherMode = (mode) => (mode === 'lovers' ? 'casual' : 'lovers');
+import { t } from './i18n.js';
 
 // A number the player counts up from 0 on entrance.
 const count = (n, suffix = '', dec = 0) =>
@@ -75,7 +70,7 @@ export const SLIDES = [
   { id: 'intro', accent: 'teal', render: (S) => {
     const p = S.pace;
     return slide({
-      kicker: tm('introKicker', S), art: talk('hero'),
+      kicker: t('introKicker'), art: talk('hero'),
       ctx: S.range ? t('rangeFrom', esc(S.range), fmtDate(S.firstDate)) : t('since', fmtDate(S.firstDate)),
       hero: big(S.total), stmt: t('introStmt', esc(S.A), esc(S.B)),
       remark: p ? paceRemark(S) : '',
@@ -173,7 +168,7 @@ export const SLIDES = [
     stmt: t('yourWords'), remark: t('wordsFoot'),
   }) },
 
-  { id: 'love', accent: 'terracotta', only: 'lovers', skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => slide({
+  { id: 'love', accent: 'terracotta', skip: (S) => !(S.love[S.A] + S.love[S.B]), render: (S) => slide({
     kicker: t('loveKicker'), art: talk('love', '<em>♥</em>'),
     hero: big(S.love[S.A] + S.love[S.B]), stmt: t('loveStmt'), remark: t('loveRemark'),
     callout: callout(`${nf(S.love[S.A])} · ${nf(S.love[S.B])}`, t('loveCall', esc(S.A), esc(S.B))),
@@ -199,7 +194,7 @@ export const SLIDES = [
     });
   } },
 
-  { id: 'sorry', accent: 'violet', only: 'lovers', render: (S) => {
+  { id: 'sorry', accent: 'violet', skip: (S) => !(S.sorry[S.A] + S.sorry[S.B]), render: (S) => {
     const w = S.sorry[S.A] >= S.sorry[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     return slide({
       kicker: t('apologies'), art: talk('a'),
@@ -263,6 +258,20 @@ export const SLIDES = [
     });
   } },
 
+  // How it rose and settled: messages a week from the start to now, the peak marked, and a
+  // plain read of where you are now.
+  { id: 'arc', accent: 'violet', skip: (S) => !S.arc?.eligible, render: (S) => {
+    const a = S.arc;
+    const bars = a.bars.map((h, i) => `<i class="${i === a.peakBar ? 'pk' : ''}" style="--i:${i};height:${Math.max(3, Math.round(h * 100))}%"></i>`).join('');
+    return slide({
+      kicker: t('arcKicker'),
+      art: `<div class="arc">${bars}</div><div class="arc-x"><span>${t('arcStart')} · ${fmtDate(a.start)}</span><span>${t('arcNowLabel')}</span></div>`,
+      ctx: `${t('arcPeak')} · ${fmtDate(a.peak.week)}`, hero: big(a.peak.perWeek), stmt: t('arcStmt'),
+      remark: t(`arc_${a.now.phase}`, nf(a.now.perWeek)),
+      callout: callout('', a.drop ? t('arcDrop', fmtRange(a.drop.from, a.drop.to)) : t('arcEven')),
+    });
+  } },
+
   // The keepsake: two bubbles with your initials, both names, the years, three headline
   // numbers and a line about you two. Saved without names it reads "You two".
   { id: 'finale', accent: 'teal', render: (S) => {
@@ -271,7 +280,7 @@ export const SLIDES = [
     const y0 = S.firstDate.getFullYear(), y1 = +(S.dayKeys?.[S.dayKeys.length - 1] || String(y0)).slice(0, 4);
     const stat = (n, label) => `<div><b>${count(n)}</b><small>${label}</small></div>`;
     return slide({
-      kicker: tm('finaleKicker', S, y0 === y1 ? y0 : `${y0} – ${y1}`),
+      kicker: t('finaleKicker', y0 === y1 ? y0 : `${y0} – ${y1}`),
       art: `<div class="duo" aria-hidden="true"><span class="db a">${anon ? dots : initial(S.A)}</span><span class="db b">${anon ? dots : initial(S.B)}</span></div>`,
       stmt: `<span class="fnames">${anon ? t('youTwo') : `${esc(S.A)} &amp; ${esc(S.B)}`}</span>`,
       remark: S.pace ? paceRemark(S) : '',
@@ -280,7 +289,7 @@ export const SLIDES = [
   } },
 ];
 
-export const slidesFor = (S) => SLIDES.filter((s) => (!s.only || s.only === S.mode) && !s.skip?.(S));
+export const slidesFor = (S) => SLIDES.filter((s) => !s.skip?.(S));
 
 // The last slide: a message the sender types before playing.
 export const closingSlide = (note, signed) => ({

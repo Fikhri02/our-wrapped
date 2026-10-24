@@ -336,6 +336,36 @@ export function bubbles(msgs, people) {
   return { avg, longest, feature };
 }
 
+// The chat's arc: messages per week (a four-week rolling average) from the first message
+// to now, its peak, its biggest cool-down, and where it is now. Timestamps only.
+const WEEK = 7 * 864e5;
+export function arc(msgs, now = new Date()) {
+  const first = msgs[0]?.when, last = msgs.at(-1)?.when;
+  if (!first || last - first < 8 * WEEK) return { eligible: false };
+  const weeks = new Array(Math.max(1, Math.ceil((now - first) / WEEK))).fill(0);
+  for (const m of msgs) { const i = Math.floor((m.when - first) / WEEK); if (i >= 0 && i < weeks.length) weeks[i]++; }
+  const roll = weeks.map((_, i) => { const w = weeks.slice(Math.max(0, i - 3), i + 1); return w.reduce((a, b) => a + b, 0) / w.length; });
+  const at = (i) => new Date(+first + i * WEEK);
+  const pk = roll.indexOf(Math.max(...roll)), peak = roll[pk];
+  let hi = 0, drop = { d: -1, hi: 0, lo: 0 };
+  // The cool-down is measured up to the last message: the silence after it is "gone quiet", not more fall.
+  const lastWeek = Math.floor((last - first) / WEEK);
+  roll.slice(0, lastWeek + 1).forEach((v, i) => { if (v > roll[hi]) hi = i; if (roll[hi] - v > drop.d) drop = { d: roll[hi] - v, hi, lo: i }; });
+  const cur = roll.at(-1), prev = roll[Math.max(0, roll.length - 5)], share = cur / peak, trend = prev ? cur / prev : 1;
+  const phase = now - last > 30 * 864e5 ? 'quiet' : share > 0.8 ? 'peak' : trend > 1.3 ? 'warming' : trend < 0.7 ? 'cooling' : share > 0.4 ? 'steady' : 'simmer';
+  // Any length fits the same strip: at most 52 bars, each the average of its weeks, scaled to the tallest.
+  const n = Math.min(52, roll.length), size = roll.length / n;
+  const raw = Array.from({ length: n }, (_, b) => { const w = roll.slice(Math.floor(b * size), Math.floor((b + 1) * size)); return w.reduce((a, c) => a + c, 0) / (w.length || 1); });
+  const top = Math.max(...raw) || 1;
+  return {
+    eligible: true, start: first, bars: raw.map((v) => v / top), peakBar: Math.min(n - 1, Math.floor(pk / size)),
+    peak: { week: at(pk), perWeek: Math.round(peak) },
+    // A dip of under a quarter of the peak isn't a cool-down, just a week off.
+    drop: drop.d >= peak / 4 ? { from: at(drop.hi), to: at(drop.lo) } : null,
+    now: { phase, perWeek: Math.round(cur) },
+  };
+}
+
 export function stats(all, now = new Date()) {
   const count = {};
   for (const m of all) count[m.who] = (count[m.who] || 0) + 1;
@@ -410,5 +440,6 @@ export function stats(all, now = new Date()) {
     bubbles: bubbles(msgs, pair),
     busy, busyN: days[busy],
     media: msgs.filter((m) => m.media).length,
+    arc: arc(msgs, now),
   };
 }

@@ -196,11 +196,12 @@ export const STRINGS = {
     streakCall: (now) => `of all your days talking ${now ? 'are' : 'were'} in this one run.`,
     loudRemark: 'You two really had a lot to say.',
     loudCall: 'of your entire chat happened on this single day.',
-    pickTitle: 'Who\'s this chat with?', pickLovers: 'Someone I love', pickCasual: 'A friend', pickCancel: 'Cancel',
-    replayLovers: 'Replay as lovers', replayCasual: 'Replay as friends',
-    // two modes
-    introKicker_casual: 'The whole saga',
-    finaleKicker_casual: (y) => `That's the lore · ${y}`,
+    arcKicker: 'How it rose and settled', arcStart: 'Start', arcPeak: 'Peak', arcNowLabel: 'Now',
+    arcStmt: 'messages a week<br>at your peak.',
+    arc_peak: (n) => `Now: right at your peak, ${n} a week.`, arc_warming: (n) => `Now: warming back up, ${n} a week.`,
+    arc_steady: (n) => `Now: steady, ${n} a week.`, arc_simmer: (n) => `Now: a slow simmer, ${n} a week.`,
+    arc_cooling: (n) => `Now: cooling down, ${n} a week.`, arc_quiet: () => 'Now: gone quiet for over a month.',
+    arcDrop: (r) => `Biggest cool-down: ${r}`, arcEven: 'No big cool-downs: you kept a steady pace.',
     oops: 'Oops', noData: 'Not enough data for this slide.',
   },
   ms: {
@@ -365,20 +366,15 @@ export const STRINGS = {
     streakCall: () => 'daripada semua hari korang berbual ada dalam streak ni.',
     loudRemark: 'Banyak betul benda korang nak cakap hari tu.',
     loudCall: 'daripada seluruh chat korang berlaku pada hari ini saja.',
-    pickTitle: 'Chat ni dengan siapa?', pickLovers: 'Orang tersayang', pickCasual: 'Kawan', pickCancel: 'Batal',
-    replayLovers: 'Main semula versi kekasih', replayCasual: 'Main semula versi kawan',
-    // two modes
-    introKicker_casual: 'Kisah penuh',
-    finaleKicker_casual: (y) => `Itulah lore korang · ${y}`,
+    arcKicker: 'Naik turun korang', arcStart: 'Mula', arcPeak: 'Puncak', arcNowLabel: 'Kini',
+    arcStmt: 'mesej seminggu<br>masa kemuncak.',
+    arc_peak: (n) => `Kini: tengah di puncak, ${n} seminggu.`, arc_warming: (n) => `Kini: makin rancak semula, ${n} seminggu.`,
+    arc_steady: (n) => `Kini: stabil, ${n} seminggu.`, arc_simmer: (n) => `Kini: perlahan tapi ada, ${n} seminggu.`,
+    arc_cooling: (n) => `Kini: makin reda, ${n} seminggu.`, arc_quiet: () => 'Kini: senyap lebih sebulan.',
+    arcDrop: (r) => `Paling reda: ${r}`, arcEven: 'Tiada masa reda yang besar: korang kekal stabil.',
     oops: 'Alamak', noData: 'Data tak cukup untuk slaid ini.',
   },
 };
-
-// A mode's own wording when it has one (key_lovers, key_casual), else the shared string.
-export function tm(key, S, ...args) {
-  const k = `${key}_${S.mode}`;
-  return t(k in STRINGS.en ? k : key, ...args);
-}
 
 export function t(key, ...args) {
   const v = STRINGS[lang][key] ?? STRINGS.en[key];

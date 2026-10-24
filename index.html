@@ -77,7 +77,6 @@
       <p class="summary" id="summary"></p>
       <div class="row">
         <button class="btn primary" id="playStory" type="button" data-i18n="playStory">Play our story</button>
-        <button class="btn" id="replay" type="button">Replay as friends</button>
         <label class="btn" for="file" data-i18n="anotherChat">Use another chat</label>
       </div>
       <div class="range">
@@ -99,17 +98,6 @@
       <small data-i18n="noteHint">Saved as a draft on this device only.</small>
     </form>
   </section>
-
-  <dialog class="pick" id="modePick" aria-labelledby="pickTitle">
-    <form method="dialog">
-      <h2 id="pickTitle" data-i18n="pickTitle">Who's this chat with?</h2>
-      <div class="pick-options">
-        <button class="btn primary" type="submit" value="lovers" data-i18n="pickLovers">Someone I love</button>
-        <button class="btn primary" type="submit" value="casual" data-i18n="pickCasual">A friend</button>
-      </div>
-      <button class="btn pick-cancel" type="submit" value="" data-i18n="pickCancel">Cancel</button>
-    </form>
-  </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="/src/main.js"></script>

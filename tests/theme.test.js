@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { ACCENTS, paint, THEMES } from '../src/theme.js';
+import { ACCENTS, paint, THEME } from '../src/theme.js';
 import { closingSlide, SLIDES } from '../src/slides.js';
 
 const fakeCard = () => ({ dataset: {}, style: { props: {}, setProperty(k, v) { this.props[k] = v; } } });
@@ -17,23 +17,14 @@ function contrast(a, b) {
 }
 
 describe('themes', () => {
-  it('paints LOVERS in flat blush with burgundy', () => {
+  it('paints every slide on denim with its own accent, teal by default', () => {
     const c = fakeCard();
-    paint(c, 'lovers');
-    expect(c.dataset.mode).toBe('lovers');
-    expect(c.style.props['--bg']).toBe('#E9CCCA');
-    expect(c.style.props['--accent']).toBe('#743F51');
-  });
-
-  it('paints CASUAL on denim with the slide\'s accent, teal by default', () => {
-    const c = fakeCard();
-    paint(c, 'casual', 'ochre');
-    expect(c.dataset.mode).toBe('casual');
+    paint(c, 'ochre');
     expect(c.style.props['--bg']).toBe('#E9ECF2');
     expect(c.style.props['--accent']).toBe('#7A5E0E');
     expect(c.style.props['--tint']).toBe('#EFE0B0');
     const d = fakeCard();
-    paint(d, 'casual');
+    paint(d);
     expect(d.style.props['--accent']).toBe('#276A60');
   });
 
@@ -48,12 +39,9 @@ describe('themes', () => {
     expect(readFileSync(new URL('../src/slides.js', import.meta.url), 'utf8')).not.toMatch(/#[0-9a-f]{3,8}\b/i);
   });
 
-  it('passes AA: ink and muted text on each ground, and every CASUAL accent on denim', () => {
-    for (const th of Object.values(THEMES)) {
-      expect(contrast(th.fg, th.bg)).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(th.muted, th.bg)).toBeGreaterThanOrEqual(4.5);
-    }
-    expect(contrast(THEMES.lovers.accent, THEMES.lovers.bg)).toBeGreaterThanOrEqual(4.5);
-    for (const [name, [accent]] of Object.entries(ACCENTS)) expect(contrast(accent, THEMES.casual.bg), name).toBeGreaterThanOrEqual(4.5);
+  it('passes AA: ink and muted text on denim, and every accent', () => {
+    expect(contrast(THEME.fg, THEME.bg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(THEME.muted, THEME.bg)).toBeGreaterThanOrEqual(4.5);
+    for (const [name, [accent]] of Object.entries(ACCENTS)) expect(contrast(accent, THEME.bg), name).toBeGreaterThanOrEqual(4.5);
   });
 });

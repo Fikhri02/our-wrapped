@@ -501,22 +501,13 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
   .ow-art .duo { height: 108px; }
 }
 
-/* ---------- two modes ---------- */
-/* LOVERS: Fraunces for what's said, DM Sans for everything else. CASUAL: Plus Jakarta Sans,
-   with IBM Plex Mono for dates, labels and counts. */
-.card[data-mode="lovers"] { --display: "Fraunces", Georgia, serif; --body: "DM Sans", "Helvetica Neue", Arial, sans-serif; --mono: "DM Sans", "Helvetica Neue", Arial, sans-serif; font-family: var(--body); }
-.card[data-mode="lovers"] :where(.ow-hero, .ow-stmt, .ow-call > b, .big, .mid, .quote, .db) { font-weight: 600; letter-spacing: -.015em; }
-.card[data-mode="lovers"] .ow-stmt { color: var(--deep); }
-.card[data-mode="casual"] { --display: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif; --body: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-family: var(--body); }
-.card[data-mode="casual"] .ow-head > span:first-child { color: var(--accent); }
-/* LOVERS arrives slowly and settles; nothing overshoots. CASUAL keeps the quick snaps. */
-.card[data-mode="lovers"].enter * { animation-timing-function: cubic-bezier(.2, .8, .2, 1) !important; }
-.card[data-mode="lovers"].enter .ow-text > * { animation-duration: .6s; }
+/* ---------- the story's look: Plus Jakarta Sans, IBM Plex Mono for dates, labels and counts ---------- */
+.card { --display: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif; --body: "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-family: var(--body); }
+.card .ow-head > span:first-child { color: var(--accent); }
 
-/* the mode popup after upload: page chrome, so it keeps the page's look */
-.pick { border: 0; border-radius: 20px; padding: 24px; width: min(360px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); }
-.pick::backdrop { background: rgba(12, 6, 14, .6); }
-.pick h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1.05; letter-spacing: -.02em; margin: 0 0 16px; }
-.pick-options { display: grid; gap: 8px; }
-.pick-options .btn { min-height: 48px; font-size: 16px; }
-.pick-cancel { margin-top: 12px; width: 100%; }
+/* how it rose and settled: one bar per stretch of weeks, the peak in the accent */
+.arc { display: flex; align-items: flex-end; gap: 2px; height: 120px; }
+.arc i { flex: 1; min-width: 2px; border-radius: 3px 3px 0 0; background: color-mix(in srgb, var(--fg) 30%, transparent); }
+.arc i.pk { background: var(--accent); }
+.card.enter .arc i { transform-origin: bottom; animation: grow .6s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.2s + var(--i) * 12ms); }
+.arc-x { display: flex; justify-content: space-between; margin-top: 6px; font-family: var(--mono); font-size: 10px; color: var(--muted); }

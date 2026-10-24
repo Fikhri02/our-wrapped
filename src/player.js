@@ -56,7 +56,7 @@ export function createPlayer({ screen, card, bars, pauseButton, onEnd = null }) 
     elapsed = 0;
     t0 = performance.now();
     const slide = slides[idx];
-    paint(card, stats?.mode, slide.accent);
+    paint(card, slide.accent);
     screen.style.color = card.style.color; // controls laid over the slide take its colour
     try {
       card.innerHTML = slide.render(stats);

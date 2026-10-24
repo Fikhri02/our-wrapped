@@ -7,14 +7,7 @@ import '@fontsource/instrument-sans/600.css';
 import '@fontsource/instrument-sans/700.css';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/600.css';
-// The two story themes: LOVERS reads in Fraunces and DM Sans, CASUAL in Plus Jakarta Sans
-// and IBM Plex Mono.
-import '@fontsource/fraunces/500.css';
-import '@fontsource/fraunces/600.css';
-import '@fontsource/fraunces/400-italic.css';
-import '@fontsource/dm-sans/400.css';
-import '@fontsource/dm-sans/500.css';
-import '@fontsource/dm-sans/700.css';
+// The story reads in Plus Jakarta Sans, with IBM Plex Mono for dates, labels and counts.
 import '@fontsource/plus-jakarta-sans/500.css';
 import '@fontsource/plus-jakarta-sans/700.css';
 import '@fontsource/plus-jakarta-sans/800.css';
@@ -24,7 +17,7 @@ import './style.css';
 import { parse } from './parser.js';
 import { stats } from './stats.js';
 import { createPlayer } from './player.js';
-import { closingSlide, otherMode, slidesFor } from './slides.js';
+import { closingSlide, slidesFor } from './slides.js';
 import { paint } from './theme.js';
 import { makeSample } from './sample.js';
 import { esc, fmtDay, nf } from './format.js';
@@ -52,8 +45,6 @@ const story = createPlayer({
 });
 
 let current = null, currentMsgs = [], allMsgs = [], source = '', ranges = [], shownRange = 'all', screen = 'landing', storyFrom = 'landing';
-// LOVERS or CASUAL, picked after each upload; never remembered between uploads.
-let mode = 'lovers', pending = null;
 
 // What saved images hide, remembered on this device. Results cards show the slides as they
 // will be saved, so what you see there is exactly what ends up in the image.
@@ -88,7 +79,7 @@ function renderGallery() {
     return `<figure class="tile"><div class="tile-frame"><div class="card" data-accent="${slide.accent}">${html}</div></div>${priv}`
       + `<button class="btn" type="button" data-save="${i}">${esc(t('saveSlide'))}</button></figure>`;
   }).join('');
-  gallery.querySelectorAll('.card[data-accent]').forEach((c) => paint(c, current.mode, c.dataset.accent));
+  gallery.querySelectorAll('.card[data-accent]').forEach((c) => paint(c, c.dataset.accent));
 }
 
 // Stats for a range, into the story player and the gallery. False when the range is too thin.
@@ -99,14 +90,13 @@ function build(range) {
     rangeStatus.innerHTML = t('tooFew', msgs.length, esc(range.label));
     return false;
   }
-  current = { ...stats(msgs), range: range.id === 'all' ? null : range.label, mode };
+  current = { ...stats(msgs), range: range.id === 'all' ? null : range.label };
   currentMsgs = msgs;
   rangeStatus.className = 'status';
   rangeStatus.textContent = '';
   $('pair').textContent = `${current.A} & ${current.B}`;
   $('summary').innerHTML = `<b>${esc(source)}</b>${current.range ? ` · ${esc(current.range)}` : ''}: ` + summaryLine(current);
   story.load(current, slideList());
-  labelReplay();
   story.setActive(screen === 'story');
   renderGallery();
   return true;
@@ -123,14 +113,12 @@ rangeSel.addEventListener('change', () => {
 });
 
 function playSample() {
-  // The example chat is a couple, so it previews as LOVERS.
-  const sample = { ...sampleStats, mode: 'lovers' };
-  preview.load(sample, slidesFor(sample));
+  preview.load(sampleStats, slidesFor(sampleStats));
   status.className = 'status';
   status.innerHTML = `<b>${esc(t('sampleLabel'))}</b>: ` + summaryLine(sampleStats);
 }
 
-// A picked chat asks who it's with, then goes straight into the full-screen story.
+// A picked chat goes straight into the full-screen story.
 function run(text, label) {
   const msgs = parse(text);
   if (msgs.length < 10) {
@@ -138,32 +126,13 @@ function run(text, label) {
     status.innerHTML = t('unreadable');
     return;
   }
-  pending = { msgs, label };
-  $('modePick').showModal();
-}
-
-// Closing the popup without picking leaves nothing loaded.
-$('modePick').addEventListener('close', () => {
-  const picked = $('modePick').returnValue;
-  $('modePick').returnValue = '';
-  if (!pending || !['lovers', 'casual'].includes(picked)) { pending = null; return; }
-  mode = picked;
-  allMsgs = pending.msgs;
-  source = pending.label;
-  pending = null;
+  allMsgs = msgs;
+  source = label;
   fillRanges();
   rangeSel.value = shownRange = 'all';
   build(ranges[0]);
   go('story');
-});
-
-// Results can replay the same chat, range and note as the other mode.
-const labelReplay = () => { $('replay').textContent = t(mode === 'lovers' ? 'replayCasual' : 'replayLovers'); };
-$('replay').addEventListener('click', () => {
-  mode = otherMode(mode);
-  build(ranges.find((r) => r.id === shownRange) || ranges[0]);
-  go('story');
-});
+}
 
 $('file').addEventListener('change', (e) => {
   const f = e.target.files?.[0];
@@ -344,7 +313,6 @@ function applyLang(l) {
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === getLang()));
   preview.relabel();
   story.relabel();
-  labelReplay();
 }
 let saved = null;
 try { saved = localStorage.getItem(LANG_KEY); } catch { /* storage blocked */ }

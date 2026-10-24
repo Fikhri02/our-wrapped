@@ -17,7 +17,7 @@ export async function renderSlidePng(slide, stats) {
   frame.style.height = `${EXPORT.height}px`;
   const card = document.createElement('div');
   card.className = 'card';
-  paint(card, stats.mode, slide.accent);
+  paint(card, slide.accent);
   card.innerHTML = slide.render(stats); // count-ups start at their final value, so no animation to wait for
   card.querySelectorAll('.slide-act').forEach((b) => b.remove()); // buttons belong on screen, not in the image
   const mark = document.createElement('div');
