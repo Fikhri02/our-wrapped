@@ -1,10 +1,23 @@
 // One pure function per slide's data. stats() bundles them for the player.
 
 const STOP = new Set(
-  "the and you for that this with are was but not have just what yes okay its it's can will dah tak nak ada yang ini itu kat dengan untuk lagi pun tu ni la lah je jer kan ke dia aku saya you i me my your we our ok oke haha hahaha hahahaha omitted media deleted message was too lol kau so dont don't then them they how why when who where tengah boleh nanti esok tadi".split(' '),
+  ("the and you for that this with are was but not have just what yes okay its it's can will dah tak nak ada yang ini itu kat dengan untuk lagi pun tu ni la lah je jer kan ke dia aku saya you i me my your we our ok oke haha hahaha hahahaha omitted media deleted message was too lol kau so dont don't then them they how why when who where tengah boleh nanti esok tadi"
+    // everyday Malay and English fillers that otherwise top every chat
+    + " tapi kalau apa macam orang sebab sbb pergi buat kena baru balik sikit dekat mana bila siapa kenapa camne cemana tau tahu tengok cakap rasa memang jugak juga dari pada sampai masa harini semalam takde tiada okey haah ye ya eh oh weh wei hmm kita korang diorang awak dulu lepas nanti jadi betul banyak sama ingat like think said she her his him he know really yeah yep got get going gonna want would could should also than there their about because cause from into been were very much more some still even only one well thing things people time now later back see say told tell make made need right sure maybe kot sangat bukan selalu jangan nampak did already today good"
+    // texting short forms
+    + " mcm dgn gak pastu lepastu nnti skrg sekarang tgk ckp jgn nk tk xde pukul don didn doesn isn won"
+  ).split(' '),
 );
 const SORRY = /\b(sorry|sori|sory|sry|soz|maaf|mianhae)\b/i;
 const LOVE = /\b(love you|love u|luv u|ily|sayang you|sayang u|rindu|miss you|miss u)\b|❤|🥰|😘/i;
+// A sign-off is a whole message made only of these (plus punctuation and emoji).
+const BYE = "ok+|okay+|okie+|okey|oki|kk?|alright+|aight|noted|thanks?|thx|thank (?:you|u)|thankyou|ty|tq|sure|baik(?:lah)?|yelah|takpe|takpa|isokay|bye+|okbye|gn|good ?night|night|nite|rest well|have a good rest|take care|see (?:you|u)|you too|too|sweet dreams|selamat malam|slmt mlm|aye aye|sir";
+const SIGNOFF = new RegExp(`^(?:${BYE})(?:[\\s,.!~]+(?:${BYE}))*$`, 'i');
+const LINK = /https?:\/\//;
+const GREETING = /^(hey+|hi+|hai+|hello+|helo|salam|assalam\w*|morning\w*|good morning|pagi|selamat (pagi|tengahari|petang))\b/i;
+// "Tidur lah" and "go to sleep" are left out: in real chats they're mostly advice.
+const GOODNIGHT = /\b(good ?nigh+t+|gn|nite|night night|nighty|rest well|good rest|good sleep|sleep well|sleep tight|sweet dreams|selamat malam|slmt mlm|tidur dulu|nak tidur (dah|dh|dulu|bye)|bye nak tidur|i go sleep|need to (go to )?sleep|sleep first)\b|^nigh+t+\b/i;
+const LAUGH = /^(?:h+[aeiu]+|[aeiu]+h+)+h*$/i;
 const PICT = /\p{Extended_Pictographic}/u;
 const seg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
 
@@ -20,16 +33,124 @@ export function median(a) {
   return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2;
 }
 
-export function firstTexter(msgs, people) {
+// Each person's 6-hour window with the fewest messages, read off their own hourly
+// counts so a night owl's sleep lands where it really is. Too little data: 1am-7am.
+export function quietHours(msgs, people) {
+  const out = {};
+  for (const p of people) {
+    const hist = new Array(24).fill(0);
+    let n = 0;
+    for (const m of msgs) if (m.who === p) { hist[m.when.getHours()]++; n++; }
+    if (n < 30) { out[p] = { start: 1, end: 7 }; continue; }
+    let best = 1, low = Infinity;
+    for (let s = 0; s < 24; s++) {
+      let sum = 0;
+      for (let i = 0; i < 6; i++) sum += hist[(s + i) % 24];
+      // Ties go to the window centred nearest 4am.
+      const off = (x) => Math.min(Math.abs(x + 3 - 4), 24 - Math.abs(x + 3 - 4));
+      if (sum < low || (sum === low && off(s) < off(best))) { low = sum; best = s; }
+    }
+    out[p] = { start: best, end: (best + 6) % 24 };
+  }
+  return out;
+}
+
+// A gap of 1-18h that crosses the middle of the replier's quiet window: they were
+// asleep, not ignoring anyone.
+export function sleptOn(p, q, quiet) {
+  const gap = (q.when - p.when) / 6e4;
+  if (!quiet || gap < 60 || gap > 18 * 60) return false;
+  const mid = new Date(p.when);
+  mid.setHours((quiet.start + 3) % 24, 0, 0, 0);
+  if (mid <= p.when) mid.setDate(mid.getDate() + 1);
+  return mid <= q.when;
+}
+
+export function signOff(m) {
+  if (m.media) return false;
+  const t = m.text.replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{1F3FB}-\u{1F3FF}]/gu, '').replace(/[\s.,!~]+$/, '').trim();
+  return t !== '' && SIGNOFF.test(t);
+}
+const isQuestion = (m) => !m.media && m.text.slice(-8).includes('?');
+
+// Does q carry on p's conversation? Rules read off six real chats (see the method
+// write-up): under an hour is always together; a late reply joins only if something
+// was still open and it came within 6h, across the replier's sleep, or to a question.
+// A greeting opens a new conversation unless it fronts the answer to a question.
+export function sameConversation(p, q, quiet) {
+  const gap = (q.when - p.when) / 6e4;
+  if (gap < 60) return true;
+  if (q.who === p.who) return gap < 120 && !signOff(p);
+  if (gap > 18 * 60) return false;
+  if (signOff(p) || LINK.test(q.text) || (GREETING.test(q.text) && !isQuestion(p))) return false;
+  return gap < 360 || sleptOn(p, q, quiet[q.who]) || isQuestion(p);
+}
+
+export function conversations(msgs, quiet) {
+  const out = [];
+  msgs.forEach((m, j) => {
+    if (j && sameConversation(msgs[j - 1], m, quiet)) out[out.length - 1].push(m);
+    else out.push([m]);
+  });
+  return out;
+}
+
+// Who starts (a conversation the other answered), who reached out with no answer,
+// and who had the last word.
+export function convoStats(convs, people) {
+  const zero = () => Object.fromEntries(people.map((p) => [p, 0]));
+  const starts = zero(), reachedOut = zero(), lastWord = zero();
+  for (const c of convs) {
+    if (!(c[0].who in starts)) continue;
+    if (c.every((m) => m.who === c[0].who)) { reachedOut[c[0].who]++; continue; }
+    const last = c[c.length - 1];
+    starts[c[0].who]++;
+    if (last.who in lastWord) lastWord[last.who]++;
+  }
+  return { starts, reachedOut, lastWord, total: convs.length };
+}
+
+// Who says goodnight first, once per night (8pm to 5am belongs to the evening it
+// started on).
+export function goodnightFirst(msgs, people) {
   const seen = new Set();
   const tally = Object.fromEntries(people.map((p) => [p, 0]));
   for (const m of msgs) {
-    if (m.when.getHours() < 5) continue;
-    const k = dayKey(m.when);
+    const h = m.when.getHours();
+    if (m.media || (h >= 5 && h < 20) || !(m.who in tally) || !GOODNIGHT.test(m.text)) continue;
+    const night = new Date(m.when);
+    if (h < 5) night.setDate(night.getDate() - 1);
+    const k = dayKey(night);
     if (seen.has(k)) continue;
     seen.add(k);
     tally[m.who]++;
   }
+  return tally;
+}
+
+// Nights the conversation carried on into the morning: a reply slept on that still
+// belonged to the same conversation.
+export function carriedNights(msgs, quiet) {
+  const days = new Set();
+  for (let j = 1; j < msgs.length; j++) {
+    const p = msgs[j - 1], q = msgs[j];
+    if (p.who !== q.who && sleptOn(p, q, quiet[q.who]) && sameConversation(p, q, quiet)) days.add(dayKey(q.when));
+  }
+  return days.size;
+}
+
+// The first new conversation each morning (5am to noon). A morning reply to last
+// night's message is a continuation, so it doesn't count as texting first.
+export function firstTexter(msgs, people, quiet = quietHours(msgs, people)) {
+  const seen = new Set();
+  const tally = Object.fromEntries(people.map((p) => [p, 0]));
+  msgs.forEach((m, j) => {
+    if (m.when.getHours() < 5 || m.when.getHours() >= 12) return;
+    const k = dayKey(m.when);
+    if (seen.has(k) || (j && sameConversation(msgs[j - 1], m, quiet))) return;
+    seen.add(k);
+    tally[m.who]++;
+  });
   return tally;
 }
 
@@ -48,24 +169,30 @@ export function longestStreak(dayKeys) {
   return { days: best, end: new Date(end * 864e5) };
 }
 
-// Reply speed per person: gaps where the sender changes. Gaps of 6h+ count as a new
-// conversation, not a reply. Android exports have minute precision only, so `precise`
-// tells the slide whether sub-minute numbers mean anything.
-export function replySpeed(msgs, people) {
+// Reply speed per person: gaps where the sender changes inside one conversation. A
+// reply the replier slept on is counted as `slept` instead. Android exports have
+// minute precision only, so the median is usually 0; `within1` and `mean` tell two
+// people apart.
+export function replySpeed(msgs, people, quiet = quietHours(msgs, people)) {
   const gaps = Object.fromEntries(people.map((p) => [p, []]));
+  const slept = Object.fromEntries(people.map((p) => [p, 0]));
   for (let j = 1; j < msgs.length; j++) {
     const p = msgs[j - 1], q = msgs[j];
     if (p.who === q.who || !gaps[q.who]) continue;
+    if (!sameConversation(p, q, quiet)) continue;
+    if (sleptOn(p, q, quiet[q.who])) { slept[q.who]++; continue; }
     const gap = (q.when - p.when) / 6e4;
-    if (gap >= 0 && gap < 360) gaps[q.who].push(gap);
+    if (gap >= 0) gaps[q.who].push(gap);
   }
   const out = { precise: msgs.some((m) => m.when.getSeconds() !== 0) };
   for (const p of people) {
     const g = gaps[p];
     out[p] = {
       median: median(g),
-      within5: g.length ? Math.round((g.filter((x) => x <= 5).length / g.length) * 100) : 0,
-      leftOnRead: g.filter((x) => x >= 60).length,
+      mean: g.length ? g.reduce((a, b) => a + b, 0) / g.length : null,
+      within1: g.length ? Math.round((g.filter((x) => x <= 1).length / g.length) * 100) : 0,
+      slow: g.filter((x) => x >= 60).length,
+      slept: slept[p],
     };
   }
   return out;
@@ -91,7 +218,8 @@ export function talker(msgs, people) {
 }
 
 // Bubbles per turn: a turn is a run of messages from one person with no reply in between,
-// broken by a 10+ minute gap (that counts as a double text, not the same burst).
+// broken by a 10+ minute gap (that counts as a double text, not the same burst). Media
+// is left out, so a photo dump doesn't read as a long burst.
 export function bubbles(msgs, people) {
   const turns = Object.fromEntries(people.map((p) => [p, []]));
   let longest = { who: null, n: 0, when: null };
@@ -102,6 +230,7 @@ export function bubbles(msgs, people) {
     if (run.n > longest.n) longest = { who: run.who, n: run.n, when: run.start };
   };
   for (const m of msgs) {
+    if (m.media) continue;
     if (run && run.who === m.who && (m.when - run.last) / 6e4 < 10) {
       run.n++;
       run.last = m.when;
@@ -132,19 +261,20 @@ export function stats(all) {
 
   const hours = new Array(24).fill(0);
   for (const m of msgs) hours[m.when.getHours()]++;
+  const quiet = quietHours(msgs, pair);
 
   const emo = { [A]: {}, [B]: {} }, words = {}, sorry = { [A]: 0, [B]: 0 }, love = { [A]: 0, [B]: 0 };
   const names = new Set(pair.join(' ').toLowerCase().split(/\s+/));
-  let sorryFirst = null;
+  const sorryFirst = {};
   for (const m of msgs) {
     if (m.media || m.deleted) continue;
     for (const g of graphemes(m.text)) {
       if (PICT.test(g)) { const e = g.replace(/️/g, ''); emo[m.who][e] = (emo[m.who][e] || 0) + 1; }
     }
-    if (SORRY.test(m.text)) { sorry[m.who]++; sorryFirst ??= m; }
+    if (SORRY.test(m.text)) { sorry[m.who]++; sorryFirst[m.who] ??= m; }
     if (LOVE.test(m.text)) love[m.who]++;
     for (const w of m.text.toLowerCase().match(/[\p{L}']{3,}/gu) || []) {
-      if (!STOP.has(w) && !names.has(w)) words[w] = (words[w] || 0) + 1;
+      if (!STOP.has(w) && !names.has(w) && !LAUGH.test(w)) words[w] = (words[w] || 0) + 1;
     }
   }
 
@@ -153,14 +283,17 @@ export function stats(all) {
 
   return {
     A, B, group: Object.keys(count).length > 2, total: msgs.length, count,
-    days: dk.length, first: msgs[0], firstDate: msgs[0].when,
+    days: dk.length, first: msgs.find((m) => !m.media && !m.deleted && m.text.trim()) || msgs[0], firstDate: msgs[0].when,
     streak: streak.days, streakEnd: streak.end,
-    ft: firstTexter(msgs, pair),
+    ft: firstTexter(msgs, pair, quiet),
     hours, peak: hours.indexOf(Math.max(...hours)),
     late: msgs.filter((m) => m.when.getHours() < 4).length,
     emo: { [A]: top(emo[A], 5), [B]: top(emo[B], 5) },
     words: top(words, 6), sorry, love, sorryFirst,
-    reply: replySpeed(msgs, pair),
+    reply: replySpeed(msgs, pair, quiet),
+    convo: convoStats(conversations(msgs, quiet), pair),
+    goodnight: goodnightFirst(msgs, pair),
+    carried: carriedNights(msgs, quiet),
     talk: talker(msgs, pair),
     bubbles: bubbles(msgs, pair),
     busy, busyN: days[busy],
