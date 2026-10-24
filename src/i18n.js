@@ -47,6 +47,20 @@ export const STRINGS = {
     // slides
     introLine: (a, b, days) => `messages between ${a} and ${b}, across ${days} days of talking.`,
     since: (d) => `Since ${d}`,
+    paceStat: (n, p) => `${n} back-and-forths a day · talked on ${p}% of days`,
+    paceTurns: (n) => `${n} back-and-forths a day`,
+    pace_inseparable: 'Most days, and a lot each time. You two are basically inseparable.',
+    pace_bursts: 'Not every day, but when you two talk, you really talk.',
+    pace_steady: 'A little, almost every day. The steady kind.',
+    pace_occasional: 'Every now and then, and that\'s enough for you two.',
+    paceNewEvery: (n) => `${n} days in, and you've talked every single day.`,
+    paceNewSome: (n, d) => `${n} days in, and you've talked on ${d} of them.`,
+    pace_inseparable_past: 'Most days, and a lot each time. You two were basically inseparable.',
+    pace_bursts_past: 'Not every day, but when you two talked, you really talked.',
+    pace_steady_past: 'A little, almost every day. You were the steady kind.',
+    pace_occasional_past: 'Every now and then, and that was enough for you two.',
+    paceNewEvery_past: (n) => `${n} days, and you talked every single day.`,
+    paceNewSome_past: (n, d) => `${n} days, and you talked on ${d} of them.`,
     rangeFrom: (r, d) => `${r} · from ${d}`,
     whereStarted: 'Where it started',
     rangeFirst: (r) => `${r}: first message`,
@@ -55,8 +69,28 @@ export const STRINGS = {
     matched: 'Perfectly matched. Almost.',
     carries: (w) => `${w} carries this chat.`,
     rowMessages: 'Messages', rowWords: 'Words', rowDoubles: 'Double texts',
-    fewerLonger: (l, avg) => `${l} sends fewer messages, but longer ones: ${avg} words each`,
-    alsoLonger: (w, avg) => `${w} also writes longer messages: ${avg} words each`,
+    carriesPast: (w) => `${w} carried this chat.`,
+    rolesKey: 'Talker: more messages · Storyteller: longer messages · Chaser: more double texts',
+    // Roles from the talker table: whoever holds the talker role first, then the other; a
+    // shared role gets its own note.
+    rolesLine: (r, A, B, past) => {
+      const label = { talker: 'the talker', storyteller: 'the storyteller', chaser: 'the chaser' };
+      const shared = past
+        ? { talker: 'You split the talking evenly.', storyteller: 'You wrote about the same length.', chaser: 'You both texted again about as often.' }
+        : { talker: 'You split the talking evenly.', storyteller: 'You write about the same length.', chaser: 'You both text again about as often.' };
+      const keys = ['talker', 'storyteller', 'chaser'];
+      if (keys.every((k) => !r[k])) return 'Evenly matched on every count.';
+      const list = (xs) => (xs.length < 3 ? xs.join(' and ') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+      const first = r.talker || r.storyteller || r.chaser, other = first === A ? B : A;
+      const out = [];
+      for (const p of [first, other]) {
+        const mine = keys.filter((k) => r[k] === p).map((k) => label[k]);
+        if (mine.length) out.push(`${p} ${past ? 'was' : 'is'} ${list(mine)}.`);
+        if (mine.length === 3) out.push(`${other} ${past ? 'got' : 'gets'} a word in.`);
+      }
+      for (const k of keys) if (!r[k]) out.push(shared[k]);
+      return out.join(' ');
+    },
     firstThought: 'First thought of the day',
     mornings: (w, l, n) => `mornings where <b>${w}</b> texted first. ${l} got there first on ${n}.`,
     morningFoot: 'Counts the first new conversation between 5am and noon. Replying to last night doesn\'t count',
@@ -107,8 +141,12 @@ export const STRINGS = {
     bubbleRoast: (w, x) => `${w} sends ${x} bubbles per turn. Just send one paragraph, bro.`,
     bubbleBoth: 'You both finish a thought in one message. Rare.',
     bubbleEven: (w, x, l) => `${w} sends ${x} bubbles per turn, about the same as ${l}.`,
-    bubblesPerTurn: 'bubbles per turn',
-    bubbleFoot: (n, w, d) => `Longest burst: ${n} messages in a row from ${w}, ${d}`,
+    burstRant: (w, n, words, d) => `${w} ranted here 👀: ${n} messages, ${words} words · ${d}`,
+    burstSpree: (w, n, d) => `${w} got carried away: ${n} messages in a row · ${d}`,
+    burstNormal: (w, n) => `Longest burst: ${n} messages from ${w}. Short and sweet.`,
+    rantButton: 'Read the rant',
+    chatRant: '👀 the rant',
+    bubbleKey: 'A rant: 8+ messages in a row and 60+ words',
     oops: 'Oops', noData: 'Not enough data for this slide.',
   },
   ms: {
@@ -139,6 +177,20 @@ export const STRINGS = {
     sec: (n) => `${n} saat`, min: (n) => `${n} minit`, hr: (n) => `${n} jam`, underMin: '< 1 minit',
     introLine: (a, b, days) => `mesej antara ${a} dan ${b}, sepanjang ${days} hari berbual.`,
     since: (d) => `Sejak ${d}`,
+    paceStat: (n, p) => `${n} kali berbalas sehari · berbual ${p}% daripada hari`,
+    paceTurns: (n) => `${n} kali berbalas sehari`,
+    pace_inseparable: 'Hampir setiap hari, dan banyak setiap kali. Korang ni memang tak boleh berpisah.',
+    pace_bursts: 'Bukan setiap hari, tapi bila korang berbual, memang betul-betul berbual.',
+    pace_steady: 'Sikit-sikit, tapi hampir setiap hari. Jenis yang konsisten.',
+    pace_occasional: 'Sekali-sekala, dan itu dah cukup untuk korang.',
+    paceNewEvery: (n) => `${n} hari, dan korang berbual setiap hari.`,
+    paceNewSome: (n, d) => `${n} hari, dan korang berbual ${d} hari daripadanya.`,
+    pace_inseparable_past: 'Hampir setiap hari, dan banyak setiap kali. Korang dulu memang tak boleh berpisah.',
+    pace_bursts_past: 'Bukan setiap hari, tapi bila korang berbual dulu, memang betul-betul berbual.',
+    pace_steady_past: 'Sikit-sikit, tapi hampir setiap hari. Dulu korang jenis yang konsisten.',
+    pace_occasional_past: 'Sekali-sekala, dan dulu itu dah cukup untuk korang.',
+    paceNewEvery_past: (n) => `Dalam ${n} hari tu, korang berbual setiap hari.`,
+    paceNewSome_past: (n, d) => `Dalam ${n} hari tu, korang berbual ${d} hari.`,
     rangeFrom: (r, d) => `${r} · dari ${d}`,
     whereStarted: 'Di sinilah bermula',
     rangeFirst: (r) => `${r}: mesej pertama`,
@@ -147,8 +199,24 @@ export const STRINGS = {
     matched: 'Sama padan. Hampir.',
     carries: (w) => `${w} yang hidupkan chat ni.`,
     rowMessages: 'Mesej', rowWords: 'Perkataan', rowDoubles: 'Double text',
-    fewerLonger: (l, avg) => `${l} hantar kurang mesej, tapi lebih panjang: ${avg} patah perkataan setiap satu`,
-    alsoLonger: (w, avg) => `${w} juga tulis mesej lebih panjang: ${avg} patah perkataan setiap satu`,
+    carriesPast: (w) => `${w} yang hidupkan chat ni dulu.`,
+    rolesKey: 'Kaki borak: lebih banyak mesej · Tukang karang: mesej lebih panjang · Si tak sabar: lebih banyak double text',
+    rolesLine: (r, A, B, past) => {
+      const label = { talker: 'kaki borak', storyteller: 'tukang karang', chaser: 'si tak sabar' };
+      const shared = { talker: 'Korang berbual sama banyak.', storyteller: 'Panjang mesej korang lebih kurang sama.', chaser: 'Korang sama-sama selalu text lagi bila senyap.' };
+      const keys = ['talker', 'storyteller', 'chaser'];
+      if (keys.every((k) => !r[k])) return 'Sama padan dalam semua benda.';
+      const list = (xs) => (xs.length < 3 ? xs.join(' dan ') : `${xs.slice(0, -1).join(', ')} dan ${xs[xs.length - 1]}`);
+      const first = r.talker || r.storyteller || r.chaser, other = first === A ? B : A;
+      const out = [];
+      for (const p of [first, other]) {
+        const mine = keys.filter((k) => r[k] === p).map((k) => label[k]);
+        if (mine.length) out.push(`${p} ${past ? 'dulu ' : ''}${list(mine)}.`);
+        if (mine.length === 3) out.push(`${other} sempat jugak menyampuk.`);
+      }
+      for (const k of keys) if (!r[k]) out.push(shared[k]);
+      return out.join(' ');
+    },
     firstThought: 'Yang pertama di fikiran',
     mornings: (w, l, n) => `pagi <b>${w}</b> mesej dulu. ${l} lebih awal sebanyak ${n} kali.`,
     morningFoot: 'Kira perbualan baru pertama antara 5 pagi dan tengah hari. Balas mesej semalam tak dikira',
@@ -199,8 +267,12 @@ export const STRINGS = {
     bubbleRoast: (w, x) => `${w} hantar ${x} bubble setiap giliran. Hantar satu perenggan je la, bro.`,
     bubbleBoth: 'Korang berdua habiskan ayat dalam satu mesej. Jarang jumpa.',
     bubbleEven: (w, x, l) => `${w} hantar ${x} bubble setiap giliran, lebih kurang sama macam ${l}.`,
-    bubblesPerTurn: 'bubble setiap giliran',
-    bubbleFoot: (n, w, d) => `Bertubi-tubi paling panjang: ${n} mesej berturut-turut daripada ${w}, ${d}`,
+    burstRant: (w, n, words, d) => `${w} membebel kat sini 👀: ${n} mesej, ${words} patah perkataan · ${d}`,
+    burstSpree: (w, n, d) => `${w} terlebih excited: ${n} mesej berturut-turut · ${d}`,
+    burstNormal: (w, n) => `Paling panjang: ${n} mesej dari ${w}. Ringkas dan padat.`,
+    rantButton: 'Baca bebelan',
+    chatRant: '👀 bebelan',
+    bubbleKey: 'Bebelan: 8+ mesej berturut-turut dan 60+ patah perkataan',
     oops: 'Alamak', noData: 'Data tak cukup untuk slaid ini.',
   },
 };

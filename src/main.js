@@ -15,6 +15,7 @@ import { closingSlide, PALETTES, slidesFor } from './slides.js';
 import { makeSample } from './sample.js';
 import { esc, fmtDay, nf } from './format.js';
 import { dayMessages, guessMe, renderChat } from './chat.js';
+import { dayKey } from './stats.js';
 import { renderSlidePng, saveOrShare, shareFileName } from './share.js';
 import { filterRange, rangeOptions } from './range.js';
 import { getLang, LANGS, setLang, t } from './i18n.js';
@@ -170,27 +171,34 @@ for (const type of ['pointerdown', 'pointerup', 'keydown']) {
 // My bubbles go on the right: a swap the user made on this device, else whoever the export
 // shows as its owner, else the bigger sender.
 const chat = $('chat'), ME_KEY = 'our-wrapped-me';
-let chatReturn = null, chatDay = [], chatMe = null;
+let chatReturn = null, chatDay = [], chatMe = null, chatMark = null;
 function pickMe(people) {
   let saved = null;
   try { saved = localStorage.getItem(ME_KEY); } catch { /* storage blocked */ }
   return people.includes(saved) ? saved : guessMe(currentMsgs, people) ?? people[0];
 }
-function openChat(from) {
+// Opens on the loudest day, or with what = 'rant' on the day of the featured rant, highlighted
+// and scrolled into view.
+function openChat(from, what = 'busy') {
   if (!current || !chat.hidden) return;
-  const people = [current.A, current.B];
-  chatDay = dayMessages(currentMsgs, current.busy, people);
+  const people = [current.A, current.B], f = current.bubbles.feature;
+  const rant = what === 'rant' && f?.kind === 'rant';
+  const key = rant ? dayKey(f.start) : current.busy;
+  chatDay = dayMessages(currentMsgs, key, people);
   chatMe = pickMe(people);
-  $('chatDay').textContent = fmtDay(current.busy);
+  chatMark = rant ? { who: f.who, first: f.first, last: f.last } : null;
+  $('chatDay').textContent = fmtDay(key);
   $('chatCount').textContent = t('chatCount', nf(chatDay.length));
-  $('chatLog').innerHTML = renderChat(chatDay, chatMe);
+  const log = $('chatLog');
+  log.innerHTML = renderChat(chatDay, chatMe, chatMark);
   chatReturn = from;
   chat.hidden = false;
   document.body.classList.add('locked');
   story.setHeld(true);
   history.pushState({ chat: true }, '', location.href);
-  $('chatLog').scrollTop = 0;
-  $('chatClose').focus();
+  const mark = log.querySelector('.chat-mark');
+  log.scrollTop = mark ? mark.offsetTop - log.offsetTop - 12 : 0;
+  $('chatClose').focus({ preventScroll: true });
 }
 function hideChat() {
   if (chat.hidden) return;
@@ -206,12 +214,12 @@ $('chatSwap').addEventListener('click', () => {
   chatMe = chatMe === current.A ? current.B : current.A;
   try { localStorage.setItem(ME_KEY, chatMe); } catch { /* ignore */ }
   const log = $('chatLog'), top = log.scrollTop;
-  log.innerHTML = renderChat(chatDay, chatMe);
+  log.innerHTML = renderChat(chatDay, chatMe, chatMark);
   log.scrollTop = top;
 });
 $('sCard').addEventListener('click', (e) => {
-  const a = e.target.closest('[data-act="chat"]');
-  if (a) openChat(a);
+  const a = e.target.closest('[data-act]');
+  if (a) openChat(a, a.dataset.act === 'rant' ? 'rant' : 'busy');
 });
 
 let saveTimer = 0;
@@ -262,8 +270,8 @@ $('sSave').addEventListener('click', (e) => {
   saveSlide(slide, s, e.currentTarget, story.setHeld);
 });
 gallery.addEventListener('click', (e) => {
-  const a = e.target.closest('[data-act="chat"]');
-  if (a) return openChat(a);
+  const a = e.target.closest('[data-act]');
+  if (a) return openChat(a, a.dataset.act === 'rant' ? 'rant' : 'busy');
   const b = e.target.closest('[data-save]');
   if (b) saveSlide(slideList()[+b.dataset.save], current, b);
 });

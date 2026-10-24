@@ -19,9 +19,21 @@ const count = (n, suffix = '', dec = 0) =>
 const frame = (kicker, body, foot) =>
   `<div class="k">${kicker}</div><div>${body}</div><div class="foot">${foot}</div>`;
 
+// Under the total: how much you talk on a day you talk, how often you talk, and what that
+// says about you two. A new chat (under a month, whole chat only) gets its own line.
+function paceBlock(S) {
+  const p = S.pace;
+  if (!p) return '';
+  const fresh = p.isNew && !S.range;
+  const stat = fresh ? t('paceTurns', p.turns) : t('paceStat', p.turns, p.share);
+  const tense = p.past ? '_past' : ''; // a chat that's gone quiet for over a week
+  const remark = !fresh ? t(`pace_${p.kind}${tense}`) : S.days === p.span ? t(`paceNewEvery${tense}`, p.span) : t(`paceNewSome${tense}`, p.span, S.days);
+  return `<div class="pace"><div class="pace-stat">${stat}</div><div class="pace-remark">${remark}</div></div>`;
+}
+
 export const SLIDES = [
   { id: 'intro', pal: 'plum', render: (S) => frame('Our Wrapped',
-    `<div class="big">${count(S.total)}</div><div class="line">${t('introLine', esc(S.A), esc(S.B), S.days)}</div>`,
+    `<div class="big">${count(S.total)}</div><div class="line">${t('introLine', esc(S.A), esc(S.B), S.days)}</div>${paceBlock(S)}`,
     S.range ? t('rangeFrom', esc(S.range), fmtDate(S.firstDate)) : t('since', fmtDate(S.firstDate))) },
 
   { id: 'first', pal: 'lemon', render: (S) => frame(S.range ? t('rangeFirst', esc(S.range)) : t('whereStarted'),
@@ -31,20 +43,20 @@ export const SLIDES = [
   { id: 'share', pal: 'pink', render: (S) => {
     const a = S.count[S.A], b = S.count[S.B] || 0, pa = Math.round((a / (a + b)) * 100);
     const [w, l] = pa >= 50 ? [S.A, S.B] : [S.B, S.A];
-    const tk = S.talk;
+    const tk = S.talk, past = !!S.pace?.past;
     const row = (label, x, y) => `<div class="tr"><span>${label}</span><b>${nf(x)}</b><b>${nf(y)}</b></div>`;
-    const wordier = tk.avg[l] > tk.avg[w];
     return frame(t('talker'),
-      `<div class="mid">${Math.abs(pa - 50) <= 5 ? t('matched') : t('carries', esc(w))}</div>
+      `<div class="mid">${!tk.roles.talker ? t('matched') : t(past ? 'carriesPast' : 'carries', esc(w))}</div>
        <div class="big">${count(Math.max(pa, 100 - pa), '%')}</div>
+       <div class="line roles">${t('rolesLine', tk.roles, esc(S.A), esc(S.B), past)}</div>
        <div class="split"><div style="width:${pa}%;background:#1a0612;color:#ff4f9a">${esc(S.A)}</div><div style="flex:1;background:#ffd0e3;color:#1a0612">${esc(S.B)}</div></div>
        <div class="tally"><div class="tr th"><span></span><b>${esc(S.A)}</b><b>${esc(S.B)}</b></div>
          ${row(t('rowMessages'), a, b)}${row(t('rowWords'), tk.words[S.A], tk.words[S.B])}${row(t('rowDoubles'), tk.doubles[S.A], tk.doubles[S.B])}</div>`,
-      wordier ? t('fewerLonger', esc(l), tk.avg[l].toFixed(1)) : t('alsoLonger', esc(w), tk.avg[w].toFixed(1)));
+      t('rolesKey'));
   } },
 
   { id: 'bubble', pal: 'lemon', render: (S) => {
-    const { avg, longest } = S.bubbles;
+    const { avg, feature: f } = S.bubbles;
     const w = avg[S.A] >= avg[S.B] ? S.A : S.B, l = w === S.A ? S.B : S.A;
     const x = Math.round(avg[w] * 10) / 10;
     // Roast only when it's earned: 3+ bubbles a turn, or half again as many as the other.
@@ -55,8 +67,11 @@ export const SLIDES = [
       `<div class="bubbles" aria-hidden="true">${stack}</div>
        <div class="big">${count(x, '', 1)}</div>
        <div class="line">${x < 1.5 ? t('bubbleBoth') : roast ? t('bubbleRoast', esc(w), x.toFixed(1)) : t('bubbleEven', esc(w), x.toFixed(1), esc(l))}</div>
-       <div class="vs"><div><span>${esc(S.A)}</span><span>${avg[S.A].toFixed(1)}</span></div><div><span>${esc(S.B)}</span><span>${avg[S.B].toFixed(1)}</span></div></div>`,
-      longest.n > 1 ? t('bubbleFoot', longest.n, esc(longest.who), fmtDate(longest.when)) : t('bubblesPerTurn'));
+       <div class="vs"><div><span>${esc(S.A)}</span><span>${avg[S.A].toFixed(1)}</span></div><div><span>${esc(S.B)}</span><span>${avg[S.B].toFixed(1)}</span></div></div>
+       ${f ? `<div class="line burst">${f.kind === 'rant' ? t('burstRant', esc(f.who), f.n, nf(f.words), fmtDate(f.start))
+         : f.kind === 'spree' ? t('burstSpree', esc(f.who), f.n, fmtDate(f.start)) : t('burstNormal', esc(f.who), f.n)}</div>` : ''}
+       ${f?.kind === 'rant' ? `<button type="button" class="slide-act" data-act="rant">${t('rantButton')}</button>` : ''}`,
+      t('bubbleKey'));
   } },
 
   { id: 'morning', pal: 'tang', render: (S) => {

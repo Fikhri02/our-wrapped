@@ -16,9 +16,16 @@ export function guessMe(msgs, people) {
 
 const clock = (d) => `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}${d.getHours() < 12 ? 'am' : 'pm'}`;
 
-export function renderChat(msgs, me) {
-  let html = '', hour = -1, who = null;
+// `mark` ({ who, first, last }) highlights a run of one person's messages, like a rant, with a
+// marker before its first bubble. It goes by the messages themselves, not their times: exports
+// only record minutes, so a time range would sweep in earlier messages from the same minute.
+export function renderChat(msgs, me, mark = null) {
+  let html = '', hour = -1, who = null, marked = false, inside = false;
   for (const m of msgs) {
+    if (mark && m === mark.first) inside = true;
+    const hl = inside && m.who === mark.who;
+    if (mark && m === mark.last) inside = false;
+    if (hl && !marked) { html += `<div class="chat-mark">${t('chatRant')}</div>`; marked = true; who = null; }
     const h = m.when.getHours();
     if (h !== hour) {
       html += `<div class="chat-hour">${hourLabel(h)}</div>`;
@@ -31,9 +38,10 @@ export function renderChat(msgs, me) {
       who = m.who;
     }
     // Export placeholders read as notes, not as something anyone typed.
-    if (m.deleted) html += `<div class="chat-b ${side} ph">${t('chatDeleted')}</div>`;
-    else if (m.media || !m.text.trim()) html += `<div class="chat-b ${side} ph">${t('chatMedia')}</div>`;
-    else html += `<div class="chat-b ${side}">${esc(m.text)}</div>`;
+    const cls = `chat-b ${side}${hl ? ' hl' : ''}`;
+    if (m.deleted) html += `<div class="${cls} ph">${t('chatDeleted')}</div>`;
+    else if (m.media || !m.text.trim()) html += `<div class="${cls} ph">${t('chatMedia')}</div>`;
+    else html += `<div class="${cls}">${esc(m.text)}</div>`;
   }
   return html;
 }

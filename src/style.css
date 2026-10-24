@@ -77,10 +77,13 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 
 /* talker tally */
 .tally { margin-top: 16px; display: grid; gap: 6px; font-size: 14px; }
-.tr { display: grid; grid-template-columns: 1fr 72px 72px; align-items: baseline; border-bottom: 1px solid currentColor; padding-bottom: 5px; }
-.tr b { text-align: right; font-family: var(--display); font-size: 20px; font-variant-numeric: tabular-nums; }
+/* person columns size to their numbers (129,169 fits) with a clear gap between the two people */
+.tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(64px, auto) minmax(64px, auto); column-gap: 22px; align-items: baseline; border-bottom: 1px solid currentColor; padding-bottom: 5px; }
+.tr b { text-align: right; font-family: var(--display); font-size: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tally { grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 22px; }
+.tally .tr { grid-column: 1 / -1; grid-template-columns: subgrid; }
 .tr.th { border-bottom: 0; padding-bottom: 0; }
-.tr.th b { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; opacity: .8; }
+.tr.th b { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; opacity: .8; white-space: normal; overflow-wrap: anywhere; }
 
 /* gestures */
 .screen { touch-action: pan-y; }
@@ -204,3 +207,34 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .wcols .words { margin-top: 8px; gap: 6px; }
 .wcols .words span { font-size: 16px; padding: 3px 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .wcols .words span:first-child { font-size: 22px; }
+
+/* intro: how you talk, under the total */
+.pace { margin-top: 22px; padding-top: 14px; border-top: 1.5px solid currentColor; display: grid; gap: 6px; }
+.pace-stat { font-family: var(--mono); font-size: 11.5px; letter-spacing: .04em; opacity: .85; }
+.pace-remark { font-family: var(--display); font-weight: 700; font-size: 22px; line-height: 1.12; letter-spacing: -.01em; text-wrap: balance; }
+
+/* talker: the roles line sits under the percentage, before the bar and table */
+.card .roles { margin-top: 10px; text-wrap: pretty; }
+
+/* results cards squeezed to the gallery's 300px minimum (a narrow desktop window): scale the
+   type down so a full slide still fits its 9:16 frame */
+.tile-frame { container-type: inline-size; }
+@container (max-width: 320px) {
+  .card { padding: 40px 20px 20px; }
+  .card .big { font-size: 56px; }
+  .card .mid { font-size: 25px; }
+  .card .line { font-size: 14.5px; margin-top: 8px; }
+  .tr b { font-size: 17px; }
+  .split { height: 44px; margin-top: 10px; }
+  .bubbles { margin-bottom: 8px; gap: 5px; }
+  .bubbles i { height: 22px; }
+  .vs { gap: 6px; margin-top: 10px; }
+  .vs div span:last-child { font-size: 24px; }
+  .card .burst { font-size: 13.5px; }
+}
+
+/* bubble count: the featured burst under the roast, and a rant highlighted in the viewer */
+.card .burst { margin-top: 10px; font-size: 15px; }
+.burst + .slide-act { margin-top: 10px; }
+.chat-mark { align-self: center; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; background: #ff4f9a; color: #1a0612; border-radius: 999px; padding: 3px 10px; margin: 16px 0 2px; }
+.chat-b.hl { box-shadow: 0 0 0 2.5px #ff4f9a; }

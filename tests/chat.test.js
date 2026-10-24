@@ -64,6 +64,33 @@ describe('renderChat', () => {
   });
 });
 
+describe('highlighting a rant', () => {
+  it('marks the rant\'s bubbles and puts a marker before the first one', () => {
+    const day = dayMessages(msgs, '2026-01-02', ['A', 'B']);
+    const html = renderChat(day, 'B', { who: 'A', first: day[0], last: day[1] });
+    expect(html.match(/chat-b them hl/g)).toHaveLength(2);
+    expect(html.indexOf('class="chat-mark"')).toBeLessThan(html.indexOf('chat-b them hl'));
+    expect(html.match(/class="chat-mark"/g)).toHaveLength(1);
+  });
+
+  it('leaves out earlier messages from the same minute (exports only record minutes)', () => {
+    const same = parse('2/1/26, 09:00 - A: before\n2/1/26, 09:00 - B: reply\n2/1/26, 09:00 - A: rant one\n2/1/26, 09:00 - A: rant two');
+    const html = renderChat(same, 'B', { who: 'A', first: same[2], last: same[3] });
+    expect(html.match(/ hl"/g)).toHaveLength(2);
+    expect(html).toContain('chat-b them">before');
+  });
+});
+
+describe('bubble count slide', () => {
+  it('offers to read the rant only when there is one', () => {
+    const lines = (words) => Array.from({ length: 10 }, (_, i) => `1/1/26, 10:${String(i).padStart(2, '0')} - A: ${Array(words).fill('kata').join(' ')}`)
+      .concat(Array.from({ length: 10 }, (_, i) => `1/1/26, 11:${String(i * 2).padStart(2, '0')} - ${i % 2 ? 'A' : 'B'}: ok`)).join('\n');
+    const slide = SLIDES.find((s) => s.id === 'bubble');
+    expect(slide.render(stats(parse(lines(8))))).toMatch(/data-act="rant"/);
+    expect(slide.render(stats(parse(lines(2))))).not.toMatch(/data-act="rant"/);
+  });
+});
+
 describe('loudest day slide', () => {
   it('offers a button to read that day', () => {
     const S = stats(parse(Array.from({ length: 20 }, (_, i) => `1/1/26, 10:${String(i).padStart(2, '0')} - ${i % 2 ? 'A' : 'B'}: hello`).join('\n')));

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from '../src/parser.js';
-import { bubbles, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker } from '../src/stats.js';
+import { bubbles, carriedNights, conversations, convoStats, firstTexter, goodnightFirst, longestStreak, median, quietHours, replySpeed, sameConversation, signatureWords, signOff, stats, talker, talkRoles } from '../src/stats.js';
+import { setLang, t } from '../src/i18n.js';
 import { slidesFor } from '../src/slides.js';
 import { formatReply } from '../src/format.js';
 import { makeSample } from '../src/sample.js';
@@ -228,7 +229,80 @@ describe('where a conversation ends', () => {
   });
 });
 
+describe('pace', () => {
+  // A chat over `span` days that talks on `talk` of them, with `turns` back-and-forths each time.
+  const chat = (span, talk, turns) => {
+    const lines = [];
+    for (let d = 0; d < span; d++) {
+      if (d % Math.round(span / talk) !== 0 && d !== span - 1) continue;
+      const day = new Date(2026, 0, 1 + d);
+      const date = `${day.getDate()}/${day.getMonth() + 1}/26`;
+      for (let i = 0; i < turns; i++) lines.push(`${date}, ${String(9 + Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')} - ${i % 2 ? 'A' : 'B'}: hi`);
+    }
+    return stats(parse(lines.join('\n'))).pace;
+  };
+
+  it('tells a lot-every-day chat from a rare-but-heavy one', () => {
+    expect(chat(60, 60, 40)).toMatchObject({ kind: 'inseparable', isNew: false });
+    expect(chat(60, 12, 40)).toMatchObject({ kind: 'bursts', isNew: false });
+  });
+
+  it('tells a little-every-day chat from an every-now-and-then one', () => {
+    expect(chat(60, 60, 10).kind).toBe('steady');
+    expect(chat(60, 12, 10).kind).toBe('occasional');
+  });
+
+  it('counts back-and-forths, not bubbles, and the share of days talked', () => {
+    const p = chat(60, 60, 40);
+    expect(p.turns).toBe(40);
+    expect(p.share).toBe(100);
+    expect(p.span).toBe(60);
+  });
+
+  it('turns past tense when the latest message is more than a week old', () => {
+    const msgs = parse(Array.from({ length: 20 }, (_, i) => `1/3/26, 10:${String(i).padStart(2, '0')} - ${i % 2 ? 'A' : 'B'}: hi`).join('\n'));
+    expect(stats(msgs, new Date(2026, 2, 5)).pace.past).toBe(false);
+    expect(stats(msgs, new Date(2026, 2, 9)).pace.past).toBe(true);
+  });
+
+  it('marks a chat under a month old as new', () => {
+    expect(chat(8, 8, 40)).toMatchObject({ isNew: true, span: 8 });
+  });
+});
+
+describe('talker roles', () => {
+  const talk = (avgA, avgB, dA, dB) => ({ avg: { A: avgA, B: avgB }, doubles: { A: dA, B: dB } });
+
+  it('gives each role to whoever clearly leads it, double texts per message sent', () => {
+    expect(talkRoles({ A: 60, B: 40 }, talk(4, 6, 6, 2), ['A', 'B'])).toEqual({ talker: 'A', storyteller: 'B', chaser: 'A' });
+  });
+
+  it('shares a role when the two are close', () => {
+    expect(talkRoles({ A: 51, B: 49 }, talk(4.1, 4, 5, 5), ['A', 'B'])).toEqual({ talker: null, storyteller: null, chaser: null });
+  });
+
+  it('does not let the busier sender win chaser just by sending more', () => {
+    expect(talkRoles({ A: 200, B: 100 }, talk(4, 4, 20, 10), ['A', 'B']).chaser).toBeNull();
+  });
+
+  it('describes the roles in a sentence, past tense once the chat has gone quiet', () => {
+    setLang('en');
+    expect(t('rolesLine', { talker: 'B', storyteller: 'A', chaser: 'A' }, 'A', 'B', false)).toBe('B is the talker. A is the storyteller and the chaser.');
+    expect(t('rolesLine', { talker: 'B', storyteller: null, chaser: 'A' }, 'A', 'B', false)).toBe('B is the talker. A is the chaser. You write about the same length.');
+    expect(t('rolesLine', { talker: 'A', storyteller: 'A', chaser: 'A' }, 'A', 'B', false)).toBe('A is the talker, the storyteller and the chaser. B gets a word in.');
+    expect(t('rolesLine', { talker: null, storyteller: null, chaser: null }, 'A', 'B', false)).toBe('Evenly matched on every count.');
+    expect(t('rolesLine', { talker: 'B', storyteller: 'A', chaser: null }, 'A', 'B', true)).toBe('B was the talker. A was the storyteller. You both texted again about as often.');
+  });
+});
+
 describe('slide content', () => {
+  it('speaks about a finished chat in the past tense', () => {
+    const msgs = parse(Array.from({ length: 20 }, (_, i) => `1/3/26, 10:${String(i).padStart(2, '0')} - ${i % 2 ? 'A' : 'B'}: hi`).join('\n'));
+    const intro = (now) => slidesFor(stats(msgs, now))[0].render(stats(msgs, now));
+    expect(intro(new Date(2026, 2, 2))).toMatch(/you've talked every single day/);
+    expect(intro(new Date(2026, 5, 1))).toMatch(/you talked every single day/);
+  });
+
   it('skips blank lines for the first message', () => {
     const S = stats(parse('1/1/26, 10:00 - B: \n1/1/26, 10:01 - B: helloo\n1/1/26, 10:02 - A: hi\n' + '1/1/26, 10:03 - A: ok\n'.repeat(10)));
     expect(S.first.text).toBe('helloo');
@@ -312,6 +386,25 @@ describe('bubbles', () => {
     for (let i = 0; i < 20; i++) lines.push('1/1/26, 10:01 - A: <Media omitted>');
     lines.push('1/1/26, 10:02 - B: wow');
     expect(bubbles(parse(lines.join('\n')), ['A', 'B']).longest).toMatchObject({ who: 'A', n: 1 });
+  });
+
+  // `n` messages from A one minute apart, each `words` words long.
+  const burst = (n, words, startMin = 0) => Array.from({ length: n }, (_, i) =>
+    `1/1/26, 10:${String(startMin + i).padStart(2, '0')} - A: ${Array(words).fill('kata').join(' ')}`);
+
+  it('calls a long, wordy burst a rant', () => {
+    const msgs = parse([...burst(10, 8), '1/1/26, 10:30 - B: ok'].join('\n'));
+    expect(bubbles(msgs, ['A', 'B']).feature).toMatchObject({ kind: 'rant', who: 'A', n: 10, words: 80 });
+  });
+
+  it('calls a long burst of short reactions a spree, and a short one normal', () => {
+    expect(bubbles(parse([...burst(12, 2), '1/1/26, 10:30 - B: ok'].join('\n')), ['A', 'B']).feature).toMatchObject({ kind: 'spree', n: 12 });
+    expect(bubbles(parse([...burst(3, 8), '1/1/26, 10:30 - B: ok'].join('\n')), ['A', 'B']).feature).toMatchObject({ kind: 'normal', n: 3 });
+  });
+
+  it('features the biggest rant over a longer spree', () => {
+    const msgs = parse([...burst(15, 2), '1/1/26, 10:20 - B: ok', ...burst(9, 8, 30), '1/1/26, 10:50 - B: ok'].join('\n'));
+    expect(bubbles(msgs, ['A', 'B']).feature).toMatchObject({ kind: 'rant', n: 9, words: 72 });
   });
 
   it('starts a new turn after a 10+ minute gap', () => {
