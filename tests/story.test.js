@@ -257,3 +257,21 @@ describe('the comebacks', () => {
     expect(slidesFor({ ...S, comebacks: { eligible: false } }).map((x) => x.id)).not.toContain('comebacks');
   });
 });
+
+describe('the whole story: what you wrote to each other', () => {
+  const words = (a, b) => ({ ...S, talk: { ...S.talk, words: { [S.A]: a, [S.B]: b } } });
+
+  it('counts the words and turns them into books and reading time', () => {
+    const html = render('intro', words(120000, 118174));
+    expect(html).toMatch(/<b>238,174<\/b>/);
+    expect(html).toMatch(/2\.6 novels/);
+    expect(html).toMatch(/17 hours of reading/);
+    expect(html).toMatch(/publisher/);
+    expect(html).not.toMatch(/of days, you two talked/);
+  });
+
+  it('scales the book down for smaller chats, with minutes under an hour', () => {
+    expect(render('intro', words(20000, 19939))).toMatch(/a novella/);
+    expect(render('intro', words(1500, 1205))).toMatch(/a short story.*12 minutes of reading/);
+  });
+});

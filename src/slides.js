@@ -67,6 +67,17 @@ function paceRemark(S) {
   return !fresh ? t(`pace_${p.kind}${tense}`) : S.days === p.span ? t(`paceNewEvery${tense}`, p.span) : t(`paceNewSome${tense}`, p.span, S.days);
 }
 
+// Everything the two of you wrote, as a book: novels at 90,000 words, then smaller books
+// down to a short story, and how long it would take to read (230 words a minute).
+function wordsCallout(S) {
+  const w = (S.talk?.words?.[S.A] || 0) + (S.talk?.words?.[S.B] || 0);
+  if (!w) return '';
+  const book = w >= 90000 ? t('bookNovels', (w / 90000).toFixed(1)) : w >= 45000 ? t('bookMost') : w >= 17500 ? t('bookNovella') : w >= 7500 ? t('bookNovelette') : t('bookShort');
+  const quip = t(w >= 90000 ? 'quipBig' : w >= 17500 ? 'quipMid' : 'quipSmall');
+  const mins = Math.max(1, Math.round(w / 230));
+  return callout(nf(w), t('wordsCall', book, mins >= 60 ? t('readHours', Math.round(mins / 60)) : t('readMins', mins), quip));
+}
+
 export const SLIDES = [
   { id: 'intro', accent: 'teal', render: (S) => {
     const p = S.pace;
@@ -75,7 +86,7 @@ export const SLIDES = [
       ctx: S.range ? t('rangeFrom', esc(S.range), fmtDate(S.firstDate)) : t('since', fmtDate(S.firstDate)),
       hero: big(S.total), stmt: t('introStmt', esc(S.A), esc(S.B)),
       remark: p ? paceRemark(S) : '',
-      callout: !p ? '' : p.isNew && !S.range ? callout(p.turns, t('introCallNew')) : callout(`${p.share}%`, t('introCall', p.turns)),
+      callout: wordsCallout(S),
     });
   } },
 
