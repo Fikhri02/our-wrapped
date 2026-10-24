@@ -173,6 +173,14 @@ describe('the timeline', () => {
     expect(now({ temp: 'room', phase: 'cooling', dropPct: 60, weeksSincePeak: 12 })).toMatch(/Room temperature\..*60%.*12 weeks/);
   });
 
+  it('shows the matching temperature picture under the now line', () => {
+    for (const temp of ['cold', 'room', 'hot']) {
+      const html = render('arc', { ...S, arc: { ...S.arc, now: { ...S.arc.now, temp } } });
+      expect(html).toMatch(new RegExp(`<img class="arc-temp" src="\\./temp/${temp}\\.webp" alt="[^"]+"`));
+      expect(html.indexOf('arc-temp')).toBeGreaterThan(html.indexOf('ow-remark'));
+    }
+  });
+
   it('says how long the biggest cool-down lasted', () => {
     expect(render('arc', { ...S, arc: { ...S.arc, drop: { from: new Date(2025, 10, 10), to: new Date(2026, 1, 23), weeks: 15 } } })).toMatch(/15 weeks/);
   });
