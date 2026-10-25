@@ -52,7 +52,6 @@ describe('finale', () => {
 
   it('brings the two of you, the years and the headline numbers together', () => {
     const html = finale();
-    expect(html).toMatch(/>A</); // initials in the bubbles
     expect(html).toContain('A &amp; B');
     expect(html).toMatch(/2026/);
     expect(html).toMatch(/data-count="14"/); // total messages
@@ -64,5 +63,17 @@ describe('finale', () => {
     const html = finale({ finale: true });
     expect(html).not.toContain('A &amp; B');
     expect(html).toContain('You two');
+  });
+
+  it('ends like a film: the cast takes a bow, names billed as the stars', () => {
+    const html = finale();
+    const lovers = SLIDES.find((s) => s.id === 'finale').render({ ...S, hide: {}, vibe: 'lovers' });
+    expect(lovers).toMatch(/<img class="ow-pic fin-art" src="\.\/art\/finale\.webp"/);
+    expect(html).toMatch(/class="credits"><small>Starring<\/small>/);
+    expect(html).not.toMatch(/class="duo"|class="db /);
+    expect(finale({ finale: true })).toMatch(/Starring<\/small><span class="fnames">You two/);
+    // a long chat's numbers shrink to fit their third of the panel
+    expect(SLIDES.find((s) => s.id === 'finale').render({ ...S, hide: {}, total: 56258 })).toMatch(/<div style="--len:6"><b>/);
+    expect(SLIDES.find((s) => s.id === 'finale').render({ ...S, hide: {}, vibe: 'friends' })).toMatch(/src="\.\/art\/friends\/finale\.webp"/);
   });
 });

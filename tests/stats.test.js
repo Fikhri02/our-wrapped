@@ -111,8 +111,20 @@ describe('stats on the example chat', () => {
   const S = stats(parse(makeSample()));
 
   it('finds the two people and the first message', () => {
-    expect([S.A, S.B].sort()).toEqual(['Me', 'Sayang']);
+    expect([S.A, S.B].sort()).toEqual(['Lilac', 'Me']);
     expect(S.first.text).toMatch(/lent me a pen/);
+  });
+
+  it('calls the sender "Saya" in Malay, with the same chat otherwise', () => {
+    const M = stats(parse(makeSample('Saya')));
+    expect([M.A, M.B].sort()).toEqual(['Lilac', 'Saya']);
+    expect(M.total).toBe(S.total);
+    expect(M.count.Saya).toBe(S.count.Me);
+  });
+
+  it('names the sender in each language', () => {
+    setLang('ms'); expect(t('sampleMe')).toBe('Saya');
+    setLang('en'); expect(t('sampleMe')).toBe('Me');
   });
 
   it('counts emoji as whole graphemes', () => {

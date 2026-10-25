@@ -8,6 +8,6 @@ describe('share card', () => {
   });
 
   it('names the file after the slide and the local date', () => {
-    expect(shareFileName('share', new Date(2026, 9, 24, 0, 30))).toBe('our-wrapped-share-2026-10-24.png');
+    expect(shareFileName('share', new Date(2026, 9, 24, 0, 30))).toBe('chat-wrapped-share-2026-10-24.png');
   });
 });

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Our Wrapped</title>
+  <title>Chat Wrapped</title>
 </head>
 <body>
   <input type="file" id="file" accept=".txt,text/plain">
@@ -11,7 +11,7 @@
   <!-- 1. Landing: what it is, pick a chat, and a preview phone playing the example -->
   <main class="app" id="screen-landing">
     <div class="intro">
-      <h1>Our<span>Wrapped.</span></h1>
+      <h1>Chat<span>Wrapped.</span></h1>
       <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="ms">BM</button><button type="button" data-lang="en">EN</button></div>
       <p data-i18n="lede">Your chat, as a story. Export a WhatsApp chat as .txt "Without media" and drop it in. Everything happens on this device: no upload, no account.</p>
       <div class="row">
@@ -31,6 +31,21 @@
       <div class="ctrl"><button id="pPause" type="button">Pause</button><button id="pRestart" type="button" data-i18n="restart">Restart</button></div>
     </div>
   </main>
+
+  <!-- First visit: where the chat goes (nowhere) -->
+  <div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" hidden>
+    <div class="welcome-card">
+      <img class="welcome-art" src="./art/privacy.webp" alt="" aria-hidden="true" width="480" height="480">
+      <h2 id="welcomeTitle" data-i18n="welcomeTitle">Your chat stays with you</h2>
+      <p data-i18n="welcomeBody">Chat Wrapped reads your chat right here on your phone. Nobody else sees it, not even us.</p>
+      <ul class="welcome-list">
+        <li data-i18n="welcomeNoUpload">Never uploaded anywhere</li>
+        <li data-i18n="welcomeNoAccount">No account, no sign-in</li>
+        <li data-i18n="welcomeGone">Close the tab and it’s gone</li>
+      </ul>
+      <button class="btn primary" id="welcomeOk" type="button" data-i18n="welcomeOk">Got it, let’s go</button>
+    </div>
+  </div>
 
   <!-- 2. Story: the user's chat, full screen -->
   <section class="story" id="screen-story" role="dialog" aria-modal="true" aria-label="Story" hidden>
@@ -68,7 +83,7 @@
   <!-- 3. Results: every slide at once, plus the controls that shape the story -->
   <section class="results" id="screen-results" hidden>
     <header class="results-top">
-      <div class="brand">Our<span>Wrapped.</span></div>
+      <div class="brand">Chat<span>Wrapped.</span></div>
       <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="ms">BM</button><button type="button" data-lang="en">EN</button></div>
     </header>
     <div class="results-head">

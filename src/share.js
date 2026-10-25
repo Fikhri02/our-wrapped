@@ -6,7 +6,7 @@ export const EXPORT = { width: 360, height: 640, pixelRatio: 3 };
 
 const pad = (n) => (n < 10 ? '0' : '') + n;
 export const shareFileName = (slideId, d = new Date()) =>
-  `our-wrapped-${slideId}-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.png`;
+  `chat-wrapped-${slideId}-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.png`;
 
 export async function renderSlidePng(slide, stats) {
   const { toBlob } = await import('html-to-image');
@@ -22,7 +22,7 @@ export async function renderSlidePng(slide, stats) {
   card.querySelectorAll('.slide-act').forEach((b) => b.remove()); // buttons belong on screen, not in the image
   const mark = document.createElement('div');
   mark.className = 'export-mark';
-  mark.textContent = 'Our Wrapped';
+  mark.textContent = 'Chat Wrapped';
   card.appendChild(mark);
   frame.appendChild(card);
   // Only the stage is moved offscreen. An offset on the captured node itself is copied into
@@ -54,7 +54,7 @@ export async function saveOrShare(blob, name) {
   const file = new File([blob], name, { type: 'image/png' });
   if (prefersShareSheet() && navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: 'Our Wrapped' });
+      await navigator.share({ files: [file], title: 'Chat Wrapped' });
       return 'shared';
     } catch (err) {
       if (err.name === 'AbortError') return 'cancelled';

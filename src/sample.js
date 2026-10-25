@@ -10,7 +10,7 @@ function rng(seed) {
 }
 const pad = (n) => (n < 10 ? '0' : '') + n;
 
-const A = 'Me', B = 'Sayang';
+const A = 'Me', B = 'Lilac';
 const MORNING = { [A]: ['Selamat pagi sayang ☀️', 'morning!! dah bangun?', 'gm 🥱', 'pagi ❤️ jangan lupa sarapan'], [B]: ['morninggg ☀️', 'pagi 😴', 'good morning sayang 🥰'] };
 const DAY = {
   [A]: ['lunch apa harini?', 'meeting lagi 😩', 'nanti I call ok', 'traffic teruk gila 🚗', 'haha', 'okay noted 👍', 'rindu 🥺', 'teh tarik tak?', 'eh tengok ni 😂', 'I belanja dinner malam ni', 'love you ❤️'],
@@ -23,7 +23,8 @@ const NIGHT = {
 
 const BURST = ['eh', 'wait', 'ok so', 'hahaha', '😂', 'nvm', 'actually', 'lol okay', 'tapi kan', 'ANYWAY'];
 
-export function makeSample() {
+// `me` names the sender: 'Me' in English, 'Saya' in Malay; the chat is otherwise the same.
+export function makeSample(me = A) {
   const r = rng(1987);
   const pick = (a) => a[Math.floor(r() * a.length)];
   const other = (w) => (w === A ? B : A);
@@ -86,5 +87,5 @@ export function makeSample() {
 
   const key = (s) => { const m = s.match(/^(\d\d)\/(\d\d)\/(\d{4}), (\d\d):(\d\d)/); return m ? m[3] + m[2] + m[1] + m[4] + m[5] : ''; };
   out.sort((x, y) => (key(x) < key(y) ? -1 : key(x) > key(y) ? 1 : 0));
-  return out.join('\n');
+  return out.join('\n').replaceAll(` - ${A}: `, ` - ${me}: `);
 }

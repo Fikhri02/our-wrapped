@@ -26,7 +26,7 @@ describe('the story', () => {
   it('gives every slide the same layout: a header with the brand, then the body and a callout', () => {
     for (const s of SLIDES) {
       const html = s.render(S);
-      expect(html, s.id).toMatch(/class="k ow-head"><span>[^<]+<\/span><span class="ow-brand">Our Wrapped<\/span>/);
+      expect(html, s.id).toMatch(/class="k ow-head"><span>[^<]+<\/span><span class="ow-brand">Chat Wrapped<\/span>/);
       expect(html, s.id).toMatch(/class="ow-text"/);
     }
   });

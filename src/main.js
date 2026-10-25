@@ -20,6 +20,7 @@ import { createPlayer } from './player.js';
 import { closingSlide, slidesFor } from './slides.js';
 import { paint } from './theme.js';
 import { makeSample } from './sample.js';
+import { markWelcomed, shouldWelcome } from './welcome.js';
 import { esc, fmtDay, nf } from './format.js';
 import { dayMessages, guessMe, renderChat } from './chat.js';
 import { dayKey } from './stats.js';
@@ -37,7 +38,9 @@ const sections = { landing: $('screen-landing'), story: $('screen-story'), resul
 
 // The preview phone on Landing only ever plays the made-up example.
 const preview = createPlayer({ screen: $('pScreen'), card: $('pCard'), bars: $('pBars'), pauseButton: $('pPause') });
-const sampleStats = stats(parse(makeSample()));
+// The example's sender is "Me" in English and "Saya" in Malay, so it is built per language.
+const samples = {};
+const sampleStats = () => (samples[getLang()] ||= stats(parse(makeSample(t('sampleMe')))));
 // The real chat plays full screen, then hands over to Results.
 const story = createPlayer({
   screen: $('sScreen'), card: $('sCard'), bars: $('sBars'), pauseButton: $('sPause'),
@@ -116,9 +119,10 @@ rangeSel.addEventListener('change', () => {
 });
 
 function playSample() {
-  preview.load(sampleStats, slidesFor(sampleStats));
+  const S = sampleStats();
+  preview.load(S, slidesFor(S));
   status.className = 'status';
-  status.innerHTML = `<b>${esc(t('sampleLabel'))}</b>: ` + summaryLine(sampleStats);
+  status.innerHTML = `<b>${esc(t('sampleLabel'))}</b>: ` + summaryLine(S);
 }
 
 // A picked chat goes straight into the full-screen story.
@@ -336,3 +340,19 @@ for (const b of document.querySelectorAll('[data-lang]')) {
 
 playSample();
 render();
+
+// First visit: say where the chat goes before anyone picks a file. Closed by the button,
+// Escape or a tap outside the card; remembered on this device.
+const welcome = $('welcome');
+function closeWelcome() {
+  if (welcome.hidden) return;
+  welcome.hidden = true;
+  markWelcomed(localStorage);
+}
+if (shouldWelcome(localStorage)) {
+  welcome.hidden = false;
+  $('welcomeOk').focus();
+}
+$('welcomeOk').addEventListener('click', closeWelcome);
+welcome.addEventListener('click', (e) => { if (e.target === welcome) closeWelcome(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeWelcome(); });
