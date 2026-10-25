@@ -177,7 +177,11 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .sm-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); text-align: center; }
 .sm-kpis > div { display: grid; justify-items: center; gap: 2px; padding: 2px 4px; min-width: 0; }
 .sm-kpis > div + div { border-left: 1px solid var(--line); }
-.sm-kpis svg { width: 20px; height: 20px; color: var(--accent); }
+.sm-ico { width: 40px; height: 40px; object-fit: contain; }
+.sm-kpis .sm-ico { width: 44px; height: 44px; margin-bottom: 2px; }
+.sm-temp .sm-ico { width: 28px; height: 28px; }
+.sm-ledger .sm-ico { width: 38px; height: 38px; margin-bottom: 2px; }
+.sm-pair { display: flex; gap: 2px; }
 .sm-kpis b { font-family: var(--display); font-size: clamp(18px, 4.6vw, 26px); font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .sm-kpis small { font-size: 11.5px; color: var(--muted); line-height: 1.2; }
 .sm-donut-wrap { display: flex; align-items: center; gap: 14px; }
@@ -207,7 +211,7 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .sm-pulse { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: end; }
 .sm-temp { display: grid; gap: 6px; justify-items: start; background: color-mix(in srgb, var(--accent) 7%, var(--surface)); border-radius: 14px; padding: 10px 12px; }
 .sm-temp small { font-size: 11.5px; color: var(--muted); }
-.sm-temp b { font-size: 14px; padding: 3px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.sm-temp b { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 14px; padding: 3px 12px 3px 6px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
 .sm-ledger { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .sm-ledger > div { display: grid; gap: 2px; min-width: 0; }
 .sm-ledger > div + div { border-left: 1px solid var(--line); padding-left: 10px; }
@@ -221,10 +225,29 @@ input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .sm-actions .btn { padding: 13px 16px; font-size: 15px; }
 .sm-actions .btn:disabled { opacity: .6; cursor: progress; }
 .all-slides { display: grid; gap: 32px; scroll-margin-top: 16px; }
+/* phones keep the mockup's pairs side by side: smaller donut, tighter rows */
 @media (max-width: 560px) {
-  .sm-grid { grid-template-columns: minmax(0, 1fr); }
+  .sm-grid { gap: 10px; }
+  .sm-card { padding: 12px 12px 14px; border-radius: 18px; gap: 8px; }
+  .sm-card h3 { font-size: 12.5px; }
   .sm-art { width: 110px; height: 84px; }
   .sm-kpis small { font-size: 10.5px; }
+  .sm-donut-wrap { gap: 8px; }
+  .sm-donut { width: 74px; height: 74px; }
+  .sm-legend { font-size: 12px; gap: 4px; }
+  .sm-legend b { font-size: 16px; }
+  .sm-row { grid-template-columns: minmax(0, 46px) 1fr auto; gap: 6px; font-size: 12px; }
+  .sm-row b { font-size: 12px; }
+  .sm-track { height: 9px; }
+  .sm-note { font-size: 10.5px; }
+  .sm-hist, .sm-weeks { height: 72px; gap: 2px; }
+  /* the temperature sits in a row under the bars, so the chart keeps its width */
+  .sm-pulse { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .sm-temp { grid-auto-flow: column; justify-content: start; align-items: center; gap: 10px; padding: 8px 10px; }
+  .sm-ledger b { font-size: 15px; }
+  .sm-ledger small, .sm-ledger span { font-size: 10.5px; }
+  .sm-emo { gap: 4px 10px; font-size: 18px; }
+  .sm-emo .sm-who { width: 100%; }
 }
 
 .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
