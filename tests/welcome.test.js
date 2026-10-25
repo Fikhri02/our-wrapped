@@ -1,22 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { WELCOME_KEY, shouldWelcome, markWelcomed } from '../src/welcome.js';
+import { readFileSync } from 'node:fs';
 import { setLang, t } from '../src/i18n.js';
 
-const memory = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) }; };
-const blocked = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } };
+const page = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const main = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
 
-describe('first-visit privacy popup', () => {
-  it('shows on the first visit and not after it is dismissed', () => {
-    const s = memory();
-    expect(shouldWelcome(s)).toBe(true);
-    markWelcomed(s);
-    expect(s.getItem(WELCOME_KEY)).toBe('1');
-    expect(shouldWelcome(s)).toBe(false);
-  });
-
-  it('still reassures when storage is blocked, and never throws', () => {
-    expect(shouldWelcome(blocked)).toBe(true);
-    expect(() => markWelcomed(blocked)).not.toThrow();
+describe('privacy popup on every load', () => {
+  it('opens with the page every time, remembering nothing', () => {
+    expect(page).toMatch(/<div class="welcome" id="welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">/);
+    expect(main).not.toMatch(/welcomed|markWelcomed|shouldWelcome/);
   });
 
   it('says plainly where the chat goes, in both languages', () => {

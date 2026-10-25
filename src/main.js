@@ -20,7 +20,6 @@ import { createPlayer } from './player.js';
 import { closingSlide, slidesFor } from './slides.js';
 import { paint } from './theme.js';
 import { makeSample } from './sample.js';
-import { markWelcomed, shouldWelcome } from './welcome.js';
 import { summaryHtml } from './summary.js';
 import { zipStore } from './zip.js';
 import { esc, fmtDay, nf } from './format.js';
@@ -387,18 +386,11 @@ for (const b of document.querySelectorAll('[data-lang]')) {
 playSample();
 render();
 
-// First visit: say where the chat goes before anyone picks a file. Closed by the button,
-// Escape or a tap outside the card; remembered on this device.
+// Every load: say where the chat goes before anyone picks a file. The page opens with the
+// popup showing; the button, Escape or a tap outside the card closes it until the next load.
 const welcome = $('welcome');
-function closeWelcome() {
-  if (welcome.hidden) return;
-  welcome.hidden = true;
-  markWelcomed(localStorage);
-}
-if (shouldWelcome(localStorage)) {
-  welcome.hidden = false;
-  $('welcomeOk').focus();
-}
+function closeWelcome() { welcome.hidden = true; }
+$('welcomeOk').focus();
 $('welcomeOk').addEventListener('click', closeWelcome);
 welcome.addEventListener('click', (e) => { if (e.target === welcome) closeWelcome(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeWelcome(); });
