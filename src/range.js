@@ -5,12 +5,24 @@ import { getLang, MONTHS, t } from './i18n.js';
 
 const pad = (n) => (n < 10 ? '0' : '') + n;
 
+// Durations that need no chat, picked on the landing page before a file is chosen: all time,
+// the last 30 days, or a year (this one and the five before). Ids match rangeOptions, so the
+// choice carries over to the Results picker.
+export function presetRanges(now = new Date()) {
+  const y = now.getFullYear();
+  return [
+    { id: 'all', label: t('allTime'), from: null, to: null },
+    { id: 'last30', label: t('last30'), from: new Date(y, now.getMonth(), now.getDate() - 30), to: null },
+    ...Array.from({ length: 6 }, (_, k) => ({ id: `y${y - k}`, label: String(y - k), from: new Date(y - k, 0, 1), to: new Date(y - k + 1, 0, 1) })),
+  ];
+}
+
 export function rangeOptions(msgs, now = new Date()) {
-  const opts = [{ id: 'all', label: t('allTime'), from: null, to: null }];
+  const [all, last30] = presetRanges(now);
+  const opts = [all];
   if (!msgs.length) return opts;
 
-  const since = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
-  if (msgs.some((m) => m.when >= since)) opts.push({ id: 'last30', label: t('last30'), from: since, to: null });
+  if (msgs.some((m) => m.when >= last30.from)) opts.push(last30);
 
   const years = new Set(), months = new Set();
   for (const m of msgs) {

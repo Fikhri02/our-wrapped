@@ -27,7 +27,7 @@ import { dayMessages, guessMe, renderChat } from './chat.js';
 import { dayKey } from './stats.js';
 import { DEFAULT_HIDE, PRIVATE_SLIDES, readHide } from './privacy.js';
 import { prefersShareSheet, renderSlidePng, saveOrShare, shareFileName } from './share.js';
-import { filterRange, rangeOptions } from './range.js';
+import { filterRange, presetRanges, rangeOptions } from './range.js';
 import { getLang, LANGS, setLang, t } from './i18n.js';
 import { screenFor } from './route.js';
 
@@ -111,6 +111,14 @@ function build(range) {
   return true;
 }
 
+// The landing page's duration picker: rolling windows that need no chat (relabelled on a language switch).
+const startRange = $('startRange');
+function fillStartRange() {
+  const keep = startRange.value || 'all';
+  startRange.innerHTML = presetRanges().map((r) => `<option value="${r.id}">${esc(r.label)}</option>`).join('');
+  startRange.value = keep;
+}
+
 function fillRanges() {
   ranges = rangeOptions(allMsgs);
   rangeSel.innerHTML = ranges.map((r) => `<option value="${r.id}">${esc(r.label)}</option>`).join('');
@@ -138,8 +146,15 @@ function run(text, label) {
   }
   allMsgs = msgs;
   fillRanges();
-  rangeSel.value = shownRange = 'all';
-  build(ranges[0]);
+  // The duration picked on the landing page, if this chat has enough in it; otherwise all time.
+  const wanted = ranges.find((r) => r.id === startRange.value);
+  if (wanted && wanted.id !== 'all' && build(wanted)) {
+    rangeSel.value = shownRange = wanted.id;
+  } else {
+    if (startRange.value !== 'all') say(t('rangeFallback', presetRanges().find((r) => r.id === startRange.value)?.label || ''));
+    rangeSel.value = shownRange = 'all';
+    build(ranges[0]);
+  }
   go('story');
 }
 
@@ -365,6 +380,7 @@ function applyLang(l) {
   for (const b of document.querySelectorAll('[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === getLang()));
   preview.relabel();
   story.relabel();
+  fillStartRange();
 }
 let saved = null;
 try { saved = localStorage.getItem(LANG_KEY); } catch { /* storage blocked */ }
