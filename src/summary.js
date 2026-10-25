@@ -3,7 +3,7 @@
 import { t } from './i18n.js';
 import { esc, fmtDate, fmtDay, nf } from './format.js';
 
-// Icons are ChatGPT-made stickers in the mascot's style (public/icons), not stock pictograms.
+// Icons are ChatGPT-made two-tone glyphs in its mockup's style (public/icons); the mascot stays in the header art.
 const icon = (k) => `<img class="sm-ico" src="./icons/${k}.webp" alt="" aria-hidden="true">`;
 const card = (id, title, body, cls = '') => `<section class="sm-card${cls ? ` ${cls}` : ''}" data-card="${id}">${title ? `<h3>${title}</h3>` : ''}${body}</section>`;
 const pct = (a, b) => (a + b ? Math.round((a / (a + b)) * 100) : 50);
