@@ -101,6 +101,14 @@
       <div class="status" id="rangeStatus" aria-live="polite"></div>
     </div>
 
+    <!-- The whole chat at a glance, then every slide on request -->
+    <div class="dash" id="dash"></div>
+    <div class="sm-actions">
+      <button class="btn" id="viewAll" type="button" aria-expanded="false" aria-controls="allSlides" data-i18n="viewAll">View all slides</button>
+      <button class="btn primary" id="downloadAll" type="button" data-i18n="downloadAll">Download all</button>
+    </div>
+
+    <div class="all-slides" id="allSlides" hidden>
     <div class="gallery" id="gallery"></div>
 
     <form class="note" id="noteForm">
@@ -112,6 +120,7 @@
       </div>
       <small data-i18n="noteHint">Saved as a draft on this device only.</small>
     </form>
+    </div>
   </section>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
