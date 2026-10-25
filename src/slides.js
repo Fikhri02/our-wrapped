@@ -14,7 +14,7 @@ const count = (n, suffix = '', dec = 0) =>
 // more thing worth knowing. Parts a slide doesn't need are left out. The big number shrinks
 // with its length so 2,510 fits where 57 does.
 const slide = ({ kicker, lead = '', art = '', ctx = '', hero = null, stmt = '', remark = '', more = '', callout = '' }) =>
-  `<div class="k ow-head"><span>${kicker}</span><span class="ow-brand">Our Wrapped</span></div>`
+  `<div class="k ow-head"><span>${kicker}</span><span class="ow-brand">Chat Wrapped</span></div>`
   + `<div class="body">${lead ? `<div class="ow-lead">${lead}</div>` : ''}${art ? `<div class="ow-art">${art}</div>` : ''}<div class="ow-text">`
   + `${ctx ? `<div class="ow-ctx">${ctx}</div>` : ''}`
   + `${hero ? `<div class="ow-hero" style="--len:${hero.label.length}">${count(hero.n, hero.suffix || '', hero.dec || 0)}</div>` : ''}`
@@ -35,7 +35,7 @@ const asEmoji = (e) => ([...e].length === 1 ? `${e}️` : e);
 // (public/art/{id}.webp, or art/friends/ for a chat between friends). Decorative: the number
 // and the words say it all.
 const friends = (vibe) => (vibe === 'friends' ? 'friends/' : '');
-const art = (id, S) => `<img class="ow-pic" src="./art/${friends(S?.vibe)}${id}.webp" alt="" aria-hidden="true">`;
+const art = (id, S, cls = '') => `<img class="ow-pic${cls ? ` ${cls}` : ''}" src="./art/${friends(S?.vibe)}${id}.webp" alt="" aria-hidden="true">`;
 
 // The streak as a calendar laid on its side: a column per week (Monday at the top), the
 // streak's days filled, its ends ringed, other days you talked shown faintly. Seven rows
@@ -128,7 +128,7 @@ function fastest(S) {
 // A chapter's cover: its number, title, a line on what's in it, and its picture.
 const cover = (n) => ({
   id: `ch${n}`, chapter: n, cover: true,
-  render: (S) => `<div class="k ow-head"><span>${t('chapterK', n)}</span><span class="ow-brand">Our Wrapped</span></div>`
+  render: (S) => `<div class="k ow-head"><span>${t('chapterK', n)}</span><span class="ow-brand">Chat Wrapped</span></div>`
     + `<div class="body ch-body"><div class="ow-text"><div class="ch-num">${String(n).padStart(2, '0')}</div>`
     + `<div class="ch-title">${t(`ch${n}Title`)}</div><div class="ch-teaser">${t(`ch${n}Teaser`)}</div></div>`
     + `<img class="ch-art" src="./chapters/${friends(S?.vibe)}${n}.webp" alt="${t(`ch${n}Alt${S?.vibe === 'friends' ? 'F' : ''}`)}"></div><div class="foot"></div>`,
@@ -388,14 +388,15 @@ export const SLIDES = [
   // The keepsake: two bubbles with your initials, both names, the years, three headline
   // numbers and a line about you two. Saved without names it reads "You two".
   { id: 'finale', chapter: 5, render: (S) => {
-    const anon = S.hide?.finale, dots = '<i></i><i></i><i></i>';
-    const initial = (n) => esc([...n.trim()][0]?.toUpperCase() || '?');
+    const anon = S.hide?.finale;
     const y0 = S.firstDate.getFullYear(), y1 = +(S.dayKeys?.[S.dayKeys.length - 1] || String(y0)).slice(0, 4);
-    const stat = (n, label) => `<div><b>${count(n)}</b><small>${label}</small></div>`;
+    // --len (digits plus separators) shrinks a long number to fit its third of the panel
+    const stat = (n, label) => `<div style="--len:${nf(n).length}"><b>${count(n)}</b><small>${label}</small></div>`;
     return slide({
       kicker: t('finaleKicker', y0 === y1 ? y0 : `${y0} – ${y1}`),
-      art: `<div class="duo" aria-hidden="true"><span class="db a">${anon ? dots : initial(S.A)}</span><span class="db b">${anon ? dots : initial(S.B)}</span></div>`,
-      stmt: `<span class="fnames">${anon ? t('youTwo') : `${esc(S.A)} &amp; ${esc(S.B)}`}</span>`,
+      // End credits: the two of you take a bow, billed as the stars (or "you two" when hidden).
+      art: art('finale', S, 'fin-art'),
+      stmt: `<span class="credits"><small>${t('starring')}</small><span class="fnames">${anon ? t('youTwo') : `${esc(S.A)} &amp; ${esc(S.B)}`}</span></span>`,
       remark: S.pace ? paceRemark(S) : '',
       callout: `<div class="ow-call ow-fin"><div class="fstats">${stat(S.total, t('finMessages'))}${stat(S.days, t('finDays'))}${stat(S.streak, t('finStreak'))}</div><span>${t('finaleFoot')}</span></div>`,
     });
