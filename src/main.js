@@ -49,7 +49,7 @@ const story = createPlayer({
   onEnd: () => leaveStory(),
 });
 
-let current = null, currentMsgs = [], allMsgs = [], source = '', ranges = [], shownRange = 'all', screen = 'landing', storyFrom = 'landing';
+let current = null, currentMsgs = [], allMsgs = [], ranges = [], shownRange = 'all', screen = 'landing', storyFrom = 'landing';
 
 // What saved images hide, remembered on this device. Results cards show the slides as they
 // will be saved, so what you see there is exactly what ends up in the image.
@@ -105,8 +105,6 @@ function build(range) {
   currentMsgs = msgs;
   rangeStatus.className = 'status';
   rangeStatus.textContent = '';
-  $('pair').textContent = `${current.A} & ${current.B}`;
-  $('summary').innerHTML = `<b>${esc(source)}</b>${current.range ? ` · ${esc(current.range)}` : ''}: ` + summaryLine(current);
   story.load(current, slideList());
   story.setActive(screen === 'story');
   renderGallery();
@@ -140,7 +138,6 @@ function run(text, label) {
     return;
   }
   allMsgs = msgs;
-  source = label;
   fillRanges();
   rangeSel.value = shownRange = 'all';
   build(ranges[0]);
