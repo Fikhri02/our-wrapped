@@ -21,11 +21,13 @@ import { closingSlide, slidesFor } from './slides.js';
 import { paint } from './theme.js';
 import { makeSample } from './sample.js';
 import { markWelcomed, shouldWelcome } from './welcome.js';
+import { summaryHtml } from './summary.js';
+import { zipStore } from './zip.js';
 import { esc, fmtDay, nf } from './format.js';
 import { dayMessages, guessMe, renderChat } from './chat.js';
 import { dayKey } from './stats.js';
 import { DEFAULT_HIDE, PRIVATE_SLIDES, readHide } from './privacy.js';
-import { renderSlidePng, saveOrShare, shareFileName } from './share.js';
+import { prefersShareSheet, renderSlidePng, saveOrShare, shareFileName } from './share.js';
 import { filterRange, rangeOptions } from './range.js';
 import { getLang, LANGS, setLang, t } from './i18n.js';
 import { screenFor } from './route.js';
@@ -75,6 +77,9 @@ const summaryLine = (s) => t('loaded', nf(s.total), esc(s.A), esc(s.B), s.days) 
 // The results gallery holds the slides worth saving: chapter covers stay in the story only.
 const gallerySlides = () => slideList().filter((s) => !s.cover);
 
+// The summary screen: the whole chat at a glance (names follow the hide-on-save choice).
+const renderDash = () => { $('dash').innerHTML = summaryHtml({ ...current, hide }); };
+
 function renderGallery() {
   const list = gallerySlides();
   gallery.innerHTML = list.map((slide, i) => {
@@ -105,6 +110,7 @@ function build(range) {
   story.load(current, slideList());
   story.setActive(screen === 'story');
   renderGallery();
+  renderDash();
   return true;
 }
 
@@ -289,6 +295,48 @@ async function saveSlide(slide, s, button, hold) {
     hold?.(false);
   }
 }
+// View all slides: the gallery and the closing note open under the summary.
+const allSlides = $('allSlides'), viewAll = $('viewAll');
+viewAll.addEventListener('click', () => {
+  allSlides.hidden = !allSlides.hidden;
+  viewAll.setAttribute('aria-expanded', String(!allSlides.hidden));
+  viewAll.dataset.i18n = allSlides.hidden ? 'viewAll' : 'hideAll'; // the language switch relabels from this
+  viewAll.textContent = t(viewAll.dataset.i18n);
+  if (!allSlides.hidden) allSlides.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// Download all: every slide as a PNG. Phones get one share sheet (Save to Photos); elsewhere
+// one .zip, since browsers block a burst of separate downloads.
+$('downloadAll').addEventListener('click', async (e) => {
+  const button = e.currentTarget;
+  if (button.disabled) return;
+  button.disabled = true;
+  try {
+    const list = gallerySlides(), s = forSaving(), files = [];
+    for (const [i, slide] of list.entries()) {
+      say(t('makingN', i + 1, list.length), true);
+      const blob = await renderSlidePng(slide, s);
+      files.push(new File([blob], `${String(i + 1).padStart(2, '0')}-${shareFileName(slide.id)}`, { type: 'image/png' }));
+    }
+    if (prefersShareSheet() && navigator.canShare?.({ files })) {
+      try { await navigator.share({ files, title: 'Chat Wrapped' }); say(t('shared')); return; }
+      catch (err) { if (err.name === 'AbortError') { say(''); return; } }
+    }
+    const entries = await Promise.all(files.map(async (f) => ({ name: f.name, data: new Uint8Array(await f.arrayBuffer()) })));
+    const zip = new Blob([zipStore(entries)], { type: 'application/zip' });
+    const url = URL.createObjectURL(zip);
+    const a = Object.assign(document.createElement('a'), { href: url, download: shareFileName('slides').replace(/\.png$/, '.zip') });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    say(t('zipped'));
+  } catch (err) {
+    console.error('[our-wrapped] download all failed', err);
+    say(t('shareFailed'));
+  } finally {
+    button.disabled = false;
+  }
+});
+
 $('sSave').addEventListener('click', (e) => {
   // The story shows everything; the saved image still follows the hide-on-save choices.
   const { slide } = story.current();
@@ -306,6 +354,7 @@ gallery.addEventListener('change', (e) => {
   hide = { ...hide, [box.dataset.hide]: box.checked };
   try { localStorage.setItem(HIDE_KEY, JSON.stringify(hide)); } catch { /* ignore */ }
   renderGallery();
+  renderDash();
   $(box.id)?.focus({ preventScroll: true });
 });
 
